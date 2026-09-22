@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>DinCox Shoes - Shopee Live Studio & AI Streamer Generator</title>
+  <meta name="description" content="Trình tạo video livestream Shopee 9:16 với người ảo MC AI đọc kịch bản giới thiệu sản phẩm DinCox Giày Chuẩn EU - Giá Ưu Việt.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/src/style.css">
+</head>
+<body>
+  <div id="app">
+    <!-- Top Navigation Header -->
+    <header class="app-header">
+      <div class="header-brand">
+        <div class="brand-logo-badge">DINCOX</div>
+        <div class="brand-titles">
+          <h1>Shopee Live Studio & AI Video Generator</h1>
+          <span class="sub-tag">Giày Chuẩn EU - Giá Ưu Việt</span>
+        </div>
+      </div>
+      <div class="header-actions">
+        <span class="status-pill"><span class="pulse-dot"></span> Studio Ready</span>
+        <button id="btn-obs-mode" class="btn btn-secondary">
+          <i data-lucide="video"></i> OBS Overlay Link
+        </button>
+      </div>
+    </header>
+
+    <!-- Main Workspace Split Screen Layout -->
+    <main class="workspace">
+      <!-- Left Panel: Product & AI Host Configuration -->
+      <section class="panel control-panel">
+        <div class="panel-section">
+          <div class="section-header-flex">
+            <h2><i data-lucide="package"></i> 1. Nguồn Sản Phẩm DinCox</h2>
+            <div class="import-btn-group">
+              <button id="btn-import-web" class="btn btn-xs btn-outline">
+                <i data-lucide="globe"></i> 🌐 dincox.com
+              </button>
+              <button id="btn-import-shopee" class="btn btn-xs btn-accent">
+                <i data-lucide="shopping-bag"></i> ⚡ Shopee Mall
+              </button>
+            </div>
+          </div>
+          <div class="product-selector-grid" id="product-selector">
+            <!-- DinCox catalog cards rendered via JS -->
+          </div>
+
+          <div class="custom-product-box">
+            <button id="toggle-custom-product" class="btn btn-ghost">
+              <i data-lucide="plus-circle"></i> Nhập / Thêm Danh Sách Giày Mới
+            </button>
+            <div id="custom-product-form" class="custom-form hidden">
+              <div class="custom-mode-tabs">
+                <button id="tab-single-prod" class="tab-btn active">Tùy Chỉnh 1 Mẫu</button>
+                <button id="tab-batch-prod" class="tab-btn">Nhập Hàng Loạt (List)</button>
+              </div>
+
+              <!-- Single Form -->
+              <div id="single-prod-container" class="form-container">
+                <input type="text" id="cust-name" placeholder="Tên sản phẩm (VD: DinCox DC39 Leather)" class="input-field">
+                <div class="form-row">
+                  <input type="number" id="cust-orig-price" placeholder="Giá gốc (VD: 850000)" class="input-field">
+                  <input type="number" id="cust-sale-price" placeholder="Giá Live (VD: 499000)" class="input-field">
+                </div>
+                <input type="text" id="cust-feature" placeholder="Tính năng chính (VD: Lót Latex Memory Foam siêu êm)" class="input-field">
+                <div class="form-group">
+                  <label for="cust-img-file">📷 Upload Ảnh Giày Sản Phẩm (Tùy chọn)</label>
+                  <input type="file" id="cust-img-file" accept="image/*" class="input-field">
+                  <div id="cust-img-preview" class="img-preview-box hidden"></div>
+                </div>
+                <button id="btn-apply-custom" class="btn btn-sm btn-primary">Thêm Vào Danh Sách Giày</button>
+              </div>
+
+              <!-- Batch List Form -->
+              <div id="batch-prod-container" class="form-container hidden">
+                <p class="form-hint">Nhập mỗi dòng 1 mẫu theo định dạng:<br><code>Tên Giày | Giá Gốc | Giá Live | Tính Năng</code></p>
+                <textarea id="batch-text-input" class="textarea-field" rows="4" placeholder="DinCox D14 Smart | 920000 | 599000 | Lót Memory Foam siêu êm&#10;DinCox C12 Retro High | 580000 | 379000 | Canvas cổ cao Vintage"></textarea>
+                <button id="btn-apply-batch" class="btn btn-sm btn-primary">Import Danh Sách Này</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="panel-section">
+          <h2><i data-lucide="user"></i> 2. Chọn MC Người Ảo AI</h2>
+          <div class="presenter-selector" id="presenter-selector">
+            <!-- MC AI cards rendered via JS -->
+          </div>
+        </div>
+
+        <div class="panel-section">
+          <div class="section-header-flex">
+            <h2><i data-lucide="sparkles"></i> 3. Kịch Bản & Giọng Đọc AI</h2>
+            <button id="btn-regen-script" class="btn btn-xs btn-outline">
+              <i data-lucide="refresh-cw"></i> Sinh Kịch Bản Mới
+            </button>
+          </div>
+
+          <div class="script-editor">
+            <div class="script-stage-tabs" id="script-stage-tabs">
+              <!-- Stage tabs rendered via JS -->
+            </div>
+            <textarea id="script-text-input" class="textarea-field" rows="4" placeholder="Nội dung kịch bản MC AI sẽ đọc..."></textarea>
+            <div class="speech-controls">
+              <button id="btn-preview-speech" class="btn btn-sm btn-accent">
+                <i data-lucide="volume-2"></i> Đọc Thử Giọng AI
+              </button>
+              <button id="btn-stop-speech" class="btn btn-sm btn-danger">
+                <i data-lucide="square"></i> Dừng Đọc
+              </button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Center Panel: Live 9:16 Canvas Preview -->
+      <section class="panel preview-panel">
+        <div class="canvas-header">
+          <span class="live-badge">● LIVE 9:16</span>
+          <span id="canvas-resolution">1080 x 1920 HD</span>
+        </div>
+
+        <div class="canvas-container">
+          <canvas id="shopee-canvas"></canvas>
+        </div>
+
+        <div class="preview-actions">
+          <div class="loop-mode-toggle">
+            <label class="toggle-label">
+              <input type="checkbox" id="chk-loop-all-products" checked>
+              <span>🔄 Tự động lặp qua tất cả sản phẩm DinCox</span>
+            </label>
+          </div>
+          <div class="action-buttons-row">
+            <button id="btn-play-full-sequence" class="btn btn-lg btn-success">
+              <i data-lucide="play"></i> Phát Kịch Bản Tự Động
+            </button>
+            <button id="btn-start-record" class="btn btn-lg btn-danger">
+              <i data-lucide="disc"></i> Quay & Xuất Video
+            </button>
+          </div>
+        </div>
+      </section>
+
+      <!-- Right Panel: Deal Configuration & Video Exporter -->
+      <section class="panel timeline-panel">
+        <div class="panel-section">
+          <h2><i data-lucide="zap"></i> Shopee Flash Sale & Voucher</h2>
+          <div class="form-group">
+            <label for="voucher-code-input">Mã Voucher Live</label>
+            <input type="text" id="voucher-code-input" class="input-field" value="DINCOX50K">
+          </div>
+          <div class="form-group">
+            <label for="stock-count-input">Số lượng kho sale</label>
+            <input type="number" id="stock-count-input" class="input-field" value="12">
+          </div>
+        </div>
+
+        <div class="panel-section">
+          <h2><i data-lucide="clapperboard"></i> Tiến Trình Kịch Bản</h2>
+          <div class="timeline-stepper" id="timeline-stepper">
+            <!-- Timeline steps rendered via JS -->
+          </div>
+        </div>
+
+        <div class="panel-section export-status-box">
+          <h2><i data-lucide="download-cloud"></i> Xuất Video Livestream</h2>
+          <div class="export-card">
+            <p class="export-desc">Hệ thống sẽ ghi hình lại chuyển động của MC AI, hiệu ứng thả tim, giỏ hàng Shopee và giọng đọc Tiếng Việt thành tệp Video chuẩn 9:16.</p>
+            <div id="recording-progress" class="recording-progress hidden">
+              <div class="progress-spinner"></div>
+              <span id="record-time-text">Đang quay video: 00:00</span>
+            </div>
+            <button id="btn-download-video" class="btn btn-primary btn-block hidden">
+              <i data-lucide="download"></i> Tải Video Về Máy (.webm)
+            </button>
+          </div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <!-- Edit Product Modal -->
+  <div id="edit-modal-backdrop" class="modal-backdrop hidden">
+    <div class="modal-box">
+      <div class="modal-header">
+        <h3>✏️ Chỉnh Sửa Giá & Thông Tin Sản Phẩm</h3>
+        <button id="btn-close-modal" class="btn-icon">&times;</button>
+      </div>
+      <div class="modal-body">
+        <input type="hidden" id="edit-prod-id">
+        <div class="form-group">
+          <label for="edit-prod-name">Tên sản phẩm</label>
+          <input type="text" id="edit-prod-name" class="input-field">
+        </div>
+        <div class="form-row">
+          <div class="form-group flex-1">
+            <label for="edit-orig-price">Giá Niêm Yết (Gốc)</label>
+            <input type="number" id="edit-orig-price" class="input-field">
+          </div>
+          <div class="form-group flex-1">
+            <label for="edit-sale-price">Giá Bán Live</label>
+            <input type="number" id="edit-sale-price" class="input-field">
+          </div>
+        </div>
+        <div class="form-group">
+          <label for="edit-stock-count">Số lượng kho còn lại</label>
+          <input type="number" id="edit-stock-count" class="input-field">
+        </div>
+        <div class="form-group">
+          <label for="edit-feature">Tính năng nổi bật chính</label>
+          <input type="text" id="edit-feature" class="input-field">
+        </div>
+        <button id="btn-save-edit-prod" class="btn btn-primary btn-block">Lưu Thay Đổi</button>
+      </div>
+    </div>
+  </div>
+
+  <script type="module" src="/src/main.js"></script>
+</body>
+</html>
