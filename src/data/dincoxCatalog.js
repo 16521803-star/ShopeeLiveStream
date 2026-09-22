@@ -991,7 +991,83 @@ export function parseBatchProductsList(rawText) {
   return parsed;
 }
 
+// LocalStorage Custom Script Persistence
+const SCRIPTS_STORAGE_KEY = 'dincox_custom_scripts_v1';
+
+function getAllCustomScriptsMap() {
+  try {
+    const raw = localStorage.getItem(SCRIPTS_STORAGE_KEY);
+    return raw ? JSON.parse(raw) : {};
+  } catch (e) {
+    console.error("Failed to parse custom scripts from storage:", e);
+    return {};
+  }
+}
+
+export function saveProductScript(productId, scriptStages) {
+  const map = getAllCustomScriptsMap();
+  map[productId] = scriptStages;
+  try {
+    localStorage.setItem(SCRIPTS_STORAGE_KEY, JSON.stringify(map));
+  } catch (e) {
+    console.error("Failed to save script to localStorage:", e);
+  }
+}
+
+export function resetProductScript(productId) {
+  const map = getAllCustomScriptsMap();
+  delete map[productId];
+  try {
+    localStorage.setItem(SCRIPTS_STORAGE_KEY, JSON.stringify(map));
+  } catch (e) {
+    console.error("Failed to reset script in localStorage:", e);
+  }
+}
+
+export function exportAllScriptsJSON() {
+  const customMap = getAllCustomScriptsMap();
+  const exportData = {
+    version: '1.0',
+    exportDate: new Date().toISOString(),
+    products: DINCOX_PRODUCTS.map(p => ({
+      id: p.id,
+      name: p.name,
+      script: customMap[p.id] || generateScriptForProduct(p)
+    }))
+  };
+  return JSON.stringify(exportData, null, 2);
+}
+
+export function importAllScriptsJSON(jsonString) {
+  try {
+    const data = JSON.parse(jsonString);
+    if (!data.products || !Array.isArray(data.products)) {
+      throw new Error("Cấu trúc tệp JSON không hợp lệ (Thiếu danh sách products)!");
+    }
+    const map = getAllCustomScriptsMap();
+    let updatedCount = 0;
+    data.products.forEach(item => {
+      if (item.id && item.script) {
+        map[item.id] = item.script;
+        updatedCount++;
+      }
+    });
+    localStorage.setItem(SCRIPTS_STORAGE_KEY, JSON.stringify(map));
+    return updatedCount;
+  } catch (e) {
+    alert("⚠️ Lỗi nạp tệp kịch bản: " + e.message);
+    return 0;
+  }
+}
+
 export function generateScriptForProduct(product) {
+  // Check if custom user script exists in localStorage
+  const customMap = getAllCustomScriptsMap();
+  if (customMap[product.id] && Array.isArray(customMap[product.id]) && customMap[product.id].length > 0) {
+    return customMap[product.id];
+  }
+
+  // Default script generator
   const formattedSalePrice = new Intl.NumberFormat('vi-VN').format(product.salePrice) + 'đ';
   const formattedOrigPrice = new Intl.NumberFormat('vi-VN').format(product.originalPrice) + 'đ';
   const mainFeature = product.features && product.features[0] ? product.features[0] : 'Lót Memory Foam siêu êm';

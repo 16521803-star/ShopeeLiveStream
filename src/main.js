@@ -8,7 +8,11 @@ import {
   toggleProductEnabled,
   importShopeeOfficialCatalog, 
   importWebDincoxCatalog,
-  parseBatchProductsList 
+  parseBatchProductsList,
+  saveProductScript,
+  resetProductScript,
+  exportAllScriptsJSON,
+  importAllScriptsJSON
 } from './data/dincoxCatalog.js';
 import { speechEngine } from './engine/speechSynthesizer.js';
 import { AIPresenterEngine } from './engine/aiPresenterEngine.js';
@@ -325,6 +329,8 @@ function bindEvents() {
     if (currentScriptStages[activeStageIdx]) {
       currentScriptStages[activeStageIdx].text = e.target.value;
       canvasRenderer.setSpeechState(e.target.value, currentScriptStages[activeStageIdx].stage);
+      // Auto-save script changes to localStorage immediately
+      saveProductScript(activeProduct.id, currentScriptStages);
     }
   });
 
@@ -341,11 +347,48 @@ function bindEvents() {
     speechEngine.stop();
   });
 
+  // Export All Scripts to JSON
+  document.getElementById('btn-export-script').addEventListener('click', () => {
+    const jsonStr = exportAllScriptsJSON();
+    const blob = new Blob([jsonStr], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `dincox_shopee_scripts_${new Date().toISOString().slice(0, 10)}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+  });
+
+  // Import Scripts from JSON File
+  const fileInput = document.getElementById('script-file-input');
+  document.getElementById('btn-import-script').addEventListener('click', () => {
+    fileInput.click();
+  });
+
+  fileInput.addEventListener('change', (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onload = (evt) => {
+        const count = importAllScriptsJSON(evt.target.result);
+        if (count > 0) {
+          selectProduct(activeProduct);
+          alert(`🎉 Đã nạp thành công kịch bản mới cho ${count} sản phẩm!`);
+        }
+      };
+      reader.readAsText(file);
+    }
+  });
+
+  // Reset current script to default
   document.getElementById('btn-regen-script').addEventListener('click', () => {
-    currentScriptStages = generateScriptForProduct(activeProduct);
-    renderScriptTabs();
-    renderTimelineSteps();
-    loadCurrentStageText();
+    if (confirm("Khôi phục kịch bản mặc định cho sản phẩm này? Các chỉnh sửa cá nhân sẽ bị xóa.")) {
+      resetProductScript(activeProduct.id);
+      currentScriptStages = generateScriptForProduct(activeProduct);
+      renderScriptTabs();
+      renderTimelineSteps();
+      loadCurrentStageText();
+    }
   });
 
   document.getElementById('btn-play-full-sequence').addEventListener('click', playScriptSequence);

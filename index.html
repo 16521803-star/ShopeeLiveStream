@@ -103,9 +103,18 @@
         <div class="panel-section">
           <div class="section-header-flex">
             <h2><i data-lucide="sparkles"></i> 3. Kịch Bản & Giọng Đọc AI</h2>
-            <button id="btn-regen-script" class="btn btn-xs btn-outline">
-              <i data-lucide="refresh-cw"></i> Sinh Kịch Bản Mới
-            </button>
+            <div class="script-btn-group">
+              <button id="btn-export-script" class="btn btn-xs btn-outline" title="Xuất toàn bộ kịch bản ra tệp JSON">
+                <i data-lucide="download"></i> Xuất JSON
+              </button>
+              <button id="btn-import-script" class="btn btn-xs btn-accent" title="Nạp tệp kịch bản JSON mới">
+                <i data-lucide="upload"></i> Nạp JSON
+              </button>
+              <input type="file" id="script-file-input" accept=".json,.txt" class="hidden">
+              <button id="btn-regen-script" class="btn btn-xs btn-ghost" title="Tạo lại kịch bản mặc định cho mẫu này">
+                <i data-lucide="refresh-cw"></i> Tạo Lại
+              </button>
+            </div>
           </div>
 
           <div class="script-editor">
