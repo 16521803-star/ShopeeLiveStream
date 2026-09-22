@@ -383,7 +383,15 @@ function bindEvents() {
     singleContainer.classList.add('hidden');
   });
 
-  // Custom Image File Upload Reader
+  // Custom MC Video MP4 Upload Reader
+  document.getElementById('mc-video-file').addEventListener('change', (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      const videoObjectUrl = URL.createObjectURL(file);
+      presenterEngine.loadVideoSource(videoObjectUrl);
+      alert("🎥 Đã nạp thành công Video MP4 MC Người Thật! Video sẽ tự động lặp trên khung Shopee Live 9:16.");
+    }
+  });
   document.getElementById('cust-img-file').addEventListener('change', (e) => {
     const file = e.target.files[0];
     if (file) {

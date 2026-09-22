@@ -277,7 +277,20 @@ body {
   border-radius: 4px;
 }
 
-/* Presenter Cards */
+.mc-video-upload-box {
+  margin-top: 12px;
+  background: rgba(0, 230, 118, 0.08);
+  border: 1px dashed rgba(0, 230, 118, 0.35);
+  border-radius: 12px;
+  padding: 12px;
+}
+
+.sub-hint {
+  font-size: 11px;
+  color: var(--accent-green);
+  display: block;
+  margin-top: 4px;
+}
 .presenter-selector {
   display: grid;
   grid-template-columns: 1fr 1fr;

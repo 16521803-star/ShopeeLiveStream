@@ -1,4 +1,4 @@
-// AI MC Presenter Avatar Controller & Motion Engine
+// AI MC Presenter & Real Video Controller Engine
 
 export class AIPresenterEngine {
   constructor(presenterData) {
@@ -11,6 +11,11 @@ export class AIPresenterEngine {
     this.breathPhase = 0;
     this.blinkTimer = 0;
     this.isBlinking = false;
+
+    // Real MC Video Stream Support
+    this.videoEl = null;
+    this.isVideoLoaded = false;
+    this.useRealVideo = false;
 
     this.loadAvatar(presenterData.avatar);
   }
@@ -27,14 +32,43 @@ export class AIPresenterEngine {
 
   setPresenter(presenterData) {
     this.presenter = presenterData;
-    this.loadAvatar(presenterData.avatar);
+    if (presenterData.videoUrl) {
+      this.loadVideoSource(presenterData.videoUrl);
+    } else {
+      this.useRealVideo = false;
+      this.loadAvatar(presenterData.avatar);
+    }
+  }
+
+  loadVideoSource(urlOrBlob) {
+    if (this.videoEl) {
+      this.videoEl.pause();
+      this.videoEl.remove();
+    }
+
+    const video = document.createElement('video');
+    video.crossOrigin = 'anonymous';
+    video.src = urlOrBlob;
+    video.loop = true;
+    video.muted = true; // Muted for canvas capture safe autoplay
+    video.playsInline = true;
+
+    this.isVideoLoaded = false;
+    this.useRealVideo = true;
+
+    video.onloadeddata = () => {
+      this.isVideoLoaded = true;
+      video.play().catch(err => console.warn("Video play error:", err));
+    };
+
+    this.videoEl = video;
   }
 
   update(lipVolume = 0) {
     this.lipVolume = lipVolume;
     this.breathPhase += 0.04;
 
-    // Eye blinking timer
+    // Eye blinking timer for 2D avatar mode
     this.blinkTimer += 0.016;
     if (this.blinkTimer > 3.5) {
       this.isBlinking = true;
@@ -53,6 +87,27 @@ export class AIPresenterEngine {
   }
 
   render(ctx, x, y, width, height) {
+    // MODE B: Real MC MP4 Video Stream
+    if (this.useRealVideo && this.isVideoLoaded && this.videoEl) {
+      ctx.save();
+      // Draw real MC MP4 video frame into canvas 9:16 spotlight
+      ctx.drawImage(this.videoEl, x, y, width, height);
+
+      // Real MC Video Active Badge
+      ctx.fillStyle = 'rgba(0, 230, 118, 0.9)';
+      ctx.beginPath();
+      ctx.roundRect(x + 20, y + 20, 240, 36, 18);
+      ctx.fill();
+
+      ctx.fillStyle = '#000000';
+      ctx.font = 'bold 18px sans-serif';
+      ctx.fillText('🎥 VIDEO MC NGƯỜI THẬT', x + 35, y + 44);
+
+      ctx.restore();
+      return;
+    }
+
+    // MODE A: 2D Animated AI Avatar
     ctx.save();
     ctx.translate(x + width / 2, y + height / 2);
 
@@ -65,14 +120,11 @@ export class AIPresenterEngine {
     ctx.rotate(this.headAngle);
 
     if (this.isLoaded) {
-      // Draw main AI presenter portrait image
       ctx.drawImage(this.img, -width / 2, -height / 2, width, height);
 
-      // Blinking Eyelids overlay
       if (this.isBlinking) {
         ctx.save();
-        ctx.fillStyle = '#1c2838'; // Matches skin shadow tone
-        // Eyelid left & right approximate locations
+        ctx.fillStyle = '#1c2838';
         ctx.beginPath();
         ctx.ellipse(-45, -height * 0.2, 18, 8, 0, 0, Math.PI * 2);
         ctx.ellipse(45, -height * 0.2, 18, 8, 0, 0, Math.PI * 2);
@@ -80,67 +132,55 @@ export class AIPresenterEngine {
         ctx.restore();
       }
 
-      // Dynamic Animated Lip Sync Mouth Overlay when speaking
+      // Dynamic Animated Lip Sync Mouth Overlay
       if (this.lipVolume > 0.1) {
-        const mouthY = -height * 0.05; // Approximate mouth level on portrait
+        const mouthY = -height * 0.05;
         const mouthW = 28 + this.lipVolume * 36;
         const mouthH = 10 + this.lipVolume * 32;
 
         ctx.save();
-
-        // Dark mouth cavity inside
         ctx.fillStyle = '#3a0007';
         ctx.beginPath();
         ctx.ellipse(0, mouthY, mouthW / 2, mouthH / 2, 0, 0, Math.PI * 2);
         ctx.fill();
 
-        // Upper teeth line
         ctx.fillStyle = '#ffffff';
         ctx.beginPath();
         ctx.roundRect(-mouthW * 0.35, mouthY - mouthH * 0.35, mouthW * 0.7, mouthH * 0.3, 3);
         ctx.fill();
 
-        // Tongue highlight inside
         ctx.fillStyle = '#e63946';
         ctx.beginPath();
         ctx.ellipse(0, mouthY + mouthH * 0.2, mouthW * 0.3, mouthH * 0.25, 0, 0, Math.PI * 2);
         ctx.fill();
 
-        // Lip outline
         ctx.strokeStyle = '#c9184a';
         ctx.lineWidth = 3;
         ctx.stroke();
-
         ctx.restore();
       }
     } else {
-      // Stylized fallback 2D AI avatar graphics when image is loading
       ctx.save();
       ctx.fillStyle = '#0f2038';
       ctx.beginPath();
       ctx.roundRect(-width / 2, -height / 2, width, height, 30);
       ctx.fill();
 
-      // Avatar head
       ctx.fillStyle = '#e0a96d';
       ctx.beginPath();
       ctx.arc(0, -60, 110, 0, Math.PI * 2);
       ctx.fill();
 
-      // Avatar body
       ctx.fillStyle = '#E5A93C';
       ctx.beginPath();
       ctx.roundRect(-160, 60, 320, 240, 40);
       ctx.fill();
-
       ctx.restore();
     }
 
-    // Floating "🎙️ MC AI ĐANG PHÁT BIỂU" Live Badge
     if (this.lipVolume > 0.15) {
       ctx.save();
       const badgeY = height / 2 - 40;
-
       ctx.fillStyle = 'rgba(255, 42, 84, 0.95)';
       ctx.shadowColor = '#FF2A54';
       ctx.shadowBlur = 12;
