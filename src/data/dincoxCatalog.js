@@ -925,6 +925,12 @@ export function toggleProductEnabled(id, enabledState) {
   return prod;
 }
 
+export function clearAllProductsFromCatalog() {
+  const removedCount = DINCOX_PRODUCTS.length;
+  DINCOX_PRODUCTS.length = 0;
+  return removedCount;
+}
+
 export function importShopeeOfficialCatalog() {
   let addedCount = 0;
   SHOPEE_OFFICIAL_DINCOX_CATALOG.forEach(item => {
@@ -1058,6 +1064,32 @@ export function importAllScriptsJSON(jsonString) {
     alert("⚠️ Lỗi nạp tệp kịch bản: " + e.message);
     return 0;
   }
+}
+
+export function moveProductInCatalog(id, direction) {
+  const index = DINCOX_PRODUCTS.findIndex(p => p.id === id);
+  if (index === -1) return false;
+
+  const targetIndex = direction === 'up' ? index - 1 : index + 1;
+  if (targetIndex < 0 || targetIndex >= DINCOX_PRODUCTS.length) return false;
+
+  const temp = DINCOX_PRODUCTS[index];
+  DINCOX_PRODUCTS[index] = DINCOX_PRODUCTS[targetIndex];
+  DINCOX_PRODUCTS[targetIndex] = temp;
+  return true;
+}
+
+export const TRANSITION_PHRASES = [
+  (prev, next) => `Vừa rồi là mẫu ${prev ? prev.name : 'giày'} cực kỳ hot! Và ngay bây giờ, hãy cùng shop chuyển sang mẫu tiếp theo không thể bỏ qua: ${next.name}!`,
+  (prev, next) => `Mọi người đã chốt size mẫu vừa rồi chưa ạ? Ngay sau đây em xin lên sóng mẫu ${next.name} đang được săn đón ráo riết trên gian hàng DinCox!`,
+  (prev, next) => `Tiếp nối phiên live hôm nay, shop mang đến cho cả nhà một thiết kế siêu êm ái và ưu đãi cực hời: ${next.name}!`,
+  (prev, next) => `Dạ tiếp theo đây, các tín đồ nhà DinCox nhất định không thể rời mắt khỏi siêu phẩm ${next.name} này nhé!`,
+  (prev, next) => `Cả nhà mình cùng chuyển qua mẫu mới tiếp theo nha! Ngay trên màn hình lúc này là ${next.name} chuẩn EU!`
+];
+
+export function getRandomTransitionPhrase(prevProd, nextProd) {
+  const fn = TRANSITION_PHRASES[Math.floor(Math.random() * TRANSITION_PHRASES.length)];
+  return fn(prevProd, nextProd);
 }
 
 export function generateScriptForProduct(product) {

@@ -651,7 +651,6 @@ body {
 }
 
 .btn-edit-prod {
-  margin-left: auto;
   background: rgba(255, 255, 255, 0.1);
   border: none;
   color: var(--primary);
@@ -666,6 +665,41 @@ body {
 .btn-edit-prod:hover {
   background: var(--primary);
   color: #000;
+}
+
+.prod-reorder-btns {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin-left: 4px;
+}
+
+.btn-move-prod {
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  color: var(--text-muted);
+  border-radius: 4px;
+  padding: 2px 5px;
+  font-size: 10px;
+  cursor: pointer;
+  line-height: 1;
+  transition: all 0.2s;
+}
+
+.btn-move-prod:hover {
+  background: var(--primary);
+  color: #000;
+  border-color: var(--primary);
+}
+
+.empty-product-box {
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px dashed rgba(255, 255, 255, 0.15);
+  border-radius: 12px;
+  padding: 20px;
+  text-align: center;
+  color: var(--text-muted);
+  font-size: 13px;
 }
 
 .img-preview-box {

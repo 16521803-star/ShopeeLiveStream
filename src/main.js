@@ -6,6 +6,9 @@ import {
   addProductToCatalog, 
   updateProductInCatalog,
   toggleProductEnabled,
+  clearAllProductsFromCatalog,
+  moveProductInCatalog,
+  getRandomTransitionPhrase,
   importShopeeOfficialCatalog, 
   importWebDincoxCatalog,
   parseBatchProductsList,
@@ -57,8 +60,19 @@ function animate(time) {
 // UI Renderers
 function renderProductList() {
   const container = document.getElementById('product-selector');
-  container.innerHTML = DINCOX_PRODUCTS.map(prod => `
-    <div class="product-item-card ${prod.id === activeProduct.id ? 'active' : ''} ${prod.enabled === false ? 'disabled' : ''}" data-id="${prod.id}">
+
+  if (!DINCOX_PRODUCTS || DINCOX_PRODUCTS.length === 0) {
+    container.innerHTML = `
+      <div class="empty-product-box">
+        <p>🧹 Danh sách sản phẩm hiện đang trống.</p>
+        <span class="sub-hint">Bấm nút Import từ dincox.com / Shopee Mall hoặc bấm "+ Nhập / Thêm Danh Sách Giày Mới" bên dưới để thêm sản phẩm thủ công.</span>
+      </div>
+    `;
+    return;
+  }
+
+  container.innerHTML = DINCOX_PRODUCTS.map((prod, idx) => `
+    <div class="product-item-card ${activeProduct && prod.id === activeProduct.id ? 'active' : ''} ${prod.enabled === false ? 'disabled' : ''}" data-id="${prod.id}">
       <input type="checkbox" class="prod-checkbox" data-id="${prod.id}" ${prod.enabled !== false ? 'checked' : ''} title="Bật/Tắt mẫu này khi lặp kịch bản">
       <img src="${prod.image}" alt="${prod.name}" class="product-thumb">
       <div class="product-info flex-1">
@@ -69,13 +83,17 @@ function renderProductList() {
         </div>
       </div>
       <button class="btn-edit-prod" data-id="${prod.id}" title="Chỉnh sửa giá & thông tin">✏️ Sửa</button>
+      <div class="prod-reorder-btns">
+        <button class="btn-move-prod" data-id="${prod.id}" data-dir="up" ${idx === 0 ? 'disabled' : ''} title="Di chuyển lên">▲</button>
+        <button class="btn-move-prod" data-id="${prod.id}" data-dir="down" ${idx === DINCOX_PRODUCTS.length - 1 ? 'disabled' : ''} title="Di chuyển xuống">▼</button>
+      </div>
     </div>
   `).join('');
 
   // Select Product click
   container.querySelectorAll('.product-item-card').forEach(card => {
     card.addEventListener('click', (e) => {
-      if (e.target.classList.contains('prod-checkbox') || e.target.classList.contains('btn-edit-prod')) return;
+      if (e.target.classList.contains('prod-checkbox') || e.target.classList.contains('btn-edit-prod') || e.target.classList.contains('btn-move-prod')) return;
       const id = card.dataset.id;
       const found = DINCOX_PRODUCTS.find(p => p.id === id);
       if (found) {
@@ -100,6 +118,18 @@ function renderProductList() {
       e.stopPropagation();
       const id = btn.dataset.id;
       openEditModal(id);
+    });
+  });
+
+  // Move Product Up/Down buttons
+  container.querySelectorAll('.btn-move-prod').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const id = btn.dataset.id;
+      const dir = btn.dataset.dir;
+      if (moveProductInCatalog(id, dir)) {
+        renderProductList();
+      }
     });
   });
 }
@@ -251,12 +281,27 @@ function playNextStageInSequence() {
   if (activeStageIdx >= currentScriptStages.length) {
     const enabledProducts = DINCOX_PRODUCTS.filter(p => p.enabled !== false);
     if (isLoopAll && enabledProducts.length > 0) {
-      // Loop to next enabled product in catalog
+      // Loop to next enabled product with a natural transition phrase
+      const previousProd = activeProduct;
       const currentProdIdx = enabledProducts.findIndex(p => p.id === activeProduct.id);
       const nextProdIdx = (currentProdIdx + 1) % enabledProducts.length;
-      selectProduct(enabledProducts[nextProdIdx]);
-      activeStageIdx = 0;
-      setTimeout(() => playNextStageInSequence(), 1000);
+      const nextProd = enabledProducts[nextProdIdx];
+
+      const transitionText = getRandomTransitionPhrase(previousProd, nextProd);
+      canvasRenderer.setSpeechState(transitionText, 'Transition');
+
+      speechEngine.speak(transitionText, {
+        pitch: activePresenter.voicePitch,
+        rate: activePresenter.voiceRate,
+        gender: activePresenter.gender,
+        onEnd: () => {
+          if (isSequencePlaying) {
+            selectProduct(nextProd);
+            activeStageIdx = 0;
+            setTimeout(() => playNextStageInSequence(), 600);
+          }
+        }
+      });
       return;
     } else {
       isSequencePlaying = false;
@@ -470,6 +515,18 @@ function bindEvents() {
     }
     alert(`🌐 Đã load thành công ${count} sản phẩm trực tiếp từ trang web dincox.com!`);
   });
+
+  // Clear/Reset All Products Catalog
+  const btnResetCatalog = document.getElementById('btn-reset-catalog');
+  if (btnResetCatalog) {
+    btnResetCatalog.addEventListener('click', () => {
+      if (confirm("⚠️ Bạn có chắc chắn muốn xóa toàn bộ sản phẩm khỏi danh sách?")) {
+        clearAllProductsFromCatalog();
+        renderProductList();
+        alert("🧹 Đã xóa toàn bộ sản phẩm! Bạn có thể thêm sản phẩm mới thủ công hoặc import lại.");
+      }
+    });
+  }
 
   // Single Product Adder
   document.getElementById('btn-apply-custom').addEventListener('click', () => {
