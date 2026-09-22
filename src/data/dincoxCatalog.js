@@ -220,7 +220,7 @@ export const OFFICIAL_WEB_DINCOX_CATALOG = [
     "discountPercent": 22,
     "voucherCode": "DINCOX50K",
     "voucherValue": "50.000đ",
-    "image": "https://cdn.hstatic.net/products/1000365025/dc51_gold_rush_ae41bd5eef89481d84665e892e809245.png",
+    "image": "https://cdn.hstatic.net/products/1000365025/1l8a6881_copy_b72ac8ca6ce04344968ea41b5a30b613.jpg",
     "stockCount": 12,
     "features": [
       "Sản phẩm chính hãng DinCox Shoes từ website dincox.com",
@@ -239,7 +239,7 @@ export const OFFICIAL_WEB_DINCOX_CATALOG = [
     "discountPercent": 22,
     "voucherCode": "DINCOX50K",
     "voucherValue": "50.000đ",
-    "image": "https://cdn.hstatic.net/products/1000365025/dc51_nut_brown_e9cad4bbb26342ab8fa278747005b4c1.png",
+    "image": "https://cdn.hstatic.net/products/1000365025/1l8a6855_copy_00a399511aa540ac9da5990d87be88c5.jpg",
     "stockCount": 12,
     "features": [
       "Sản phẩm chính hãng DinCox Shoes từ website dincox.com",
@@ -258,7 +258,7 @@ export const OFFICIAL_WEB_DINCOX_CATALOG = [
     "discountPercent": 22,
     "voucherCode": "DINCOX50K",
     "voucherValue": "50.000đ",
-    "image": "https://cdn.hstatic.net/products/1000365025/dc51_moon_ash_94ff2005c78f4dedb54b8ae014223247.png",
+    "image": "https://cdn.hstatic.net/products/1000365025/1l8a6867_copy_1f67a779803f4683b1c9d2ecfc5c90cd.jpg",
     "stockCount": 12,
     "features": [
       "Sản phẩm chính hãng DinCox Shoes từ website dincox.com",
@@ -277,7 +277,7 @@ export const OFFICIAL_WEB_DINCOX_CATALOG = [
     "discountPercent": 22,
     "voucherCode": "DINCOX50K",
     "voucherValue": "50.000đ",
-    "image": "https://cdn.hstatic.net/products/1000365025/dc51_deep_ocean_34752411f0e7466598ea1118a36e2a00.png",
+    "image": "https://cdn.hstatic.net/products/1000365025/1l8a6809_1_copy_2_53bf1ef743934f569074d589f71001a3.jpg",
     "stockCount": 12,
     "features": [
       "Sản phẩm chính hãng DinCox Shoes từ website dincox.com",
@@ -296,7 +296,7 @@ export const OFFICIAL_WEB_DINCOX_CATALOG = [
     "discountPercent": 22,
     "voucherCode": "DINCOX50K",
     "voucherValue": "50.000đ",
-    "image": "https://cdn.hstatic.net/products/1000365025/dc51_violet_dusk_2c224f254fe749b4957432f67dddb344.png",
+    "image": "https://cdn.hstatic.net/products/1000365025/1l8a6782_copy_8baea6b3c0b8477ebc8f831f4e3f3107.jpg",
     "stockCount": 12,
     "features": [
       "Sản phẩm chính hãng DinCox Shoes từ website dincox.com",
@@ -315,7 +315,7 @@ export const OFFICIAL_WEB_DINCOX_CATALOG = [
     "discountPercent": 22,
     "voucherCode": "DINCOX50K",
     "voucherValue": "50.000đ",
-    "image": "https://cdn.hstatic.net/products/1000365025/dc51_sunshine_d4c958c09ee4416da5254f2e2c99dc10.png",
+    "image": "https://cdn.hstatic.net/products/1000365025/1l8a6833_copy_fc75d59f03454cc4a1406ec25047f54b.jpg",
     "stockCount": 12,
     "features": [
       "Sản phẩm chính hãng DinCox Shoes từ website dincox.com",
@@ -334,7 +334,7 @@ export const OFFICIAL_WEB_DINCOX_CATALOG = [
     "discountPercent": 19,
     "voucherCode": "DINCOX50K",
     "voucherValue": "50.000đ",
-    "image": "https://cdn.hstatic.net/products/1000365025/dc50_toffee_752b0bb128f64cd48a687217c35b0318.png",
+    "image": "https://cdn.hstatic.net/products/1000365025/_mg_2593_copy_2_2e7841a7e2bd4d9eadf592e07cb2e369.jpg",
     "stockCount": 12,
     "features": [
       "Sản phẩm chính hãng DinCox Shoes từ website dincox.com",
@@ -353,7 +353,7 @@ export const OFFICIAL_WEB_DINCOX_CATALOG = [
     "discountPercent": 19,
     "voucherCode": "DINCOX50K",
     "voucherValue": "50.000đ",
-    "image": "https://cdn.hstatic.net/products/1000365025/dc50_winy_945606b0ab134432b3ea53286de630b9.png",
+    "image": "https://cdn.hstatic.net/products/1000365025/_mg_2564_copy_2_b3d616f0a4f04beb899c7b4cd2206bea.jpg",
     "stockCount": 12,
     "features": [
       "Sản phẩm chính hãng DinCox Shoes từ website dincox.com",
@@ -372,7 +372,7 @@ export const OFFICIAL_WEB_DINCOX_CATALOG = [
     "discountPercent": 19,
     "voucherCode": "DINCOX50K",
     "voucherValue": "50.000đ",
-    "image": "https://cdn.hstatic.net/products/1000365025/dc50_raven_76255d4773ca42d79b8ee54822afa8a7.png",
+    "image": "https://cdn.hstatic.net/products/1000365025/_mg_2602_copy_2_9952c1a735304e2d93a24d0d82870333.jpg",
     "stockCount": 12,
     "features": [
       "Sản phẩm chính hãng DinCox Shoes từ website dincox.com",
@@ -391,7 +391,7 @@ export const OFFICIAL_WEB_DINCOX_CATALOG = [
     "discountPercent": 19,
     "voucherCode": "DINCOX50K",
     "voucherValue": "50.000đ",
-    "image": "https://cdn.hstatic.net/products/1000365025/dc50_magnet_80b90eecc0d04069902e8eb5bef01015.png",
+    "image": "https://cdn.hstatic.net/products/1000365025/_mg_2579_copy_2_18183edede24408fb4b1ea1edfbe5445.jpg",
     "stockCount": 12,
     "features": [
       "Sản phẩm chính hãng DinCox Shoes từ website dincox.com",
@@ -410,7 +410,7 @@ export const OFFICIAL_WEB_DINCOX_CATALOG = [
     "discountPercent": 19,
     "voucherCode": "DINCOX50K",
     "voucherValue": "50.000đ",
-    "image": "https://cdn.hstatic.net/products/1000365025/dc50_weed_1d57ffb1d58a4646a1c810e13056bd82.png",
+    "image": "https://cdn.hstatic.net/products/1000365025/_mg_2535_copy_2_a83f6ba3ed164e75a2f220023c005e16.jpg",
     "stockCount": 12,
     "features": [
       "Sản phẩm chính hãng DinCox Shoes từ website dincox.com",
@@ -429,7 +429,7 @@ export const OFFICIAL_WEB_DINCOX_CATALOG = [
     "discountPercent": 19,
     "voucherCode": "DINCOX50K",
     "voucherValue": "50.000đ",
-    "image": "https://cdn.hstatic.net/products/1000365025/dc50_rusty_dd9e4dde31c14e06b343da89fb523f0b.png",
+    "image": "https://cdn.hstatic.net/products/1000365025/_mg_2555_copy_2_68f97ff702904c11a4c6b2e019b2cc1b.jpg",
     "stockCount": 12,
     "features": [
       "Sản phẩm chính hãng DinCox Shoes từ website dincox.com",
@@ -448,7 +448,7 @@ export const OFFICIAL_WEB_DINCOX_CATALOG = [
     "discountPercent": 13,
     "voucherCode": "DINCOX50K",
     "voucherValue": "50.000đ",
-    "image": "https://cdn.hstatic.net/products/1000365025/dc48_urban_moss_70d49c24c3584d1a86e71f3e39e2194d.png",
+    "image": "https://cdn.hstatic.net/products/1000365025/_mg_7514_copy_16e494723bfe489aae20825a77da3f12.jpg",
     "stockCount": 12,
     "features": [
       "Sản phẩm chính hãng DinCox Shoes từ website dincox.com",
@@ -467,7 +467,7 @@ export const OFFICIAL_WEB_DINCOX_CATALOG = [
     "discountPercent": 13,
     "voucherCode": "DINCOX50K",
     "voucherValue": "50.000đ",
-    "image": "https://cdn.hstatic.net/products/1000365025/dc48_brown_alley_b327b83e6f724d4bbde4f7551b4b4e38.png",
+    "image": "https://cdn.hstatic.net/products/1000365025/_mg_7543_copy_c5c899d9567643bf8a28bc74e536ec0a.jpg",
     "stockCount": 12,
     "features": [
       "Sản phẩm chính hãng DinCox Shoes từ website dincox.com",
@@ -486,7 +486,7 @@ export const OFFICIAL_WEB_DINCOX_CATALOG = [
     "discountPercent": 13,
     "voucherCode": "DINCOX50K",
     "voucherValue": "50.000đ",
-    "image": "https://cdn.hstatic.net/products/1000365025/dc48_smoke_drift_b86a64245cd94dd1a825c8941cef10d3.png",
+    "image": "https://cdn.hstatic.net/products/1000365025/_mg_7501_copy_b0e84c82530c4403b1ff69c95301b043.jpg",
     "stockCount": 12,
     "features": [
       "Sản phẩm chính hãng DinCox Shoes từ website dincox.com",
@@ -505,7 +505,7 @@ export const OFFICIAL_WEB_DINCOX_CATALOG = [
     "discountPercent": 13,
     "voucherCode": "DINCOX50K",
     "voucherValue": "50.000đ",
-    "image": "https://cdn.hstatic.net/products/1000365025/dc48_shadow_move_961c197f582e4c7b9c837cca1143303b.png",
+    "image": "https://cdn.hstatic.net/products/1000365025/_mg_7557_copy_298c5776b547401993580a9668f35db8.jpg",
     "stockCount": 12,
     "features": [
       "Sản phẩm chính hãng DinCox Shoes từ website dincox.com",
@@ -524,7 +524,7 @@ export const OFFICIAL_WEB_DINCOX_CATALOG = [
     "discountPercent": 13,
     "voucherCode": "DINCOX50K",
     "voucherValue": "50.000đ",
-    "image": "https://cdn.hstatic.net/products/1000365025/dc48_brick_sunset_45ed3fbfc7a14292a40558cbfbe0f918.png",
+    "image": "https://cdn.hstatic.net/products/1000365025/_mg_7491_copy_b44094f71e0447b086f200d5b4e238cd.jpg",
     "stockCount": 12,
     "features": [
       "Sản phẩm chính hãng DinCox Shoes từ website dincox.com",
@@ -543,7 +543,7 @@ export const OFFICIAL_WEB_DINCOX_CATALOG = [
     "discountPercent": 13,
     "voucherCode": "DINCOX50K",
     "voucherValue": "50.000đ",
-    "image": "https://cdn.hstatic.net/products/1000365025/dc48_city_stripe_502bb9f2df4a4617afa350ed644e1ed2.png",
+    "image": "https://cdn.hstatic.net/products/1000365025/_mg_7616_copy_029900041c6f48dbaf529b16be01d27a.jpg",
     "stockCount": 12,
     "features": [
       "Sản phẩm chính hãng DinCox Shoes từ website dincox.com",
@@ -562,7 +562,7 @@ export const OFFICIAL_WEB_DINCOX_CATALOG = [
     "discountPercent": 13,
     "voucherCode": "DINCOX50K",
     "voucherValue": "50.000đ",
-    "image": "https://cdn.hstatic.net/products/1000365025/dc48_midnight_amber_b7fad32eecdd4c2abe4af3d22a1c21cc.png",
+    "image": "https://cdn.hstatic.net/products/1000365025/_mg_7528_copy_e0014aab1ce746a9885830b7ab6de04b.jpg",
     "stockCount": 12,
     "features": [
       "Sản phẩm chính hãng DinCox Shoes từ website dincox.com",
@@ -581,7 +581,7 @@ export const OFFICIAL_WEB_DINCOX_CATALOG = [
     "discountPercent": 4,
     "voucherCode": "DINCOX50K",
     "voucherValue": "50.000đ",
-    "image": "https://cdn.hstatic.net/products/1000365025/dc39_latte_love_09501f1e687647e9a03e345d67f483a6.png",
+    "image": "https://cdn.hstatic.net/products/1000365025/_mg_2808_copy_46a0e842c33b4e77a0160e177814c0ed.jpg",
     "stockCount": 12,
     "features": [
       "Sản phẩm chính hãng DinCox Shoes từ website dincox.com",
@@ -695,7 +695,7 @@ export const OFFICIAL_WEB_DINCOX_CATALOG = [
     "discountPercent": 4,
     "voucherCode": "DINCOX50K",
     "voucherValue": "50.000đ",
-    "image": "https://cdn.hstatic.net/products/1000365025/dc39_coco_milk_66bc6610e53d47f386849fed1e70c4c0.png",
+    "image": "https://cdn.hstatic.net/products/1000365025/_mg_2848_copy_ed34f23a3b2f45afb1a9f1d300b8bf7e.jpg",
     "stockCount": 12,
     "features": [
       "Sản phẩm chính hãng DinCox Shoes từ website dincox.com",
@@ -771,7 +771,7 @@ export const OFFICIAL_WEB_DINCOX_CATALOG = [
     "discountPercent": 5,
     "voucherCode": "DINCOX50K",
     "voucherValue": "50.000đ",
-    "image": "https://cdn.hstatic.net/products/1000365025/dc49_dusty_rose_9dadb7416d864d46ade65207dece959f.png",
+    "image": "https://cdn.hstatic.net/products/1000365025/dc0342_copy_2_8965a5b516cd4a20983553c3a0cea199.jpg",
     "stockCount": 12,
     "features": [
       "Sản phẩm chính hãng DinCox Shoes từ website dincox.com",
@@ -809,7 +809,7 @@ export const OFFICIAL_WEB_DINCOX_CATALOG = [
     "discountPercent": 5,
     "voucherCode": "DINCOX50K",
     "voucherValue": "50.000đ",
-    "image": "https://cdn.hstatic.net/products/1000365025/dc49_black_pink_v1_93534038fe874a8d9c5d89aab5cae850.png",
+    "image": "https://cdn.hstatic.net/products/1000365025/dc0383_copy_2_978ea4254b7a42629b028ca70bb400a3.jpg",
     "stockCount": 12,
     "features": [
       "Sản phẩm chính hãng DinCox Shoes từ website dincox.com",
@@ -828,7 +828,7 @@ export const OFFICIAL_WEB_DINCOX_CATALOG = [
     "discountPercent": 13,
     "voucherCode": "DINCOX50K",
     "voucherValue": "50.000đ",
-    "image": "https://cdn.hstatic.net/products/1000365025/dc49_baby_blush_050d8786fcbb414083297311e835579d.png",
+    "image": "https://cdn.hstatic.net/products/1000365025/1l8a7783_copy_aaeaee9b6b1344a8961cf7d06a8b196e.jpg",
     "stockCount": 12,
     "features": [
       "Sản phẩm chính hãng DinCox Shoes từ website dincox.com",
@@ -847,7 +847,7 @@ export const OFFICIAL_WEB_DINCOX_CATALOG = [
     "discountPercent": 13,
     "voucherCode": "DINCOX50K",
     "voucherValue": "50.000đ",
-    "image": "https://cdn.hstatic.net/products/1000365025/dc49_lolilop_db249237de5c4856bd60f1e178a354b5.png",
+    "image": "https://cdn.hstatic.net/products/1000365025/1l8a7770_copy_06f1fb5e4dde4f1997dd67c00f988a35.jpg",
     "stockCount": 12,
     "features": [
       "Sản phẩm chính hãng DinCox Shoes từ website dincox.com",
@@ -866,7 +866,7 @@ export const OFFICIAL_WEB_DINCOX_CATALOG = [
     "discountPercent": 8,
     "voucherCode": "DINCOX50K",
     "voucherValue": "50.000đ",
-    "image": "https://cdn.hstatic.net/products/1000365025/dc36_white_gum_a99cdc40caf240ccaeabfb509895c03b.png",
+    "image": "https://cdn.hstatic.net/products/1000365025/_mg_2901_copy_2_d6fdeb44f54241dc8745085464dd8317.jpg",
     "stockCount": 12,
     "features": [
       "Sản phẩm chính hãng DinCox Shoes từ website dincox.com",
@@ -885,7 +885,7 @@ export const OFFICIAL_WEB_DINCOX_CATALOG = [
     "discountPercent": 8,
     "voucherCode": "DINCOX50K",
     "voucherValue": "50.000đ",
-    "image": "https://cdn.hstatic.net/products/1000365025/dc36_white_purple_c15c7c5f4047441b95da42d0601cc815.png",
+    "image": "https://cdn.hstatic.net/products/1000365025/1l8a9207_copy_3_ea5ce437792148b58be2ea7964c16f5d.jpg",
     "stockCount": 12,
     "features": [
       "Sản phẩm chính hãng DinCox Shoes từ website dincox.com",
