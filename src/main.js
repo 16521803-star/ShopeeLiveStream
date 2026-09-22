@@ -487,16 +487,26 @@ function bindEvents() {
   const btnStartRtmp = document.getElementById('btn-start-rtmp');
   const btnStopRtmp = document.getElementById('btn-stop-rtmp');
   const statusBadge = document.getElementById('rtmp-status-badge');
+  const keyInput = document.getElementById('rtmp-key-input');
+
+  // Auto-restore saved Stream Key from localStorage
+  const savedKey = localStorage.getItem('dincox_shopee_stream_key');
+  if (savedKey && keyInput) {
+    keyInput.value = savedKey;
+  }
 
   if (btnStartRtmp && btnStopRtmp) {
     btnStartRtmp.addEventListener('click', () => {
       const url = document.getElementById('rtmp-url-input').value;
-      const key = document.getElementById('rtmp-key-input').value;
+      const key = keyInput.value.trim();
 
       if (!key) {
         alert("⚠️ Vui lòng nhập Mã Khóa Luồng (Stream Key) lấy từ Shopee Live Seller Center!");
         return;
       }
+
+      // Save key for future sessions
+      localStorage.setItem('dincox_shopee_stream_key', key);
 
       rtmpStreamer.setCredentials(url, key);
       const success = rtmpStreamer.startStream((status, msg) => {
