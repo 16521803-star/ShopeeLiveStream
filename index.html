@@ -176,7 +176,31 @@
         </div>
 
         <div class="panel-section export-status-box">
-          <h2><i data-lucide="download-cloud"></i> Xuất Video Livestream</h2>
+          <h2><i data-lucide="radio"></i> Phát Livestream Trực Tiếp (Direct Shopee RTMP)</h2>
+          <div class="export-card rtmp-card">
+            <p class="export-desc">Phát trực tiếp từ Studio lên Shopee Live mà <strong>không cần OBS Studio</strong> bằng Mã Khóa Luồng (Stream Key).</p>
+            <div class="form-group">
+              <label for="rtmp-url-input">Server RTMP Shopee</label>
+              <input type="text" id="rtmp-url-input" class="input-field input-xs" value="rtmp://live.shopee.vn/live/" placeholder="rtmp://live.shopee.vn/live/">
+            </div>
+            <div class="form-group">
+              <label for="rtmp-key-input">Khóa Luồng (Stream Key)</label>
+              <input type="password" id="rtmp-key-input" class="input-field input-xs" placeholder="Nhập Stream Key từ Shopee Live Seller...">
+            </div>
+            <div id="rtmp-status-badge" class="rtmp-status-badge status-idle">● Sẵn sàng phát</div>
+            <div class="rtmp-action-btns">
+              <button id="btn-start-rtmp" class="btn btn-sm btn-success btn-block">
+                <i data-lucide="wifi"></i> Bắt Đầu Phát Shopee Live
+              </button>
+              <button id="btn-stop-rtmp" class="btn btn-sm btn-danger btn-block hidden">
+                <i data-lucide="square"></i> Dừng Phát Live
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <div class="panel-section export-status-box">
+          <h2><i data-lucide="download-cloud"></i> Xuất Video Livestream (Offline File)</h2>
           <div class="export-card">
             <p class="export-desc">Hệ thống sẽ ghi hình lại chuyển động của MC AI, hiệu ứng thả tim, giỏ hàng Shopee và giọng đọc Tiếng Việt thành tệp Video chuẩn 9:16.</p>
             <div id="recording-progress" class="recording-progress hidden">

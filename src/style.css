@@ -751,3 +751,49 @@ body {
 @keyframes spin {
   to { transform: rotate(360deg); }
 }
+
+/* RTMP Direct Streamer Styling */
+.rtmp-card {
+  background: rgba(0, 0, 0, 0.4);
+  border: 1px solid rgba(0, 230, 118, 0.3);
+  border-radius: 12px;
+  padding: 14px;
+}
+
+.input-xs {
+  font-size: 11px;
+  padding: 6px 10px;
+}
+
+.rtmp-status-badge {
+  font-size: 12px;
+  font-weight: 700;
+  padding: 6px 12px;
+  border-radius: 6px;
+  margin: 10px 0;
+  text-align: center;
+}
+
+.rtmp-status-badge.status-idle {
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--text-muted);
+}
+
+.rtmp-status-badge.status-live {
+  background: rgba(0, 230, 118, 0.2);
+  color: var(--accent-green);
+  border: 1px solid var(--accent-green);
+  animation: pulse 1.5s infinite;
+}
+
+.rtmp-status-badge.status-error {
+  background: rgba(255, 42, 84, 0.2);
+  color: var(--accent-red);
+  border: 1px solid var(--accent-red);
+}
+
+.rtmp-action-btns {
+  display: flex;
+  gap: 8px;
+}
+

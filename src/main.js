@@ -14,6 +14,7 @@ import { speechEngine } from './engine/speechSynthesizer.js';
 import { AIPresenterEngine } from './engine/aiPresenterEngine.js';
 import { ShopeeCanvasRenderer } from './engine/canvasRenderer.js';
 import { VideoExporter } from './engine/videoExporter.js';
+import { ShopeeRtmpStreamer } from './engine/shopeeRtmpStreamer.js';
 
 // Application State
 let activeProduct = DINCOX_PRODUCTS[0];
@@ -31,6 +32,7 @@ const canvas = document.getElementById('shopee-canvas');
 const canvasRenderer = new ShopeeCanvasRenderer(canvas);
 const presenterEngine = new AIPresenterEngine(activePresenter);
 const videoExporter = new VideoExporter(canvas);
+const rtmpStreamer = new ShopeeRtmpStreamer(canvas);
 
 canvasRenderer.setPresenterEngine(presenterEngine);
 canvasRenderer.setProduct(activeProduct);
@@ -480,6 +482,52 @@ function bindEvents() {
   // Edit Modal Controls
   document.getElementById('btn-close-modal').addEventListener('click', closeEditModal);
   document.getElementById('btn-save-edit-prod').addEventListener('click', saveEditModal);
+
+  // Direct Shopee RTMP Broadcaster Controls
+  const btnStartRtmp = document.getElementById('btn-start-rtmp');
+  const btnStopRtmp = document.getElementById('btn-stop-rtmp');
+  const statusBadge = document.getElementById('rtmp-status-badge');
+
+  if (btnStartRtmp && btnStopRtmp) {
+    btnStartRtmp.addEventListener('click', () => {
+      const url = document.getElementById('rtmp-url-input').value;
+      const key = document.getElementById('rtmp-key-input').value;
+
+      if (!key) {
+        alert("⚠️ Vui lòng nhập Mã Khóa Luồng (Stream Key) lấy từ Shopee Live Seller Center!");
+        return;
+      }
+
+      rtmpStreamer.setCredentials(url, key);
+      const success = rtmpStreamer.startStream((status, msg) => {
+        statusBadge.className = 'rtmp-status-badge';
+        if (status === 'LIVE') {
+          statusBadge.classList.add('status-live');
+          statusBadge.innerText = '🔴 ĐANG PHÁT LIVE SHOPEE';
+          btnStartRtmp.classList.add('hidden');
+          btnStopRtmp.classList.remove('hidden');
+        } else if (status === 'ERROR') {
+          statusBadge.classList.add('status-error');
+          statusBadge.innerText = '⚠️ ' + msg;
+        } else {
+          statusBadge.classList.add('status-idle');
+          statusBadge.innerText = '● ' + msg;
+          btnStartRtmp.classList.remove('hidden');
+          btnStopRtmp.classList.add('hidden');
+        }
+      });
+
+      if (success && !isSequencePlaying) {
+        playScriptSequence();
+      }
+    });
+
+    btnStopRtmp.addEventListener('click', () => {
+      rtmpStreamer.stopStream();
+      btnStartRtmp.classList.remove('hidden');
+      btnStopRtmp.classList.add('hidden');
+    });
+  }
 }
 
 // Initialize Application
