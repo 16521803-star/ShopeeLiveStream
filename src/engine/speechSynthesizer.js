@@ -90,17 +90,19 @@ export class SpeechEngine {
       apiKey: '',
       voiceId: '21m00Tcm4TlvDq8ikWAM',
       modelId: 'eleven_multilingual_v2',
-      enabled: false
+      enabled: false,
+      confirmBeforeApiCall: true
     };
 
     this.initVoices();
   }
 
-  setElevenLabsConfig({ apiKey, voiceId, modelId, enabled }) {
+  setElevenLabsConfig({ apiKey, voiceId, modelId, enabled, confirmBeforeApiCall }) {
     if (apiKey !== undefined) this.elevenLabsConfig.apiKey = apiKey.trim();
     if (voiceId !== undefined) this.elevenLabsConfig.voiceId = voiceId.trim() || '21m00Tcm4TlvDq8ikWAM';
     if (modelId !== undefined) this.elevenLabsConfig.modelId = modelId.trim() || 'eleven_multilingual_v2';
     if (enabled !== undefined) this.elevenLabsConfig.enabled = !!enabled;
+    if (confirmBeforeApiCall !== undefined) this.elevenLabsConfig.confirmBeforeApiCall = !!confirmBeforeApiCall;
   }
 
   async fetchElevenLabsUserVoices(apiKey, filterVietnameseOnly = true) {
@@ -227,7 +229,18 @@ export class SpeechEngine {
             this.onStatusCallback({ isCache: true, source: 'IndexedDB Disk Cache', costCredits: 0, text });
           }
         } else {
-          // 3. Fetch from ElevenLabs API
+          // 3. Fetch from ElevenLabs API (If not cached)
+          if (this.elevenLabsConfig.confirmBeforeApiCall) {
+            const cost = text.trim().length;
+            const confirmMsg = `📡 [CẢNH BÁO TỐN CREDIT ELEVENLABS]\n\nCâu thoại này CHƯA CÓ trong bộ nhớ đệm (Cache) trên máy.\n\nSẽ cần khoảng ~${cost} Credit ElevenLabs để tạo tệp âm thanh mới cho câu thoại này.\n\n👉 Bạn có đồng ý gọi API ElevenLabs để tạo giọng AI không?\n(Nếu chọn Cancel / Hủy, hệ thống sẽ tự động phát bằng Giọng Mặc Định miễn phí của trình duyệt).`;
+            const userAgreed = confirm(confirmMsg);
+            if (!userAgreed) {
+              console.log("User declined ElevenLabs API call for uncached text. Falling back to native TTS.");
+              this.isSpeaking = false;
+              return false;
+            }
+          }
+
           console.log("📡 [API Request] Fetching new speech audio from ElevenLabs...");
           if (this.onStatusCallback) {
             this.onStatusCallback({ isCache: false, source: 'ElevenLabs API', costCredits: text.trim().length, text });

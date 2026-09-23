@@ -658,6 +658,7 @@ function bindEvents() {
   const elevenLabsModelSelect = document.getElementById('elevenlabs-model');
   const btnFetchElevenVoices = document.getElementById('btn-fetch-eleven-voices');
   const chkUseElevenLabs = document.getElementById('chk-use-elevenlabs');
+  const chkConfirmElevenLabs = document.getElementById('chk-confirm-elevenlabs');
 
   // Restore saved ElevenLabs settings from localStorage
   const savedElevenKey = localStorage.getItem('dincox_elevenlabs_key');
@@ -665,10 +666,13 @@ function bindEvents() {
   const savedElevenModel = localStorage.getItem('dincox_elevenlabs_model');
   const savedElevenEnabledVal = localStorage.getItem('dincox_elevenlabs_enabled');
   const savedElevenEnabled = savedElevenEnabledVal === null ? true : (savedElevenEnabledVal === 'true');
+  const savedElevenConfirmVal = localStorage.getItem('dincox_elevenlabs_confirm');
+  const savedElevenConfirm = savedElevenConfirmVal === null ? true : (savedElevenConfirmVal === 'true');
 
   if (savedElevenKey && elevenLabsApiKeyInput) elevenLabsApiKeyInput.value = savedElevenKey;
   if (savedElevenModel && elevenLabsModelSelect) elevenLabsModelSelect.value = savedElevenModel;
   if (chkUseElevenLabs) chkUseElevenLabs.checked = savedElevenEnabled;
+  if (chkConfirmElevenLabs) chkConfirmElevenLabs.checked = savedElevenConfirm;
 
   // Restore Voice Selection
   if (savedElevenVoice && elevenLabsVoiceSelect) {
@@ -695,13 +699,15 @@ function bindEvents() {
     const voiceId = getEffectiveVoiceId();
     const modelId = elevenLabsModelSelect ? elevenLabsModelSelect.value : 'eleven_multilingual_v2';
     const enabled = chkUseElevenLabs ? chkUseElevenLabs.checked : false;
+    const confirmBeforeApiCall = chkConfirmElevenLabs ? chkConfirmElevenLabs.checked : true;
 
     localStorage.setItem('dincox_elevenlabs_key', apiKey);
     localStorage.setItem('dincox_elevenlabs_voice', voiceId);
     localStorage.setItem('dincox_elevenlabs_model', modelId);
     localStorage.setItem('dincox_elevenlabs_enabled', enabled ? 'true' : 'false');
+    localStorage.setItem('dincox_elevenlabs_confirm', confirmBeforeApiCall ? 'true' : 'false');
 
-    speechEngine.setElevenLabsConfig({ apiKey, voiceId, modelId, enabled });
+    speechEngine.setElevenLabsConfig({ apiKey, voiceId, modelId, enabled, confirmBeforeApiCall });
 
     const statusEl = document.getElementById('elevenlabs-live-status');
     if (statusEl) {
@@ -761,6 +767,10 @@ function bindEvents() {
 
   if (chkUseElevenLabs) {
     chkUseElevenLabs.addEventListener('change', updateElevenLabsSettings);
+  }
+
+  if (chkConfirmElevenLabs) {
+    chkConfirmElevenLabs.addEventListener('change', updateElevenLabsSettings);
   }
 
   if (elevenLabsModelSelect) {
