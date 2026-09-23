@@ -141,7 +141,6 @@ export class ShopeeCanvasRenderer {
 
     // 1. FULL-SCREEN BACKGROUND STREAMER (MC AI or Real MP4 Video fills 100% canvas background!)
     if (this.presenterEngine) {
-      // Streamer occupies full height and width (0, 0, 1080, 1920)
       this.presenterEngine.render(ctx, 0, 0, this.width, this.height);
     } else {
       // Dark studio fallback gradient
@@ -162,19 +161,10 @@ export class ShopeeCanvasRenderer {
     // 4. Render Flash Sale & Voucher Banner (Lower Middle Overlay)
     this.renderFlashSaleBanner(ctx);
 
-    // 5. Render Speech Subtitle Box (Above Comments)
+    // 5. Render Concise 1-2 Line Speech Subtitle Box (Above Shopee native chat area)
     if (this.speechText) {
       this.renderSpeechSubtitle(ctx);
     }
-
-    // 6. Render Shopee Bottom Left Cart & Stock Badge
-    this.renderProductCardCart(ctx);
-
-    // 7. Render Floating Hearts & Likes Counter
-    this.renderFloatingHearts(ctx);
-
-    // 8. Render Live Chat Feed (Bottom Left)
-    this.renderChatFeed(ctx);
   }
 
   // Official Shopee AI Livestream Compliance Watermark Badge
@@ -280,7 +270,7 @@ export class ShopeeCanvasRenderer {
 
     ctx.save();
     const banX = 50;
-    const banY = this.height - 620;
+    const banY = this.height - 480;
     const banW = this.width - 100;
     const banH = 110;
 
@@ -330,15 +320,18 @@ export class ShopeeCanvasRenderer {
     ctx.restore();
   }
 
+  // Concise 1-2 Line Subtitle Box
   renderSpeechSubtitle(ctx) {
+    if (!this.speechText) return;
+
     ctx.save();
     const bubW = this.width - 100;
-    const bubH = 120;
+    const bubH = 104;
     const bubX = 50;
-    const bubY = this.height - 490;
+    const bubY = this.height - 350;
 
     // Subtitle Glassmorphism Box
-    ctx.fillStyle = 'rgba(6, 14, 25, 0.9)';
+    ctx.fillStyle = 'rgba(6, 14, 25, 0.92)';
     ctx.strokeStyle = '#E5A93C';
     ctx.lineWidth = 2.5;
     ctx.beginPath();
@@ -349,109 +342,39 @@ export class ShopeeCanvasRenderer {
     // Subtitle Tag
     ctx.fillStyle = '#FF2A54';
     ctx.beginPath();
-    ctx.roundRect(bubX + 20, bubY - 18, 200, 36, 10);
+    ctx.roundRect(bubX + 20, bubY - 16, 170, 32, 8);
     ctx.fill();
 
     ctx.fillStyle = '#FFFFFF';
-    ctx.font = 'bold 20px sans-serif';
-    ctx.fillText(`🎙️ MC TƯ VẤN LIVE`, bubX + 32, bubY + 6);
+    ctx.font = 'bold 18px sans-serif';
+    ctx.fillText(`🎙️ MC TƯ VẤN LIVE`, bubX + 28, bubY + 6);
 
-    // Text wrapping for subtitles
+    // Text wrapping for subtitles (Max 2 lines)
     ctx.fillStyle = '#FFFFFF';
-    ctx.font = '26px sans-serif';
+    ctx.font = 'bold 24px sans-serif';
 
     const words = this.speechText.split(' ');
     let line = '';
-    let lineY = bubY + 55;
+    let lines = [];
 
     for (let i = 0; i < words.length; i++) {
       const testLine = line + words[i] + ' ';
       const metrics = ctx.measureText(testLine);
-      if (metrics.width > bubW - 50 && i > 0) {
-        ctx.fillText(line, bubX + 25, lineY);
+      if (metrics.width > bubW - 40 && i > 0) {
+        lines.push(line);
         line = words[i] + ' ';
-        lineY += 34;
+        if (lines.length >= 2) break;
       } else {
         line = testLine;
       }
     }
-    ctx.fillText(line, bubX + 25, lineY);
+    if (lines.length < 2 && line) {
+      lines.push(line);
+    }
 
-    ctx.restore();
-  }
-
-  renderProductCardCart(ctx) {
-    if (!this.currentProduct) return;
-
-    ctx.save();
-    // Orange Shopee Shopping Bag Button (Bottom Left)
-    const cartX = 50;
-    const cartY = this.height - 180;
-
-    ctx.fillStyle = '#FF5722';
-    ctx.beginPath();
-    ctx.roundRect(cartX, cartY, 220, 100, 30);
-    ctx.fill();
-
-    ctx.fillStyle = '#FFFFFF';
-    ctx.font = 'bold 32px sans-serif';
-    ctx.fillText('🛍️ Giỏ Hàng', cartX + 25, cartY + 60);
-
-    // Stock Counter Badge
-    ctx.fillStyle = '#FFEC3D';
-    ctx.font = 'bold 22px sans-serif';
-    ctx.fillText(`Chỉ còn ${this.currentProduct.stockCount || 12} đôi!`, cartX + 25, cartY + 90);
-
-    ctx.restore();
-  }
-
-  renderFloatingHearts(ctx) {
-    ctx.save();
-    this.hearts.forEach(h => {
-      ctx.globalAlpha = h.alpha;
-      ctx.fillStyle = h.color;
-      ctx.font = `${h.size}px sans-serif`;
-      ctx.fillText('❤️', h.x, h.y);
-    });
-
-    // Like counter badge (Bottom Right)
-    ctx.globalAlpha = 1;
-    ctx.fillStyle = 'rgba(0,0,0,0.65)';
-    ctx.beginPath();
-    ctx.arc(this.width - 90, this.height - 130, 45, 0, Math.PI * 2);
-    ctx.fill();
-
-    ctx.fillStyle = '#FF4D4F';
-    ctx.font = 'bold 36px sans-serif';
-    ctx.fillText('❤️', this.width - 110, this.height - 120);
-
-    ctx.fillStyle = '#FFFFFF';
-    ctx.font = 'bold 22px sans-serif';
-    ctx.fillText((this.likeCount / 1000).toFixed(1) + 'k', this.width - 115, this.height - 70);
-
-    ctx.restore();
-  }
-
-  renderChatFeed(ctx) {
-    ctx.save();
-    const chatX = 290;
-    const chatY = this.height - 240;
-
-    ctx.font = '24px sans-serif';
-    this.chatFeed.slice(0, 3).forEach((item, idx) => {
-      const y = chatY + idx * 45;
-      ctx.fillStyle = 'rgba(0, 0, 0, 0.55)';
-      ctx.beginPath();
-      ctx.roundRect(chatX, y, 690, 38, 12);
-      ctx.fill();
-
-      ctx.fillStyle = '#FFEC3D';
-      ctx.font = 'bold 22px sans-serif';
-      ctx.fillText(item.user + ':', chatX + 15, y + 26);
-
-      ctx.fillStyle = '#FFFFFF';
-      ctx.font = '22px sans-serif';
-      ctx.fillText(item.text, chatX + 200, y + 26);
+    const startY = lines.length === 1 ? bubY + 58 : bubY + 44;
+    lines.forEach((l, idx) => {
+      ctx.fillText(l.trim(), bubX + 20, startY + idx * 32);
     });
 
     ctx.restore();
