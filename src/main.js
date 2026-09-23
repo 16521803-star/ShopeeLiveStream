@@ -384,6 +384,19 @@ async function toggleVideoRecording() {
 
 // Bind Events
 function bindEvents() {
+  const chkShowFlashSale = document.getElementById('chk-show-flash-sale');
+  const savedShowFlashSale = localStorage.getItem('dincox_show_flash_sale') === 'true'; // Default false (hidden)
+  if (chkShowFlashSale) {
+    chkShowFlashSale.checked = savedShowFlashSale;
+    canvasRenderer.setShowFlashSaleBanner(savedShowFlashSale);
+
+    chkShowFlashSale.addEventListener('change', (e) => {
+      const isChecked = e.target.checked;
+      canvasRenderer.setShowFlashSaleBanner(isChecked);
+      localStorage.setItem('dincox_show_flash_sale', isChecked ? 'true' : 'false');
+    });
+  }
+
   document.getElementById('script-text-input')?.addEventListener('input', (e) => {
     if (currentScriptStages[activeStageIdx]) {
       currentScriptStages[activeStageIdx].text = e.target.value;

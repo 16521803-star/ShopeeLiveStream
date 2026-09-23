@@ -49,10 +49,12 @@ export class ShopeeCanvasRenderer {
     this.likeCount = 14890;
     this.viewCount = 3420;
 
-    // Animated particles & hearts
     this.hearts = [];
     this.productImg = new Image();
     this.isProductImgLoaded = false;
+
+    // Flash sale banner toggle state (default: hidden for maximum video cleanliness & policy safety)
+    this.showFlashSaleBanner = false;
 
     // Shopee Live simulated chat feed
     this.chatFeed = [
@@ -64,6 +66,10 @@ export class ShopeeCanvasRenderer {
     ];
 
     this.initHearts();
+  }
+
+  setShowFlashSaleBanner(show) {
+    this.showFlashSaleBanner = !!show;
   }
 
   setProduct(product) {
@@ -203,15 +209,12 @@ export class ShopeeCanvasRenderer {
     if (!this.currentProduct) return;
 
     ctx.save();
-    // If image is loaded, card is 420px tall. If NO image, shrink card to 150px tall!
     const hasImg = this.isProductImgLoaded && this.currentProduct.image && typeof this.currentProduct.image === 'string' && this.currentProduct.image.trim().length > 0;
+    const floatY = Math.sin(timestamp * 0.003) * 6;
     const cardW = 340;
-    const cardH = hasImg ? 420 : 150;
+    const cardH = hasImg ? 390 : 130;
     const cardX = this.width - cardW - 40;
     const cardY = 180;
-
-    // Subtle floating animation
-    const floatY = Math.sin(timestamp * 0.003) * 6;
 
     // Glassmorphism card backdrop
     ctx.fillStyle = 'rgba(10, 20, 38, 0.88)';
@@ -222,29 +225,20 @@ export class ShopeeCanvasRenderer {
     ctx.fill();
     ctx.stroke();
 
-    // Shopee Mall Badge Tag on Product Card
-    ctx.fillStyle = '#D00000';
-    ctx.beginPath();
-    ctx.roundRect(cardX + 15, cardY + floatY + 15, 90, 34, 8);
-    ctx.fill();
-    ctx.fillStyle = '#FFFFFF';
-    ctx.font = 'bold 18px sans-serif';
-    ctx.fillText('Mall', cardX + 42, cardY + floatY + 38);
-
     // Product Title
     ctx.fillStyle = '#FFFFFF';
     ctx.font = 'bold 22px sans-serif';
     const shortName = this.currentProduct.name.length > 22 
       ? this.currentProduct.name.substring(0, 20) + '...' 
       : this.currentProduct.name;
-    ctx.fillText(shortName, cardX + 15, cardY + floatY + 76);
+    ctx.fillText(shortName, cardX + 15, cardY + floatY + 44);
 
     // Shoe Product Thumbnail Box (ONLY if image is available & loaded)
     if (hasImg) {
       const imgW = 260;
       const imgH = 260;
       const imgX = cardX + (cardW - imgW) / 2;
-      const imgY = cardY + floatY + 95;
+      const imgY = cardY + floatY + 62;
 
       // Inner image frame
       ctx.fillStyle = 'rgba(0, 0, 0, 0.4)';
@@ -259,14 +253,14 @@ export class ShopeeCanvasRenderer {
     const saleStr = new Intl.NumberFormat('vi-VN').format(this.currentProduct.salePrice) + 'đ';
     ctx.fillStyle = '#FF2A54';
     ctx.font = 'bold 26px sans-serif';
-    const priceY = hasImg ? (cardY + floatY + cardH - 20) : (cardY + floatY + 124);
+    const priceY = hasImg ? (cardY + floatY + cardH - 18) : (cardY + floatY + 100);
     ctx.fillText(saleStr, cardX + 15, priceY);
 
     ctx.restore();
   }
 
   renderFlashSaleBanner(ctx) {
-    if (!this.currentProduct) return;
+    if (!this.showFlashSaleBanner || !this.currentProduct) return;
 
     ctx.save();
     const banX = 50;
@@ -283,10 +277,10 @@ export class ShopeeCanvasRenderer {
     ctx.roundRect(banX, banY, banW, banH, 20);
     ctx.fill();
 
-    // Flash sale icon text
+    // Banner title text
     ctx.fillStyle = '#FFEC3D';
     ctx.font = 'bold 32px sans-serif';
-    ctx.fillText(`⚡ SHOPEE LIVE FLASH SALE`, banX + 30, banY + 45);
+    ctx.fillText(`🔥 GIÁ LIVE ƯU ĐÃI`, banX + 30, banY + 45);
 
     // Pricing
     const saleStr = new Intl.NumberFormat('vi-VN').format(this.currentProduct.salePrice) + 'đ';
