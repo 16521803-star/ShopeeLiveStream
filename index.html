@@ -152,34 +152,33 @@
                     </button>
                   </div>
                   <select id="elevenlabs-voice-select" class="input-field input-xs">
-                    <optgroup label="👩 Giọng Nữ (Female Voices)">
-                      <option value="21m00Tcm4TlvDq8ikWAM" selected>Rachel (Nữ - Truyền cảm, Tự nhiên)</option>
+                    <optgroup label="🇻🇳 Giọng Tiếng Việt Chuẩn (Vietnamese Multilingual)">
+                      <option value="21m00Tcm4TlvDq8ikWAM" selected>Rachel (Nữ - Truyền cảm, Chuẩn Tiếng Việt)</option>
                       <option value="EXAVITQu4vr4xnSDxMaL">Bella (Nữ - Tươi trẻ, Năng động)</option>
                       <option value="AZnzlk1XvdvUeBnXmlld">Domi (Nữ - Tự tin, Chuyên nghiệp)</option>
                       <option value="MF3mGyEYCl7XYWbV9V6O">Elli (Nữ - Ngọt ngào, Nhẹ nhàng)</option>
-                    </optgroup>
-                    <optgroup label="👨 Giọng Nam (Male Voices)">
                       <option value="ErXwobaYiN019PkySvjV">Antoni (Nam - Trẻ trung, Lôi cuốn)</option>
                       <option value="pNInz6ovD35MwNiWacM7">Adam (Nam - Ấm áp, Trầm ổn)</option>
-                      <option value="TxGEqnHWrfWFTfGW9XjX">Josh (Nam - Sôi nổi, Cuốn hút)</option>
-                      <option value="VR6AewLTigWG4xSOukaG">Arnold (Nam - Uy quyền, Nam tính)</option>
                     </optgroup>
-                    <optgroup label="⚙️ Tùy chỉnh (Custom Voice ID)">
-                      <option value="custom">-- Nhập Custom Voice ID thủ công --</option>
+                    <optgroup label="⚙️ Tùy chỉnh (Voice ID Cloned Tiếng Việt trong Account)">
+                      <option value="custom">-- Nhập Custom Voice ID từ tài khoản ElevenLabs --</option>
                     </optgroup>
                   </select>
                 </div>
                 <div id="custom-voice-id-container" class="form-group hidden">
-                  <label for="elevenlabs-voice-id">Custom Voice ID</label>
+                  <label for="elevenlabs-voice-id">Custom Voice ID (Ví dụ: Giọng đã clone từ ElevenLabs Voice Lab)</label>
                   <input type="text" id="elevenlabs-voice-id" class="input-field input-xs" placeholder="Dán Voice ID từ ElevenLabs vào đây...">
                 </div>
                 <div class="form-group">
                   <label for="elevenlabs-model">Model ElevenLabs AI</label>
                   <select id="elevenlabs-model" class="input-field input-xs">
-                    <option value="eleven_multilingual_v2" selected>eleven_multilingual_v2 (Đa ngôn ngữ v2 - Khuyên dùng)</option>
-                    <option value="eleven_flash_v2_5">eleven_flash_v2_5 (Tốc độ cao Turbo)</option>
-                    <option value="eleven_turbo_v2_5">eleven_turbo_v2_5 (Độ trễ siêu thấp)</option>
+                    <option value="eleven_multilingual_v2" selected>eleven_multilingual_v2 (Đa ngôn ngữ v2 - Phát Tiếng Việt tự nhiên nhất)</option>
+                    <option value="eleven_flash_v2_5">eleven_flash_v2_5 (Tốc độ Turbo - Tiết kiệm 50% credit)</option>
+                    <option value="eleven_turbo_v2_5">eleven_turbo_v2_5 (Độ trễ thấp)</option>
                   </select>
+                </div>
+                <div class="credit-saver-badge">
+                  <span>💡 <strong>Smart Credit Saver:</strong> Đã bật tự động Caching. Khi lặp lại sản phẩm, tốn <strong>0 Credit ElevenLabs</strong>!</span>
                 </div>
                 <label class="toggle-label">
                   <input type="checkbox" id="chk-use-elevenlabs">

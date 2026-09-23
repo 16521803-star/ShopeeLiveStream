@@ -46,6 +46,18 @@ export class SpeechEngine {
     }
   }
 
+  async fetchElevenLabsVietnameseSharedVoices() {
+    try {
+      const res = await fetch('https://api.elevenlabs.io/v1/shared-voices?language=vi&page_size=30');
+      if (!res.ok) return [];
+      const data = await res.json();
+      return data.voices || [];
+    } catch (err) {
+      console.warn("Could not fetch shared Vietnamese voices:", err);
+      return [];
+    }
+  }
+
   initVoices() {
     if (!this.synth) return;
     const load = () => {
@@ -99,30 +111,44 @@ export class SpeechEngine {
     try {
       this.isSpeaking = true;
       const { apiKey, voiceId, modelId } = this.elevenLabsConfig;
+      const cacheKey = `${voiceId}_${modelId}_${text.trim()}`;
 
-      const response = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${voiceId}`, {
-        method: 'POST',
-        headers: {
-          'xi-api-key': apiKey,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          text,
-          model_id: modelId,
-          voice_settings: {
-            stability: 0.5,
-            similarity_boost: 0.75,
-            use_speaker_boost: true
-          }
-        })
-      });
+      let audioUrl = null;
 
-      if (!response.ok) {
-        throw new Error(`ElevenLabs API HTTP Error ${response.status}`);
+      // Smart Credit-Saver Cache Check
+      if (this.audioCache && this.audioCache.has(cacheKey)) {
+        console.log("⚡ [ElevenLabs Cache Hit] Reusing cached audio! Saved credit cost: 0.");
+        audioUrl = this.audioCache.get(cacheKey);
+      } else {
+        const response = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${voiceId}`, {
+          method: 'POST',
+          headers: {
+            'xi-api-key': apiKey,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            text,
+            model_id: modelId,
+            voice_settings: {
+              stability: 0.5,
+              similarity_boost: 0.75,
+              use_speaker_boost: true
+            }
+          })
+        });
+
+        if (!response.ok) {
+          throw new Error(`ElevenLabs API HTTP Error ${response.status}`);
+        }
+
+        const audioBlob = await response.blob();
+        audioUrl = URL.createObjectURL(audioBlob);
+
+        // Store in Cache
+        if (!this.audioCache) this.audioCache = new Map();
+        this.audioCache.set(cacheKey, audioUrl);
       }
 
-      const audioBlob = await response.blob();
-      const audioUrl = URL.createObjectURL(audioBlob);
       const audio = new Audio(audioUrl);
       this.activeAudio = audio;
 

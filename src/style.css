@@ -852,4 +852,14 @@ body {
   gap: 8px;
 }
 
+.credit-saver-badge {
+  background: rgba(0, 230, 118, 0.1);
+  border: 1px dashed rgba(0, 230, 118, 0.4);
+  border-radius: 8px;
+  padding: 8px 10px;
+  font-size: 11px;
+  color: var(--accent-green);
+  line-height: 1.4;
+}
+
 
