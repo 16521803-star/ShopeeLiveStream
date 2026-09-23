@@ -195,8 +195,11 @@
                 </div>
                 <div class="credit-saver-badge">
                   <span>💾 <strong>Permanent IndexedDB Disk Cache:</strong> Đã bật lưu vĩnh viễn trên ổ cứng laptop. Tắt máy/đóng trình duyệt mở lại tốn <strong>0 Credit ElevenLabs</strong>!</span>
-                  <button id="btn-clear-audio-cache" class="btn btn-xs btn-ghost btn-block" style="margin-top:6px; color:var(--accent-red);" title="Xóa toàn bộ bộ nhớ đệm âm thanh đã lưu">
-                    <i data-lucide="trash-2"></i> 🧹 Xóa Cache Âm Thanh Trong Máy
+                  <button id="btn-open-cache-modal" class="btn btn-xs btn-outline btn-block" style="margin-top:6px; color:var(--primary); border-color:rgba(229,169,60,0.4);" title="Xem danh sách câu thoại và khôi phục giọng đọc đã lưu">
+                    <i data-lucide="database"></i> 📦 Xem & Khôi Phục Các Giọng Đã Cache
+                  </button>
+                  <button id="btn-clear-audio-cache" class="btn btn-xs btn-ghost btn-block" style="margin-top:4px; color:var(--accent-red);" title="Xóa toàn bộ bộ nhớ đệm âm thanh đã lưu">
+                    <i data-lucide="trash-2"></i> 🧹 Xóa Toàn Bộ Cache
                   </button>
                 </div>
                 <label class="toggle-label">
@@ -337,6 +340,31 @@
           <input type="text" id="edit-feature" class="input-field">
         </div>
         <button id="btn-save-edit-prod" class="btn btn-primary btn-block">Lưu Thay Đổi</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Audio Cache Manager Modal -->
+  <div id="cache-modal-backdrop" class="modal-backdrop hidden">
+    <div class="modal-box" style="max-width: 640px;">
+      <div class="modal-header">
+        <h3>📦 Danh Sách Cache Giọng Đọc Đã Lưu (0 Credit)</h3>
+        <button id="btn-close-cache-modal" class="btn-icon">&times;</button>
+      </div>
+      <div class="modal-body">
+        <p class="form-hint" style="margin-bottom: 12px; font-size: 12px; color: var(--text-muted);">
+          Dưới đây là các câu thoại và Giọng Đọc ElevenLabs đã được lưu vĩnh viễn trên máy của bạn (Phát lại tốn <strong>0 Credit</strong>). Bấm <strong>"Khôi Phục Giọng Này"</strong> nếu bạn muốn đổi lại giọng đọc đã lưu.
+        </p>
+
+        <div id="cache-items-list" class="cache-items-list">
+          <!-- Rendered dynamically via JS -->
+        </div>
+
+        <div class="cache-modal-footer" style="margin-top: 14px; display: flex; justify-content: flex-end;">
+          <button id="btn-clear-all-cache-modal" class="btn btn-xs btn-danger">
+            <i data-lucide="trash-2"></i> Xóa Tất Cả Cache Trong Máy
+          </button>
+        </div>
       </div>
     </div>
   </div>

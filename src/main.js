@@ -855,6 +855,156 @@ function bindEvents() {
     });
   }
 
+  // Audio Cache Manager Modal Handlers
+  const btnOpenCacheModal = document.getElementById('btn-open-cache-modal');
+  const btnCloseCacheModal = document.getElementById('btn-close-cache-modal');
+  const cacheModalBackdrop = document.getElementById('cache-modal-backdrop');
+  const cacheItemsList = document.getElementById('cache-items-list');
+  const btnClearAllCacheModal = document.getElementById('btn-clear-all-cache-modal');
+  let activeCacheAudio = null;
+
+  const knownVoiceNames = {
+    '21m00Tcm4TlvDq8ikWAM': 'Rachel (Nữ - Truyền cảm)',
+    'EXAVITQu4vr4xnSDxMaL': 'Bella (Nữ - Tươi trẻ)',
+    'AZnzlk1XvdvUeBnXmlld': 'Domi (Nữ - Tự tin)',
+    'MF3mGyEYCl7XYWbV9V6O': 'Elli (Nữ - Ngọt ngào)',
+    'ErXwobaYiN019PkySvjV': 'Antoni (Nam - Trẻ trung)',
+    'pNInz6ovD35MwNiWacM7': 'Adam (Nam - Trầm ổn)'
+  };
+
+  const renderCacheList = async () => {
+    if (!cacheItemsList) return;
+    cacheItemsList.innerHTML = `<div style="text-align:center; padding:20px;"><i data-lucide="refresh-cw" class="spin"></i> Đang đọc bộ nhớ cache...</div>`;
+    createIcons({ icons });
+
+    const items = await audioCacheDB.getAllKeysAndBlobs();
+
+    if (!items || items.length === 0) {
+      cacheItemsList.innerHTML = `
+        <div style="text-align:center; padding:32px 16px; color:var(--text-muted);">
+          <i data-lucide="inbox" style="width:36px; height:36px; stroke-width:1.5; margin-bottom:8px; opacity:0.6;"></i>
+          <p>Chưa có file âm thanh nào được lưu trong bộ nhớ đệm Cache.</p>
+          <span style="font-size:11px;">Khi bạn phát giọng ElevenLabs, các câu thoại sẽ tự động xuất hiện ở đây để tái sử dụng 0 Credit.</span>
+        </div>
+      `;
+      createIcons({ icons });
+      return;
+    }
+
+    cacheItemsList.innerHTML = items.map(item => {
+      const parts = item.key.split('_');
+      const vId = parts[0] || 'Unknown';
+      const mId = parts[1] || 'eleven_multilingual_v2';
+      const textSnippet = parts.slice(2).join('_');
+      const sizeKB = item.blob ? (item.blob.size / 1024).toFixed(1) : '0';
+      const voiceLabel = knownVoiceNames[vId] || `Voice ID: ${vId.slice(0, 10)}...`;
+
+      return `
+        <div class="cache-item-card" data-key="${item.key}" data-voice="${vId}" data-model="${mId}">
+          <div class="cache-item-header">
+            <span class="cache-voice-badge">
+              <i data-lucide="mic"></i> 🎤 ${voiceLabel}
+            </span>
+            <span style="font-size:11px; color:var(--accent-green); font-weight:600;">💾 ${sizeKB} KB (0 Credit)</span>
+          </div>
+          <div class="cache-item-text">
+            "${textSnippet}"
+          </div>
+          <div class="cache-item-actions">
+            <button class="btn btn-xs btn-ghost btn-play-cache-item" title="Nghe thử âm thanh đã lưu">
+              <i data-lucide="volume-2"></i> Nghe Thử
+            </button>
+            <button class="btn btn-xs btn-primary btn-restore-voice-item" title="Đổi ElevenLabs sang dùng lại giọng đọc này">
+              <i data-lucide="check-circle"></i> ⚡ Khôi Phục Giọng Này
+            </button>
+            <button class="btn btn-xs btn-danger btn-delete-cache-item" title="Xóa file này">
+              <i data-lucide="trash-2"></i> Xóa
+            </button>
+          </div>
+        </div>
+      `;
+    }).join('');
+
+    createIcons({ icons });
+
+    // Bind item buttons
+    cacheItemsList.querySelectorAll('.cache-item-card').forEach(card => {
+      const key = card.dataset.key;
+      const vId = card.dataset.voice;
+
+      // Play Preview
+      card.querySelector('.btn-play-cache-item').addEventListener('click', async () => {
+        if (activeCacheAudio) {
+          activeCacheAudio.pause();
+          activeCacheAudio = null;
+        }
+        const blob = await audioCacheDB.getAudioBlob(key);
+        if (blob) {
+          const url = URL.createObjectURL(blob);
+          activeCacheAudio = new Audio(url);
+          activeCacheAudio.play();
+        }
+      });
+
+      // Restore Voice
+      card.querySelector('.btn-restore-voice-item').addEventListener('click', () => {
+        if (elevenLabsVoiceSelect) {
+          const opt = Array.from(elevenLabsVoiceSelect.options).find(o => o.value === vId);
+          if (opt) {
+            elevenLabsVoiceSelect.value = vId;
+            if (customVoiceIdContainer) customVoiceIdContainer.classList.add('hidden');
+          } else {
+            elevenLabsVoiceSelect.value = 'custom';
+            if (customVoiceIdContainer) customVoiceIdContainer.classList.remove('hidden');
+            if (elevenLabsVoiceIdInput) elevenLabsVoiceIdInput.value = vId;
+          }
+        }
+        if (chkUseElevenLabs) chkUseElevenLabs.checked = true;
+        updateElevenLabsSettings();
+        if (cacheModalBackdrop) cacheModalBackdrop.classList.add('hidden');
+        alert(`🎉 Đã khôi phục cài đặt sang Giọng đọc: ${knownVoiceNames[vId] || vId}!\n\nCác câu thoại đã từng phát bằng giọng này sẽ tự động chạy 0 Credit.`);
+      });
+
+      // Delete Item
+      card.querySelector('.btn-delete-cache-item').addEventListener('click', async () => {
+        await audioCacheDB.deleteKey(key);
+        if (speechEngine.audioCache) speechEngine.audioCache.delete(key);
+        card.remove();
+        if (cacheItemsList.children.length === 0) {
+          renderCacheList();
+        }
+      });
+    });
+  };
+
+  if (btnOpenCacheModal && cacheModalBackdrop) {
+    btnOpenCacheModal.addEventListener('click', () => {
+      cacheModalBackdrop.classList.remove('hidden');
+      renderCacheList();
+    });
+  }
+
+  if (btnCloseCacheModal && cacheModalBackdrop) {
+    btnCloseCacheModal.addEventListener('click', () => {
+      cacheModalBackdrop.classList.add('hidden');
+      if (activeCacheAudio) {
+        activeCacheAudio.pause();
+        activeCacheAudio = null;
+      }
+    });
+  }
+
+  if (btnClearAllCacheModal) {
+    btnClearAllCacheModal.addEventListener('click', async () => {
+      if (confirm("⚠️ Bạn có chắc muốn xóa tất cả cache trong máy?")) {
+        await audioCacheDB.clearAll();
+        if (speechEngine.audioCache) speechEngine.audioCache.clear();
+        renderCacheList();
+        alert("🧹 Đã xóa toàn bộ cache âm thanh!");
+      }
+    });
+  }
+
   // Mobile Tab Navigation Switcher Logic
   const mobileTabBtns = document.querySelectorAll('.mobile-tab-btn');
   const panelMap = {

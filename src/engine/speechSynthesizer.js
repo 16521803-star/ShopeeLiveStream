@@ -68,6 +68,45 @@ class AudioIndexedDB {
       return false;
     }
   }
+
+  async getAllKeysAndBlobs() {
+    try {
+      const db = await this.init();
+      return new Promise((resolve) => {
+        const tx = db.transaction(this.storeName, 'readonly');
+        const store = tx.objectStore(this.storeName);
+        const req = store.openCursor();
+        const results = [];
+        req.onsuccess = (e) => {
+          const cursor = e.target.result;
+          if (cursor) {
+            results.push({ key: cursor.key, blob: cursor.value });
+            cursor.continue();
+          } else {
+            resolve(results);
+          }
+        };
+        req.onerror = () => resolve([]);
+      });
+    } catch (e) {
+      return [];
+    }
+  }
+
+  async deleteKey(key) {
+    try {
+      const db = await this.init();
+      return new Promise((resolve) => {
+        const tx = db.transaction(this.storeName, 'readwrite');
+        const store = tx.objectStore(this.storeName);
+        store.delete(key);
+        tx.oncomplete = () => resolve(true);
+        tx.onerror = () => resolve(false);
+      });
+    } catch (e) {
+      return false;
+    }
+  }
 }
 
 export const audioCacheDB = new AudioIndexedDB();
