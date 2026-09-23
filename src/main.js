@@ -725,6 +725,22 @@ function bindEvents() {
     }
   };
 
+  // Bind Real-Time Cache / Credit Status Callback
+  speechEngine.onStatusCallback = (info) => {
+    const statusEl = document.getElementById('elevenlabs-live-status');
+    if (!statusEl) return;
+
+    if (info.isCache) {
+      statusEl.className = 'elevenlabs-status-badge status-active';
+      statusEl.style.color = '#10b981';
+      statusEl.innerHTML = `⚡ <strong>[CACHE HIT - 0 CREDIT]</strong> Phát từ ${info.source}`;
+    } else {
+      statusEl.className = 'elevenlabs-status-badge status-warning';
+      statusEl.style.color = '#f59e0b';
+      statusEl.innerHTML = `📡 <strong>[API CALL - ~${info.costCredits} Credits]</strong> Gọi ElevenLabs API & Lưu Cache`;
+    }
+  };
+
   // Initial Sync
   updateElevenLabsSettings();
 

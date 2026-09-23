@@ -213,6 +213,9 @@ export class SpeechEngine {
       if (this.audioCache && this.audioCache.has(cacheKey)) {
         console.log("⚡ [Memory Cache Hit] Reusing loaded ElevenLabs audio! 0 Credits used.");
         audioUrl = this.audioCache.get(cacheKey);
+        if (this.onStatusCallback) {
+          this.onStatusCallback({ isCache: true, source: 'RAM Memory Cache', costCredits: 0, text });
+        }
       } else {
         // 2. Check Permanent IndexedDB Storage (Persists across laptop shutdown!)
         const storedBlob = await audioCacheDB.getAudioBlob(cacheKey);
@@ -220,9 +223,15 @@ export class SpeechEngine {
           console.log("💾 [IndexedDB Cache Hit] Restored saved ElevenLabs audio from Disk Cache! 0 Credits used.");
           audioUrl = URL.createObjectURL(storedBlob);
           this.audioCache.set(cacheKey, audioUrl);
+          if (this.onStatusCallback) {
+            this.onStatusCallback({ isCache: true, source: 'IndexedDB Disk Cache', costCredits: 0, text });
+          }
         } else {
           // 3. Fetch from ElevenLabs API
           console.log("📡 [API Request] Fetching new speech audio from ElevenLabs...");
+          if (this.onStatusCallback) {
+            this.onStatusCallback({ isCache: false, source: 'ElevenLabs API', costCredits: text.trim().length, text });
+          }
           const response = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${voiceId}`, {
             method: 'POST',
             headers: {
