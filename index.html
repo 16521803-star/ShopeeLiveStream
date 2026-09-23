@@ -23,6 +23,9 @@
       </div>
       <div class="header-actions">
         <span class="status-pill"><span class="pulse-dot"></span> Studio Ready</span>
+        <button id="btn-lock-studio" class="btn btn-xs btn-outline" title="Khóa Studio">
+          <i data-lucide="lock"></i> Khóa Studio
+        </button>
         <button id="btn-obs-mode" class="btn btn-secondary">
           <i data-lucide="video"></i> OBS Overlay Link
         </button>
@@ -330,6 +333,41 @@
           <input type="text" id="edit-feature" class="input-field">
         </div>
         <button id="btn-save-edit-prod" class="btn btn-primary btn-block">Lưu Thay Đổi</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Studio Access Password Gate Overlay -->
+  <div id="auth-lock-overlay" class="auth-overlay">
+    <div class="auth-card">
+      <div class="auth-header">
+        <div class="auth-logo-badge">DINCOX</div>
+        <h2>🔒 DinCox Live Studio Gate</h2>
+        <p class="auth-subtitle">Nhập mật khẩu truy cập để mở khóa hệ thống Shopee Live Studio & AI Presenter Generator</p>
+      </div>
+
+      <form id="auth-form" class="auth-form">
+        <div class="form-group">
+          <label for="auth-password-input">Mật Khẩu Truy Cập Studio</label>
+          <div class="password-input-wrapper">
+            <input type="password" id="auth-password-input" class="input-field" placeholder="Nhập mật khẩu truy cập..." required autocomplete="current-password">
+            <button type="button" id="btn-toggle-auth-pwd" class="btn-eye" title="Hiện/Ẩn mật khẩu">
+              <i data-lucide="eye"></i>
+            </button>
+          </div>
+        </div>
+
+        <div id="auth-error-msg" class="auth-error-msg hidden">
+          ⚠️ Mật khẩu không chính xác! Vui lòng thử lại.
+        </div>
+
+        <button type="submit" id="btn-submit-auth" class="btn btn-primary btn-block btn-lg" style="margin-top: 8px;">
+          <i data-lucide="unlock"></i> Mở Khóa Studio
+        </button>
+      </form>
+
+      <div class="auth-footer">
+        <span>Giày Chuẩn EU - Giá Ưu Việt © DinCox Shoes</span>
       </div>
     </div>
   </div>

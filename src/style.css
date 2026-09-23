@@ -1048,4 +1048,126 @@ body {
   }
 }
 
+/* Auth Lock Gate Overlay */
+.auth-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background: rgba(4, 9, 16, 0.95);
+  backdrop-filter: blur(25px);
+  -webkit-backdrop-filter: blur(25px);
+  z-index: 99999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  transition: opacity 0.35s ease, visibility 0.35s ease;
+}
+
+.auth-overlay.hidden {
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+}
+
+.auth-card {
+  width: 100%;
+  max-width: 420px;
+  background: rgba(13, 24, 41, 0.96);
+  border: 1px solid var(--primary);
+  border-radius: 20px;
+  padding: 32px 28px;
+  box-shadow: 0 12px 50px rgba(229, 169, 60, 0.25), 0 0 100px rgba(0, 0, 0, 0.8);
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  animation: authCardPop 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+@keyframes authCardPop {
+  from { transform: scale(0.9); opacity: 0; }
+  to { transform: scale(1); opacity: 1; }
+}
+
+.auth-header {
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+}
+
+.auth-logo-badge {
+  background: linear-gradient(135deg, var(--primary), #b37e14);
+  color: #000;
+  font-weight: 900;
+  font-size: 20px;
+  padding: 8px 20px;
+  border-radius: 12px;
+  letter-spacing: 2px;
+  box-shadow: 0 4px 15px rgba(229, 169, 60, 0.4);
+}
+
+.auth-header h2 {
+  font-size: 20px;
+  font-weight: 800;
+  color: #FFF;
+}
+
+.auth-subtitle {
+  font-size: 13px;
+  color: var(--text-muted);
+  line-height: 1.5;
+}
+
+.password-input-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+  margin-top: 6px;
+}
+
+.password-input-wrapper .input-field {
+  padding-right: 44px;
+}
+
+.btn-eye {
+  position: absolute;
+  right: 10px;
+  background: transparent;
+  border: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  padding: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.btn-eye:hover {
+  color: var(--primary);
+}
+
+.auth-error-msg {
+  background: rgba(255, 42, 84, 0.15);
+  border: 1px solid var(--accent-red);
+  color: var(--accent-red);
+  font-size: 13px;
+  font-weight: 600;
+  padding: 10px;
+  border-radius: 8px;
+  text-align: center;
+  margin-top: 10px;
+}
+
+.auth-footer {
+  text-align: center;
+  font-size: 12px;
+  color: var(--text-muted);
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  padding-top: 14px;
+}
+
 

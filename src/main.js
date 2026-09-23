@@ -897,6 +897,65 @@ function bindEvents() {
   if (window.innerWidth <= 850) {
     updateMobileTabs('preview-panel');
   }
+
+  // Studio Password Protection Gate Logic
+  const STUDIO_PASSWORD = 'Dincox1510';
+  const authOverlay = document.getElementById('auth-lock-overlay');
+  const authForm = document.getElementById('auth-form');
+  const authPasswordInput = document.getElementById('auth-password-input');
+  const authErrorMsg = document.getElementById('auth-error-msg');
+  const btnToggleAuthPwd = document.getElementById('btn-toggle-auth-pwd');
+  const btnLockStudio = document.getElementById('btn-lock-studio');
+
+  const isAuth = localStorage.getItem('dincox_studio_authenticated') === 'true';
+
+  if (!isAuth && authOverlay) {
+    authOverlay.classList.remove('hidden');
+    setTimeout(() => authPasswordInput && authPasswordInput.focus(), 300);
+  } else if (authOverlay) {
+    authOverlay.classList.add('hidden');
+  }
+
+  if (authForm) {
+    authForm.addEventListener('submit', (e) => {
+      e.preventDefault();
+      const val = authPasswordInput ? authPasswordInput.value.trim() : '';
+
+      if (val === STUDIO_PASSWORD) {
+        localStorage.setItem('dincox_studio_authenticated', 'true');
+        authOverlay.classList.add('hidden');
+        if (authErrorMsg) authErrorMsg.classList.add('hidden');
+      } else {
+        if (authErrorMsg) authErrorMsg.classList.remove('hidden');
+        if (authPasswordInput) {
+          authPasswordInput.value = '';
+          authPasswordInput.focus();
+        }
+      }
+    });
+  }
+
+  if (btnToggleAuthPwd && authPasswordInput) {
+    btnToggleAuthPwd.addEventListener('click', () => {
+      const type = authPasswordInput.getAttribute('type') === 'password' ? 'text' : 'password';
+      authPasswordInput.setAttribute('type', type);
+      btnToggleAuthPwd.innerHTML = type === 'password' ? `<i data-lucide="eye"></i>` : `<i data-lucide="eye-off"></i>`;
+      createIcons({ icons });
+    });
+  }
+
+  if (btnLockStudio && authOverlay) {
+    btnLockStudio.addEventListener('click', () => {
+      if (confirm("🔒 Bạn có muốn khóa Studio lại? (Cần nhập lại mật khẩu Dincox1510 để truy cập)")) {
+        localStorage.removeItem('dincox_studio_authenticated');
+        authOverlay.classList.remove('hidden');
+        if (authPasswordInput) {
+          authPasswordInput.value = '';
+          authPasswordInput.focus();
+        }
+      }
+    });
+  }
 }
 
 // Initialize Application
