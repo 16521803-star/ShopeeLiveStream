@@ -397,6 +397,19 @@ function bindEvents() {
     });
   }
 
+  const chkShowSubtitles = document.getElementById('chk-show-subtitles');
+  const savedShowSubtitles = localStorage.getItem('dincox_show_subtitles') === null ? true : (localStorage.getItem('dincox_show_subtitles') === 'true'); // Default true
+  if (chkShowSubtitles) {
+    chkShowSubtitles.checked = savedShowSubtitles;
+    canvasRenderer.setShowSubtitles(savedShowSubtitles);
+
+    chkShowSubtitles.addEventListener('change', (e) => {
+      const isChecked = e.target.checked;
+      canvasRenderer.setShowSubtitles(isChecked);
+      localStorage.setItem('dincox_show_subtitles', isChecked ? 'true' : 'false');
+    });
+  }
+
   document.getElementById('script-text-input')?.addEventListener('input', (e) => {
     if (currentScriptStages[activeStageIdx]) {
       currentScriptStages[activeStageIdx].text = e.target.value;

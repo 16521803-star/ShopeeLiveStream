@@ -56,6 +56,9 @@ export class ShopeeCanvasRenderer {
     // Flash sale banner toggle state (default: hidden for maximum video cleanliness & policy safety)
     this.showFlashSaleBanner = false;
 
+    // Subtitle toggle state (default: true)
+    this.showSubtitles = true;
+
     // Shopee Live simulated chat feed
     this.chatFeed = [
       { user: 'ThuTrang_99', text: 'Mẫu DC47 lót đi êm không ạ?' },
@@ -70,6 +73,10 @@ export class ShopeeCanvasRenderer {
 
   setShowFlashSaleBanner(show) {
     this.showFlashSaleBanner = !!show;
+  }
+
+  setShowSubtitles(show) {
+    this.showSubtitles = !!show;
   }
 
   setProduct(product) {
@@ -316,7 +323,7 @@ export class ShopeeCanvasRenderer {
 
   // Concise 1-2 Line Subtitle Box
   renderSpeechSubtitle(ctx) {
-    if (!this.speechText) return;
+    if (!this.showSubtitles || !this.speechText) return;
 
     ctx.save();
     const bubW = this.width - 100;
