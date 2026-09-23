@@ -1120,21 +1120,43 @@ function bindEvents() {
     authOverlay.classList.add('hidden');
   }
 
+  const btnSubmitAuth = document.getElementById('btn-submit-auth');
+
+  const checkAndAuthenticate = () => {
+    const val = authPasswordInput ? authPasswordInput.value.trim() : '';
+    if (val.toLowerCase() === STUDIO_PASSWORD.toLowerCase()) {
+      localStorage.setItem('dincox_studio_authenticated', 'true');
+      if (authOverlay) authOverlay.classList.add('hidden');
+      if (authErrorMsg) authErrorMsg.classList.add('hidden');
+    } else {
+      if (authErrorMsg) authErrorMsg.classList.remove('hidden');
+      alert("⚠️ Mật khẩu không chính xác! Vui lòng kiểm tra lại.");
+      if (authPasswordInput) {
+        authPasswordInput.value = '';
+        authPasswordInput.focus();
+      }
+    }
+  };
+
+  if (btnSubmitAuth) {
+    btnSubmitAuth.addEventListener('click', (e) => {
+      e.preventDefault();
+      checkAndAuthenticate();
+    });
+  }
+
   if (authForm) {
     authForm.addEventListener('submit', (e) => {
       e.preventDefault();
-      const val = authPasswordInput ? authPasswordInput.value.trim() : '';
+      checkAndAuthenticate();
+    });
+  }
 
-      if (val.toLowerCase() === STUDIO_PASSWORD.toLowerCase()) {
-        localStorage.setItem('dincox_studio_authenticated', 'true');
-        authOverlay.classList.add('hidden');
-        if (authErrorMsg) authErrorMsg.classList.add('hidden');
-      } else {
-        if (authErrorMsg) authErrorMsg.classList.remove('hidden');
-        if (authPasswordInput) {
-          authPasswordInput.value = '';
-          authPasswordInput.focus();
-        }
+  if (authPasswordInput) {
+    authPasswordInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        checkAndAuthenticate();
       }
     });
   }

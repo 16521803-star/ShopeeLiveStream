@@ -382,7 +382,7 @@
         <p class="auth-subtitle">Nhập mật khẩu truy cập để mở khóa hệ thống Shopee Live Studio & AI Presenter Generator</p>
       </div>
 
-      <form id="auth-form" class="auth-form">
+      <form id="auth-form" class="auth-form" onsubmit="return false;">
         <div class="form-group">
           <label for="auth-password-input">Mật Khẩu Truy Cập Studio</label>
           <div class="password-input-wrapper">
@@ -397,7 +397,7 @@
           ⚠️ Mật khẩu không chính xác! Vui lòng thử lại.
         </div>
 
-        <button type="submit" id="btn-submit-auth" class="btn btn-primary btn-block btn-lg" style="margin-top: 8px;">
+        <button type="button" id="btn-submit-auth" class="btn btn-primary btn-block btn-lg" style="margin-top: 8px;">
           <i data-lucide="unlock"></i> Mở Khóa Studio
         </button>
       </form>
