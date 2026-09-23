@@ -643,21 +643,47 @@ function bindEvents() {
   const toggleElevenLabsBtn = document.getElementById('toggle-elevenlabs');
   const elevenLabsForm = document.getElementById('elevenlabs-form');
   const elevenLabsApiKeyInput = document.getElementById('elevenlabs-api-key');
+  const elevenLabsVoiceSelect = document.getElementById('elevenlabs-voice-select');
   const elevenLabsVoiceIdInput = document.getElementById('elevenlabs-voice-id');
+  const customVoiceIdContainer = document.getElementById('custom-voice-id-container');
+  const elevenLabsModelSelect = document.getElementById('elevenlabs-model');
+  const btnFetchElevenVoices = document.getElementById('btn-fetch-eleven-voices');
   const chkUseElevenLabs = document.getElementById('chk-use-elevenlabs');
 
   // Restore saved ElevenLabs settings from localStorage
   const savedElevenKey = localStorage.getItem('dincox_elevenlabs_key');
   const savedElevenVoice = localStorage.getItem('dincox_elevenlabs_voice');
+  const savedElevenModel = localStorage.getItem('dincox_elevenlabs_model');
   const savedElevenEnabled = localStorage.getItem('dincox_elevenlabs_enabled') === 'true';
 
   if (savedElevenKey && elevenLabsApiKeyInput) elevenLabsApiKeyInput.value = savedElevenKey;
-  if (savedElevenVoice && elevenLabsVoiceIdInput) elevenLabsVoiceIdInput.value = savedElevenVoice;
+  if (savedElevenModel && elevenLabsModelSelect) elevenLabsModelSelect.value = savedElevenModel;
   if (chkUseElevenLabs) chkUseElevenLabs.checked = savedElevenEnabled;
+
+  // Restore Voice Selection
+  if (savedElevenVoice && elevenLabsVoiceSelect) {
+    const matchingOption = Array.from(elevenLabsVoiceSelect.options).find(opt => opt.value === savedElevenVoice);
+    if (matchingOption) {
+      elevenLabsVoiceSelect.value = savedElevenVoice;
+    } else {
+      elevenLabsVoiceSelect.value = 'custom';
+      if (customVoiceIdContainer) customVoiceIdContainer.classList.remove('hidden');
+      if (elevenLabsVoiceIdInput) elevenLabsVoiceIdInput.value = savedElevenVoice;
+    }
+  }
+
+  const getEffectiveVoiceId = () => {
+    if (!elevenLabsVoiceSelect) return '21m00Tcm4TlvDq8ikWAM';
+    if (elevenLabsVoiceSelect.value === 'custom') {
+      return elevenLabsVoiceIdInput ? elevenLabsVoiceIdInput.value.trim() : '';
+    }
+    return elevenLabsVoiceSelect.value;
+  };
 
   speechEngine.setElevenLabsConfig({
     apiKey: savedElevenKey || '',
-    voiceId: savedElevenVoice || '21m00Tcm4TlvDq8ikWAM',
+    voiceId: getEffectiveVoiceId(),
+    modelId: savedElevenModel || 'eleven_multilingual_v2',
     enabled: savedElevenEnabled
   });
 
@@ -667,20 +693,66 @@ function bindEvents() {
     });
   }
 
+  if (elevenLabsVoiceSelect) {
+    elevenLabsVoiceSelect.addEventListener('change', () => {
+      if (elevenLabsVoiceSelect.value === 'custom') {
+        customVoiceIdContainer.classList.remove('hidden');
+      } else {
+        customVoiceIdContainer.classList.add('hidden');
+      }
+      updateElevenLabsSettings();
+    });
+  }
+
   const updateElevenLabsSettings = () => {
     const apiKey = elevenLabsApiKeyInput ? elevenLabsApiKeyInput.value.trim() : '';
-    const voiceId = elevenLabsVoiceIdInput ? elevenLabsVoiceIdInput.value.trim() : '';
+    const voiceId = getEffectiveVoiceId();
+    const modelId = elevenLabsModelSelect ? elevenLabsModelSelect.value : 'eleven_multilingual_v2';
     const enabled = chkUseElevenLabs ? chkUseElevenLabs.checked : false;
 
     localStorage.setItem('dincox_elevenlabs_key', apiKey);
     localStorage.setItem('dincox_elevenlabs_voice', voiceId);
+    localStorage.setItem('dincox_elevenlabs_model', modelId);
     localStorage.setItem('dincox_elevenlabs_enabled', enabled ? 'true' : 'false');
 
-    speechEngine.setElevenLabsConfig({ apiKey, voiceId, enabled });
+    speechEngine.setElevenLabsConfig({ apiKey, voiceId, modelId, enabled });
   };
+
+  if (btnFetchElevenVoices) {
+    btnFetchElevenVoices.addEventListener('click', async () => {
+      const apiKey = elevenLabsApiKeyInput ? elevenLabsApiKeyInput.value.trim() : '';
+      if (!apiKey) {
+        alert("⚠️ Vui lòng nhập API Key ElevenLabs trước khi tải danh sách giọng!");
+        return;
+      }
+
+      btnFetchElevenVoices.innerHTML = `<i data-lucide="refresh-cw" class="spin"></i> Đang tải...`;
+      const voices = await speechEngine.fetchElevenLabsUserVoices(apiKey);
+      btnFetchElevenVoices.innerHTML = `<i data-lucide="refresh-cw"></i> 🔄 Tải Giọng Account`;
+      createIcons({ icons });
+
+      if (voices && voices.length > 0) {
+        let accountGroup = elevenLabsVoiceSelect.querySelector('optgroup[label="🌟 Giọng Từ Tài Khoản Của Bạn"]');
+        if (!accountGroup) {
+          accountGroup = document.createElement('optgroup');
+          accountGroup.label = "🌟 Giọng Từ Tài Khoản Của Bạn";
+          elevenLabsVoiceSelect.insertBefore(accountGroup, elevenLabsVoiceSelect.firstChild);
+        }
+
+        accountGroup.innerHTML = voices.map(v => `
+          <option value="${v.voice_id}">${v.name} (${v.category || 'Custom'})</option>
+        `).join('');
+
+        alert(`🎉 Đã tải thành công ${voices.length} giọng đọc từ tài khoản ElevenLabs của bạn!`);
+      } else {
+        alert("⚠️ Không tìm thấy giọng đọc nào trong tài khoản hoặc API Key không hợp lệ.");
+      }
+    });
+  }
 
   if (elevenLabsApiKeyInput) elevenLabsApiKeyInput.addEventListener('input', updateElevenLabsSettings);
   if (elevenLabsVoiceIdInput) elevenLabsVoiceIdInput.addEventListener('input', updateElevenLabsSettings);
+  if (elevenLabsModelSelect) elevenLabsModelSelect.addEventListener('change', updateElevenLabsSettings);
   if (chkUseElevenLabs) chkUseElevenLabs.addEventListener('change', updateElevenLabsSettings);
 }
 

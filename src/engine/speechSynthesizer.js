@@ -23,10 +23,27 @@ export class SpeechEngine {
     this.initVoices();
   }
 
-  setElevenLabsConfig({ apiKey, voiceId, enabled }) {
+  setElevenLabsConfig({ apiKey, voiceId, modelId, enabled }) {
     if (apiKey !== undefined) this.elevenLabsConfig.apiKey = apiKey.trim();
     if (voiceId !== undefined) this.elevenLabsConfig.voiceId = voiceId.trim() || '21m00Tcm4TlvDq8ikWAM';
+    if (modelId !== undefined) this.elevenLabsConfig.modelId = modelId.trim() || 'eleven_multilingual_v2';
     if (enabled !== undefined) this.elevenLabsConfig.enabled = !!enabled;
+  }
+
+  async fetchElevenLabsUserVoices(apiKey) {
+    const key = apiKey || this.elevenLabsConfig.apiKey;
+    if (!key) return [];
+    try {
+      const res = await fetch('https://api.elevenlabs.io/v1/voices', {
+        headers: { 'xi-api-key': key }
+      });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const data = await res.json();
+      return data.voices || [];
+    } catch (err) {
+      console.error("Failed to fetch user voices from ElevenLabs:", err);
+      return [];
+    }
   }
 
   initVoices() {
