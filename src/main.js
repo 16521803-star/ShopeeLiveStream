@@ -899,7 +899,7 @@ function bindEvents() {
   }
 
   // Studio Password Protection Gate Logic
-  const STUDIO_PASSWORD = 'Dincox1510';
+  const STUDIO_PASSWORD = 'beanh1510';
   const authOverlay = document.getElementById('auth-lock-overlay');
   const authForm = document.getElementById('auth-form');
   const authPasswordInput = document.getElementById('auth-password-input');
@@ -946,7 +946,7 @@ function bindEvents() {
 
   if (btnLockStudio && authOverlay) {
     btnLockStudio.addEventListener('click', () => {
-      if (confirm("🔒 Bạn có muốn khóa Studio lại? (Cần nhập lại mật khẩu Dincox1510 để truy cập)")) {
+      if (confirm("🔒 Bạn có muốn khóa Studio lại? (Cần nhập lại mật khẩu truy cập để mở lại Studio)")) {
         localStorage.removeItem('dincox_studio_authenticated');
         authOverlay.classList.remove('hidden');
         if (authPasswordInput) {
