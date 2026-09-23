@@ -132,6 +132,7 @@ export class SpeechEngine {
       enabled: false,
       confirmBeforeApiCall: true
     };
+    this.sessionDeclinedApiCall = false;
 
     this.initVoices();
   }
@@ -141,7 +142,12 @@ export class SpeechEngine {
     if (voiceId !== undefined) this.elevenLabsConfig.voiceId = voiceId.trim() || '21m00Tcm4TlvDq8ikWAM';
     if (modelId !== undefined) this.elevenLabsConfig.modelId = modelId.trim() || 'eleven_multilingual_v2';
     if (enabled !== undefined) this.elevenLabsConfig.enabled = !!enabled;
-    if (confirmBeforeApiCall !== undefined) this.elevenLabsConfig.confirmBeforeApiCall = !!confirmBeforeApiCall;
+    if (confirmBeforeApiCall !== undefined) {
+      this.elevenLabsConfig.confirmBeforeApiCall = !!confirmBeforeApiCall;
+      if (confirmBeforeApiCall) {
+        this.sessionDeclinedApiCall = false;
+      }
+    }
   }
 
   async fetchElevenLabsUserVoices(apiKey, filterVietnameseOnly = true) {
@@ -269,12 +275,19 @@ export class SpeechEngine {
           }
         } else {
           // 3. Fetch from ElevenLabs API (If not cached)
+          if (this.sessionDeclinedApiCall) {
+            console.log("Bypassing ElevenLabs API call (User previously declined credit prompt). Falling back to native TTS.");
+            this.isSpeaking = false;
+            return false;
+          }
+
           if (this.elevenLabsConfig.confirmBeforeApiCall) {
             const cost = text.trim().length;
-            const confirmMsg = `📡 [CẢNH BÁO TỐN CREDIT ELEVENLABS]\n\nCâu thoại này CHƯA CÓ trong bộ nhớ đệm (Cache) trên máy.\n\nSẽ cần khoảng ~${cost} Credit ElevenLabs để tạo tệp âm thanh mới cho câu thoại này.\n\n👉 Bạn có đồng ý gọi API ElevenLabs để tạo giọng AI không?\n(Nếu chọn Cancel / Hủy, hệ thống sẽ tự động phát bằng Giọng Mặc Định miễn phí của trình duyệt).`;
+            const confirmMsg = `📡 [CẢNH BÁO TỐN CREDIT ELEVENLABS]\n\nCâu thoại này CHƯA CÓ trong bộ nhớ đệm (Cache) trên máy.\n\nSẽ cần khoảng ~${cost} Credit ElevenLabs để tạo tệp âm thanh mới cho câu thoại này.\n\n👉 Bạn có đồng ý gọi API ElevenLabs để tạo giọng AI không?\n(Nếu chọn Cancel / Hủy, hệ thống sẽ tự động phát bằng Giọng Mặc Định miễn phí cho các câu thoại chưa lưu mà KHÔNG HỎI LẠI nữa).`;
             const userAgreed = confirm(confirmMsg);
             if (!userAgreed) {
-              console.log("User declined ElevenLabs API call for uncached text. Falling back to native TTS.");
+              console.log("User declined ElevenLabs API call for uncached text. Remembering choice for subsequent phrases.");
+              this.sessionDeclinedApiCall = true;
               this.isSpeaking = false;
               return false;
             }

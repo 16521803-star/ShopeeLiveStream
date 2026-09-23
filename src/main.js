@@ -15,7 +15,9 @@ import {
   saveProductScript,
   resetProductScript,
   exportAllScriptsJSON,
-  importAllScriptsJSON
+  importAllScriptsJSON,
+  exportAllProductsCatalogJSON,
+  importAllProductsCatalogJSON
 } from './data/dincoxCatalog.js';
 import { speechEngine, audioCacheDB } from './engine/speechSynthesizer.js';
 import { AIPresenterEngine } from './engine/aiPresenterEngine.js';
