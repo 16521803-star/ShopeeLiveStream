@@ -153,8 +153,8 @@ export class ShopeeCanvasRenderer {
       ctx.fillRect(0, 0, this.width, this.height);
     }
 
-    // 2. Render Shopee Live Header Bar (Top Overlay)
-    this.renderShopeeHeader(ctx);
+    // 2. Render Shopee AI Disclosure Watermark (Top Left - Shopee Compliance)
+    this.renderAiComplianceWatermark(ctx);
 
     // 3. Render Floating Shoe Product Corner Badge Card (Upper Right)
     this.renderFloatingProductCorner(ctx, timestamp);
@@ -177,48 +177,33 @@ export class ShopeeCanvasRenderer {
     this.renderChatFeed(ctx);
   }
 
-  renderShopeeHeader(ctx) {
+  // Official Shopee AI Livestream Compliance Watermark Badge
+  renderAiComplianceWatermark(ctx) {
     ctx.save();
-    const barX = 40;
-    const barY = 60;
+    const w = 400;
+    const h = 44;
+    const x = 40;
+    const y = 60;
 
-    // Brand Avatar & Info Container
-    ctx.fillStyle = 'rgba(0, 0, 0, 0.65)';
+    // Translucent dark glass pill
+    ctx.fillStyle = 'rgba(0, 0, 0, 0.55)';
+    ctx.strokeStyle = 'rgba(255, 255, 255, 0.2)';
+    ctx.lineWidth = 1.5;
     ctx.beginPath();
-    ctx.roundRect(barX, barY, 460, 90, 45);
+    ctx.roundRect(x, y, w, h, 22);
+    ctx.fill();
+    ctx.stroke();
+
+    // Compliance green indicator dot
+    ctx.fillStyle = '#10b981';
+    ctx.beginPath();
+    ctx.arc(x + 22, y + 22, 6, 0, Math.PI * 2);
     ctx.fill();
 
-    // Red Shopee Mall Tag
-    ctx.fillStyle = '#D00000';
-    ctx.beginPath();
-    ctx.roundRect(barX + 15, barY + 15, 120, 60, 12);
-    ctx.fill();
+    // AI Disclosure text
     ctx.fillStyle = '#FFFFFF';
-    ctx.font = 'bold 24px sans-serif';
-    ctx.fillText('Mall', barX + 50, barY + 52);
-
-    // Brand Name & Followers
-    ctx.fillStyle = '#FFFFFF';
-    ctx.font = 'bold 28px sans-serif';
-    ctx.fillText('DinCox Official', barX + 150, barY + 48);
-    ctx.fillStyle = '#E5A93C';
-    ctx.font = '22px sans-serif';
-    ctx.fillText('★ 4.9 | 128.5K Người theo dõi', barX + 150, barY + 75);
-
-    // Viewers Counter Badge (Top Right)
-    ctx.fillStyle = 'rgba(0, 0, 0, 0.65)';
-    ctx.beginPath();
-    ctx.roundRect(this.width - 260, barY + 15, 220, 60, 30);
-    ctx.fill();
-
-    ctx.fillStyle = '#FF4D4F';
-    ctx.beginPath();
-    ctx.arc(this.width - 230, barY + 45, 10, 0, Math.PI * 2);
-    ctx.fill();
-
-    ctx.fillStyle = '#FFFFFF';
-    ctx.font = 'bold 26px sans-serif';
-    ctx.fillText(`${this.viewCount} mắt xem`, this.width - 205, barY + 54);
+    ctx.font = 'bold 18px sans-serif';
+    ctx.fillText('🤖 Trợ lý AI Streamer • Shopee Compliant', x + 38, y + 28);
 
     ctx.restore();
   }

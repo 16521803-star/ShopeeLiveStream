@@ -154,16 +154,6 @@ export class AIPresenterEngine {
         console.warn("Could not draw video frame:", err);
       }
 
-      // Real MC Video Active Badge
-      ctx.fillStyle = 'rgba(0, 230, 118, 0.9)';
-      ctx.beginPath();
-      ctx.roundRect(x + 20, y + 20, 240, 36, 18);
-      ctx.fill();
-
-      ctx.fillStyle = '#000000';
-      ctx.font = 'bold 18px sans-serif';
-      ctx.fillText('🎥 VIDEO MC NGƯỜI THẬT', x + 35, y + 44);
-
       ctx.restore();
       return;
     }
@@ -236,23 +226,6 @@ export class AIPresenterEngine {
       ctx.beginPath();
       ctx.roundRect(-160, 60, 320, 240, 40);
       ctx.fill();
-      ctx.restore();
-    }
-
-    if (this.lipVolume > 0.15) {
-      ctx.save();
-      const badgeY = height / 2 - 40;
-      ctx.fillStyle = 'rgba(255, 42, 84, 0.95)';
-      ctx.shadowColor = '#FF2A54';
-      ctx.shadowBlur = 12;
-      ctx.beginPath();
-      ctx.roundRect(-150, badgeY, 300, 44, 22);
-      ctx.fill();
-
-      ctx.fillStyle = '#FFFFFF';
-      ctx.font = 'bold 22px sans-serif';
-      ctx.textAlign = 'center';
-      ctx.fillText('🎙️ MC AI ĐANG PHÁT BIỂU', 0, badgeY + 30);
       ctx.restore();
     }
 
