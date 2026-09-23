@@ -133,6 +133,33 @@
                 <i data-lucide="square"></i> Dừng Đọc
               </button>
             </div>
+
+            <!-- ElevenLabs High Quality Voice Integration Box -->
+            <div class="elevenlabs-box">
+              <button id="toggle-elevenlabs" class="btn btn-ghost btn-block btn-xs">
+                <i data-lucide="mic"></i> 🎙️ Giọng Đọc Siêu Thực ElevenLabs (Tùy chọn)
+              </button>
+              <div id="elevenlabs-form" class="elevenlabs-form hidden">
+                <div class="form-group">
+                  <label for="elevenlabs-api-key">API Key ElevenLabs</label>
+                  <input type="password" id="elevenlabs-api-key" class="input-field input-xs" placeholder="Nhập API Key ElevenLabs của bạn...">
+                </div>
+                <div class="form-row">
+                  <div class="form-group flex-1">
+                    <label for="elevenlabs-voice-id">Voice ID ElevenLabs</label>
+                    <input type="text" id="elevenlabs-voice-id" class="input-field input-xs" value="21m00Tcm4TlvDq8ikWAM" placeholder="VD: 21m00Tcm4TlvDq8ikWAM">
+                  </div>
+                  <div class="form-group flex-1">
+                    <label for="elevenlabs-model">Model ElevenLabs</label>
+                    <input type="text" id="elevenlabs-model" class="input-field input-xs" value="eleven_multilingual_v2" readonly>
+                  </div>
+                </div>
+                <label class="toggle-label">
+                  <input type="checkbox" id="chk-use-elevenlabs">
+                  <span>⚡ Ưu tiên phát bằng giọng đọc ElevenLabs</span>
+                </label>
+              </div>
+            </div>
           </div>
         </div>
       </section>

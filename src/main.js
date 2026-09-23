@@ -638,6 +638,50 @@ function bindEvents() {
       btnStopRtmp.classList.add('hidden');
     });
   }
+
+  // ElevenLabs High Quality Voice Integration Controls
+  const toggleElevenLabsBtn = document.getElementById('toggle-elevenlabs');
+  const elevenLabsForm = document.getElementById('elevenlabs-form');
+  const elevenLabsApiKeyInput = document.getElementById('elevenlabs-api-key');
+  const elevenLabsVoiceIdInput = document.getElementById('elevenlabs-voice-id');
+  const chkUseElevenLabs = document.getElementById('chk-use-elevenlabs');
+
+  // Restore saved ElevenLabs settings from localStorage
+  const savedElevenKey = localStorage.getItem('dincox_elevenlabs_key');
+  const savedElevenVoice = localStorage.getItem('dincox_elevenlabs_voice');
+  const savedElevenEnabled = localStorage.getItem('dincox_elevenlabs_enabled') === 'true';
+
+  if (savedElevenKey && elevenLabsApiKeyInput) elevenLabsApiKeyInput.value = savedElevenKey;
+  if (savedElevenVoice && elevenLabsVoiceIdInput) elevenLabsVoiceIdInput.value = savedElevenVoice;
+  if (chkUseElevenLabs) chkUseElevenLabs.checked = savedElevenEnabled;
+
+  speechEngine.setElevenLabsConfig({
+    apiKey: savedElevenKey || '',
+    voiceId: savedElevenVoice || '21m00Tcm4TlvDq8ikWAM',
+    enabled: savedElevenEnabled
+  });
+
+  if (toggleElevenLabsBtn && elevenLabsForm) {
+    toggleElevenLabsBtn.addEventListener('click', () => {
+      elevenLabsForm.classList.toggle('hidden');
+    });
+  }
+
+  const updateElevenLabsSettings = () => {
+    const apiKey = elevenLabsApiKeyInput ? elevenLabsApiKeyInput.value.trim() : '';
+    const voiceId = elevenLabsVoiceIdInput ? elevenLabsVoiceIdInput.value.trim() : '';
+    const enabled = chkUseElevenLabs ? chkUseElevenLabs.checked : false;
+
+    localStorage.setItem('dincox_elevenlabs_key', apiKey);
+    localStorage.setItem('dincox_elevenlabs_voice', voiceId);
+    localStorage.setItem('dincox_elevenlabs_enabled', enabled ? 'true' : 'false');
+
+    speechEngine.setElevenLabsConfig({ apiKey, voiceId, enabled });
+  };
+
+  if (elevenLabsApiKeyInput) elevenLabsApiKeyInput.addEventListener('input', updateElevenLabsSettings);
+  if (elevenLabsVoiceIdInput) elevenLabsVoiceIdInput.addEventListener('input', updateElevenLabsSettings);
+  if (chkUseElevenLabs) chkUseElevenLabs.addEventListener('change', updateElevenLabsSettings);
 }
 
 // Initialize Application
