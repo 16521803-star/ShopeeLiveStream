@@ -862,4 +862,30 @@ body {
   line-height: 1.4;
 }
 
+.elevenlabs-status-badge {
+  font-size: 11px;
+  font-weight: 700;
+  padding: 6px 10px;
+  border-radius: 6px;
+  text-align: center;
+  margin-top: 4px;
+}
+
+.elevenlabs-status-badge.status-idle {
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--text-muted);
+}
+
+.elevenlabs-status-badge.status-active {
+  background: rgba(0, 230, 118, 0.2);
+  color: var(--accent-green);
+  border: 1px solid var(--accent-green);
+}
+
+.elevenlabs-status-badge.status-error {
+  background: rgba(255, 42, 84, 0.2);
+  color: var(--accent-red);
+  border: 1px solid var(--accent-red);
+}
+
 

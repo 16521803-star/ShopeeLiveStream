@@ -381,6 +381,15 @@ function bindEvents() {
 
   document.getElementById('btn-preview-speech').addEventListener('click', () => {
     const text = document.getElementById('script-text-input').value;
+    const apiKey = document.getElementById('elevenlabs-api-key')?.value?.trim();
+    const isEnabled = document.getElementById('chk-use-elevenlabs')?.checked;
+
+    if (!apiKey && isEnabled) {
+      alert("⚠️ Lưu ý: Bạn chưa nhập API Key ElevenLabs!\n\nHệ thống sẽ tạm thời đọc thử bằng Giọng Mặc Định của Trình Duyệt. Để sử dụng giọng nữ siêu thực của ElevenLabs, vui lòng mở khung 'Giọng Đọc Siêu Thực ElevenLabs' bên dưới và dán API Key của bạn vào nhé.");
+    } else if (!isEnabled) {
+      alert("⚠️ Lưu ý: Bạn đang TẮT tùy chọn ElevenLabs AI Voice.\n\nHệ thống sẽ đọc bằng giọng mặc định trình duyệt. Nếu muốn dùng ElevenLabs, hãy tích chọn 'Ưu tiên phát bằng giọng đọc ElevenLabs' bên dưới.");
+    }
+
     speechEngine.speak(text, {
       pitch: activePresenter.voicePitch,
       rate: activePresenter.voiceRate,
@@ -654,7 +663,8 @@ function bindEvents() {
   const savedElevenKey = localStorage.getItem('dincox_elevenlabs_key');
   const savedElevenVoice = localStorage.getItem('dincox_elevenlabs_voice');
   const savedElevenModel = localStorage.getItem('dincox_elevenlabs_model');
-  const savedElevenEnabled = localStorage.getItem('dincox_elevenlabs_enabled') === 'true';
+  const savedElevenEnabledVal = localStorage.getItem('dincox_elevenlabs_enabled');
+  const savedElevenEnabled = savedElevenEnabledVal === null ? true : (savedElevenEnabledVal === 'true');
 
   if (savedElevenKey && elevenLabsApiKeyInput) elevenLabsApiKeyInput.value = savedElevenKey;
   if (savedElevenModel && elevenLabsModelSelect) elevenLabsModelSelect.value = savedElevenModel;
@@ -680,30 +690,6 @@ function bindEvents() {
     return elevenLabsVoiceSelect.value;
   };
 
-  speechEngine.setElevenLabsConfig({
-    apiKey: savedElevenKey || '',
-    voiceId: getEffectiveVoiceId(),
-    modelId: savedElevenModel || 'eleven_multilingual_v2',
-    enabled: savedElevenEnabled
-  });
-
-  if (toggleElevenLabsBtn && elevenLabsForm) {
-    toggleElevenLabsBtn.addEventListener('click', () => {
-      elevenLabsForm.classList.toggle('hidden');
-    });
-  }
-
-  if (elevenLabsVoiceSelect) {
-    elevenLabsVoiceSelect.addEventListener('change', () => {
-      if (elevenLabsVoiceSelect.value === 'custom') {
-        customVoiceIdContainer.classList.remove('hidden');
-      } else {
-        customVoiceIdContainer.classList.add('hidden');
-      }
-      updateElevenLabsSettings();
-    });
-  }
-
   const updateElevenLabsSettings = () => {
     const apiKey = elevenLabsApiKeyInput ? elevenLabsApiKeyInput.value.trim() : '';
     const voiceId = getEffectiveVoiceId();
@@ -716,7 +702,69 @@ function bindEvents() {
     localStorage.setItem('dincox_elevenlabs_enabled', enabled ? 'true' : 'false');
 
     speechEngine.setElevenLabsConfig({ apiKey, voiceId, modelId, enabled });
+
+    const statusEl = document.getElementById('elevenlabs-live-status');
+    if (statusEl) {
+      if (enabled && apiKey) {
+        let voiceName = voiceId;
+        if (elevenLabsVoiceSelect && elevenLabsVoiceSelect.selectedOptions[0]) {
+          voiceName = elevenLabsVoiceSelect.selectedOptions[0].text;
+        }
+        statusEl.className = 'elevenlabs-status-badge status-active';
+        statusEl.style.color = '#10b981';
+        statusEl.innerHTML = `🟢 Đang dùng ElevenLabs AI: <strong>${voiceName}</strong>`;
+      } else if (enabled && !apiKey) {
+        statusEl.className = 'elevenlabs-status-badge status-warning';
+        statusEl.style.color = '#f59e0b';
+        statusEl.innerHTML = `⚠️ Vui lòng nhập API Key ElevenLabs bên trên để kích hoạt giọng AI siêu thực`;
+      } else {
+        statusEl.className = 'elevenlabs-status-badge status-idle';
+        statusEl.style.color = '#9ca3af';
+        statusEl.innerHTML = `⚪ Đang tắt ElevenLabs (Sử dụng giọng mặc định trình duyệt WebSpeech)`;
+      }
+    }
   };
+
+  // Initial Sync
+  updateElevenLabsSettings();
+
+  if (toggleElevenLabsBtn && elevenLabsForm) {
+    toggleElevenLabsBtn.addEventListener('click', () => {
+      elevenLabsForm.classList.toggle('hidden');
+    });
+  }
+
+  if (elevenLabsApiKeyInput) {
+    elevenLabsApiKeyInput.addEventListener('input', () => {
+      if (elevenLabsApiKeyInput.value.trim() && chkUseElevenLabs && !chkUseElevenLabs.checked) {
+        chkUseElevenLabs.checked = true;
+      }
+      updateElevenLabsSettings();
+    });
+  }
+
+  if (chkUseElevenLabs) {
+    chkUseElevenLabs.addEventListener('change', updateElevenLabsSettings);
+  }
+
+  if (elevenLabsModelSelect) {
+    elevenLabsModelSelect.addEventListener('change', updateElevenLabsSettings);
+  }
+
+  if (elevenLabsVoiceIdInput) {
+    elevenLabsVoiceIdInput.addEventListener('input', updateElevenLabsSettings);
+  }
+
+  if (elevenLabsVoiceSelect) {
+    elevenLabsVoiceSelect.addEventListener('change', () => {
+      if (elevenLabsVoiceSelect.value === 'custom') {
+        customVoiceIdContainer.classList.remove('hidden');
+      } else {
+        customVoiceIdContainer.classList.add('hidden');
+      }
+      updateElevenLabsSettings();
+    });
+  }
 
   if (btnFetchElevenVoices) {
     btnFetchElevenVoices.addEventListener('click', async () => {
@@ -754,7 +802,7 @@ function bindEvents() {
         viGroup.label = "🇻🇳 Giọng Đọc Tiếng Việt Chuẩn (Cộng Đồng ElevenLabs)";
         viGroup.className = "fetched-group";
         viGroup.innerHTML = sharedViVoices.map(v => `
-          <option value="${v.public_owner_id || v.voice_id}">${v.name} (Tiếng Việt ${v.gender || 'Native'})</option>
+          <option value="${v.voice_id}">${v.name} (Tiếng Việt ${v.gender || 'Native'})</option>
         `).join('');
         elevenLabsVoiceSelect.insertBefore(viGroup, elevenLabsVoiceSelect.firstChild);
         totalCount += sharedViVoices.length;
@@ -762,6 +810,7 @@ function bindEvents() {
 
       if (totalCount > 0) {
         alert(`🎉 Đã nạp thành công ${totalCount} giọng đọc Tiếng Việt & Giọng Clone từ ElevenLabs!`);
+        updateElevenLabsSettings();
       } else {
         alert("💡 Gợi ý: Bạn chưa tạo Giọng Clone Tiếng Việt trong tài khoản ElevenLabs!\n\nHướng dẫn: Hãy vào elevenlabs.io/app/voice-lab ➔ Bấm Add Voice ➔ Tải lên 1 đoạn ghi âm giọng bạn (30s) để có Giọng MC Tiếng Việt siêu mượt nhé!");
       }

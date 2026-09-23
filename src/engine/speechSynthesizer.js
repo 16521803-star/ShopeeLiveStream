@@ -241,7 +241,18 @@ export class SpeechEngine {
           });
 
           if (!response.ok) {
-            throw new Error(`ElevenLabs API HTTP Error ${response.status}`);
+            let errDetail = `HTTP ${response.status}`;
+            try {
+              const errJson = await response.json();
+              if (errJson.detail && errJson.detail.message) {
+                errDetail = errJson.detail.message;
+              } else if (errJson.message) {
+                errDetail = errJson.message;
+              }
+            } catch (e) {}
+
+            alert(`⚠️ Lỗi ElevenLabs API (${response.status}): ${errDetail}\n\nHệ thống sẽ tạm thời lùi về giọng đọc mặc định của trình duyệt.`);
+            throw new Error(`ElevenLabs API ${response.status}: ${errDetail}`);
           }
 
           const audioBlob = await response.blob();
