@@ -727,40 +727,43 @@ function bindEvents() {
       }
 
       btnFetchElevenVoices.innerHTML = `<i data-lucide="refresh-cw" class="spin"></i> Đang tải...`;
-      const voices = await speechEngine.fetchElevenLabsUserVoices(apiKey);
+      const accountVoices = await speechEngine.fetchElevenLabsUserVoices(apiKey, true);
+      const sharedViVoices = await speechEngine.fetchElevenLabsVietnameseSharedVoices(apiKey);
       btnFetchElevenVoices.innerHTML = `<i data-lucide="refresh-cw"></i> 🔄 Tải Giọng Account`;
       createIcons({ icons });
 
-      if (voices && voices.length > 0) {
-        // Remove previous fetched groups if any
-        elevenLabsVoiceSelect.querySelectorAll('.fetched-group').forEach(el => el.remove());
+      // Remove previous fetched groups if any
+      elevenLabsVoiceSelect.querySelectorAll('.fetched-group').forEach(el => el.remove());
 
-        const clonedVoices = voices.filter(v => (v.category || '').toLowerCase().includes('cloned') || (v.category || '').toLowerCase().includes('generated') || (v.category || '').toLowerCase().includes('professional'));
-        const otherVoices = voices.filter(v => !clonedVoices.includes(v));
+      const clonedVoices = accountVoices.filter(v => (v.category || '').toLowerCase().includes('cloned') || (v.category || '').toLowerCase().includes('generated') || (v.category || '').toLowerCase().includes('professional'));
+      let totalCount = 0;
 
-        if (clonedVoices.length > 0) {
-          const clonedGroup = document.createElement('optgroup');
-          clonedGroup.label = "🌟 Giọng Clone Tiếng Việt Của Bạn (Your Voice Lab)";
-          clonedGroup.className = "fetched-group";
-          clonedGroup.innerHTML = clonedVoices.map(v => `
-            <option value="${v.voice_id}">${v.name} (Giọng Clone)</option>
-          `).join('');
-          elevenLabsVoiceSelect.insertBefore(clonedGroup, elevenLabsVoiceSelect.firstChild);
-        }
+      if (clonedVoices.length > 0) {
+        const clonedGroup = document.createElement('optgroup');
+        clonedGroup.label = "🌟 Giọng Clone Tiếng Việt Trong Account (Voice Lab)";
+        clonedGroup.className = "fetched-group";
+        clonedGroup.innerHTML = clonedVoices.map(v => `
+          <option value="${v.voice_id}">${v.name} (Giọng Clone Của Bạn)</option>
+        `).join('');
+        elevenLabsVoiceSelect.insertBefore(clonedGroup, elevenLabsVoiceSelect.firstChild);
+        totalCount += clonedVoices.length;
+      }
 
-        if (otherVoices.length > 0) {
-          const viGroup = document.createElement('optgroup');
-          viGroup.label = "🇻🇳 Giọng Đọc Đa Ngôn Ngữ / Tiếng Việt";
-          viGroup.className = "fetched-group";
-          viGroup.innerHTML = otherVoices.map(v => `
-            <option value="${v.voice_id}">${v.name} (${v.category || 'Preset'})</option>
-          `).join('');
-          elevenLabsVoiceSelect.insertBefore(viGroup, elevenLabsVoiceSelect.firstChild);
-        }
+      if (sharedViVoices && sharedViVoices.length > 0) {
+        const viGroup = document.createElement('optgroup');
+        viGroup.label = "🇻🇳 Giọng Đọc Tiếng Việt Chuẩn (Cộng Đồng ElevenLabs)";
+        viGroup.className = "fetched-group";
+        viGroup.innerHTML = sharedViVoices.map(v => `
+          <option value="${v.public_owner_id || v.voice_id}">${v.name} (Tiếng Việt ${v.gender || 'Native'})</option>
+        `).join('');
+        elevenLabsVoiceSelect.insertBefore(viGroup, elevenLabsVoiceSelect.firstChild);
+        totalCount += sharedViVoices.length;
+      }
 
-        alert(`🎉 Đã nạp thành công ${voices.length} giọng đọc (đã lọc giọng Tiếng Việt & Giọng Clone)!`);
+      if (totalCount > 0) {
+        alert(`🎉 Đã nạp thành công ${totalCount} giọng đọc Tiếng Việt & Giọng Clone từ ElevenLabs!`);
       } else {
-        alert("⚠️ Không tìm thấy giọng đọc Tiếng Việt nào trong tài khoản hoặc API Key không hợp lệ.");
+        alert("💡 Gợi ý: Bạn chưa tạo Giọng Clone Tiếng Việt trong tài khoản ElevenLabs!\n\nHướng dẫn: Hãy vào elevenlabs.io/app/voice-lab ➔ Bấm Add Voice ➔ Tải lên 1 đoạn ghi âm giọng bạn (30s) để có Giọng MC Tiếng Việt siêu mượt nhé!");
       }
     });
   }

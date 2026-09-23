@@ -1,4 +1,76 @@
-// Clean Vietnamese Speech Synthesizer Engine with ElevenLabs AI Voice Support
+// Clean Vietnamese Speech Synthesizer Engine with ElevenLabs AI Voice & Persistent IndexedDB Audio Cache
+
+class AudioIndexedDB {
+  constructor() {
+    this.dbName = 'dincox_audio_cache_db';
+    this.storeName = 'elevenlabs_audio_blobs';
+    this.db = null;
+  }
+
+  async init() {
+    if (this.db) return this.db;
+    return new Promise((resolve, reject) => {
+      const req = indexedDB.open(this.dbName, 1);
+      req.onupgradeneeded = (e) => {
+        const db = e.target.result;
+        if (!db.objectStoreNames.contains(this.storeName)) {
+          db.createObjectStore(this.storeName);
+        }
+      };
+      req.onsuccess = (e) => {
+        this.db = e.target.result;
+        resolve(this.db);
+      };
+      req.onerror = (e) => reject(e);
+    });
+  }
+
+  async getAudioBlob(key) {
+    try {
+      const db = await this.init();
+      return new Promise((resolve) => {
+        const tx = db.transaction(this.storeName, 'readonly');
+        const store = tx.objectStore(this.storeName);
+        const req = store.get(key);
+        req.onsuccess = () => resolve(req.result || null);
+        req.onerror = () => resolve(null);
+      });
+    } catch (e) {
+      return null;
+    }
+  }
+
+  async setAudioBlob(key, blob) {
+    try {
+      const db = await this.init();
+      return new Promise((resolve) => {
+        const tx = db.transaction(this.storeName, 'readwrite');
+        const store = tx.objectStore(this.storeName);
+        store.put(blob, key);
+        tx.oncomplete = () => resolve(true);
+        tx.onerror = () => resolve(false);
+      });
+    } catch (e) {
+      return false;
+    }
+  }
+
+  async clearAll() {
+    try {
+      const db = await this.init();
+      return new Promise((resolve) => {
+        const tx = db.transaction(this.storeName, 'readwrite');
+        const store = tx.objectStore(this.storeName);
+        store.clear();
+        tx.oncomplete = () => resolve(true);
+      });
+    } catch (e) {
+      return false;
+    }
+  }
+}
+
+export const audioCacheDB = new AudioIndexedDB();
 
 export class SpeechEngine {
   constructor() {
@@ -11,6 +83,7 @@ export class SpeechEngine {
     this.onEndCallback = null;
     this.speechAnimFrame = null;
     this.simulatedVolume = 0;
+    this.audioCache = new Map(); // Memory Cache
 
     // ElevenLabs Config
     this.elevenLabsConfig = {
@@ -43,22 +116,20 @@ export class SpeechEngine {
 
       if (!filterVietnameseOnly) return allVoices;
 
-      // Smart Filter: Keep Cloned voices + Vietnamese capable voices
+      // Strict Filter: Keep ONLY User Cloned Voices & Explicitly Tagged Vietnamese Voices
       return allVoices.filter(v => {
         const name = (v.name || '').toLowerCase();
         const category = (v.category || '').toLowerCase();
         const labels = JSON.stringify(v.labels || {}).toLowerCase();
         const verifiedLangs = JSON.stringify(v.verified_languages || []).toLowerCase();
 
-        // Always keep user's cloned/custom voices
+        // 1. Keep user's custom cloned / generated voices from Voice Lab
         if (category.includes('cloned') || category.includes('generated') || category.includes('professional')) return true;
 
-        // Keep voices with Vietnamese tag/accent
+        // 2. Keep voices with explicit Vietnamese language/accent tag
         if (name.includes('viet') || name.includes('vn') || labels.includes('vietnam') || verifiedLangs.includes('vi')) return true;
 
-        // Keep voices supporting Multilingual v2 model
-        if (v.high_quality_base_model_ids && v.high_quality_base_model_ids.includes('eleven_multilingual_v2')) return true;
-
+        // Discard standard English premade voices (Roger, Sarah, Laura, Charlie, etc.)
         return false;
       });
     } catch (err) {
@@ -67,9 +138,11 @@ export class SpeechEngine {
     }
   }
 
-  async fetchElevenLabsVietnameseSharedVoices() {
+  async fetchElevenLabsVietnameseSharedVoices(apiKey) {
+    const key = apiKey || this.elevenLabsConfig.apiKey;
     try {
-      const res = await fetch('https://api.elevenlabs.io/v1/shared-voices?language=vi&page_size=30');
+      const headers = key ? { 'xi-api-key': key } : {};
+      const res = await fetch('https://api.elevenlabs.io/v1/shared-voices?language=vi&page_size=30', { headers });
       if (!res.ok) return [];
       const data = await res.json();
       return data.voices || [];
@@ -136,38 +209,48 @@ export class SpeechEngine {
 
       let audioUrl = null;
 
-      // Smart Credit-Saver Cache Check
+      // 1. Check RAM Memory Cache
       if (this.audioCache && this.audioCache.has(cacheKey)) {
-        console.log("⚡ [ElevenLabs Cache Hit] Reusing cached audio! Saved credit cost: 0.");
+        console.log("⚡ [Memory Cache Hit] Reusing loaded ElevenLabs audio! 0 Credits used.");
         audioUrl = this.audioCache.get(cacheKey);
       } else {
-        const response = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${voiceId}`, {
-          method: 'POST',
-          headers: {
-            'xi-api-key': apiKey,
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify({
-            text,
-            model_id: modelId,
-            voice_settings: {
-              stability: 0.5,
-              similarity_boost: 0.75,
-              use_speaker_boost: true
-            }
-          })
-        });
+        // 2. Check Permanent IndexedDB Storage (Persists across laptop shutdown!)
+        const storedBlob = await audioCacheDB.getAudioBlob(cacheKey);
+        if (storedBlob) {
+          console.log("💾 [IndexedDB Cache Hit] Restored saved ElevenLabs audio from Disk Cache! 0 Credits used.");
+          audioUrl = URL.createObjectURL(storedBlob);
+          this.audioCache.set(cacheKey, audioUrl);
+        } else {
+          // 3. Fetch from ElevenLabs API
+          console.log("📡 [API Request] Fetching new speech audio from ElevenLabs...");
+          const response = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${voiceId}`, {
+            method: 'POST',
+            headers: {
+              'xi-api-key': apiKey,
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+              text,
+              model_id: modelId,
+              voice_settings: {
+                stability: 0.5,
+                similarity_boost: 0.75,
+                use_speaker_boost: true
+              }
+            })
+          });
 
-        if (!response.ok) {
-          throw new Error(`ElevenLabs API HTTP Error ${response.status}`);
+          if (!response.ok) {
+            throw new Error(`ElevenLabs API HTTP Error ${response.status}`);
+          }
+
+          const audioBlob = await response.blob();
+          audioUrl = URL.createObjectURL(audioBlob);
+
+          // Save to RAM & Permanent IndexedDB Storage
+          this.audioCache.set(cacheKey, audioUrl);
+          await audioCacheDB.setAudioBlob(cacheKey, audioBlob);
         }
-
-        const audioBlob = await response.blob();
-        audioUrl = URL.createObjectURL(audioBlob);
-
-        // Store in Cache
-        if (!this.audioCache) this.audioCache = new Map();
-        this.audioCache.set(cacheKey, audioUrl);
       }
 
       const audio = new Audio(audioUrl);
