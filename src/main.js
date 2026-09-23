@@ -1125,7 +1125,7 @@ function bindEvents() {
       e.preventDefault();
       const val = authPasswordInput ? authPasswordInput.value.trim() : '';
 
-      if (val === STUDIO_PASSWORD) {
+      if (val.toLowerCase() === STUDIO_PASSWORD.toLowerCase()) {
         localStorage.setItem('dincox_studio_authenticated', 'true');
         authOverlay.classList.add('hidden');
         if (authErrorMsg) authErrorMsg.classList.add('hidden');
