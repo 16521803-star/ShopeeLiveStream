@@ -74,7 +74,9 @@ function renderProductList() {
   container.innerHTML = DINCOX_PRODUCTS.map((prod, idx) => `
     <div class="product-item-card ${activeProduct && prod.id === activeProduct.id ? 'active' : ''} ${prod.enabled === false ? 'disabled' : ''}" data-id="${prod.id}">
       <input type="checkbox" class="prod-checkbox" data-id="${prod.id}" ${prod.enabled !== false ? 'checked' : ''} title="Bật/Tắt mẫu này khi lặp kịch bản">
-      <img src="${prod.image}" alt="${prod.name}" class="product-thumb">
+      ${prod.image && typeof prod.image === 'string' && prod.image.trim() 
+        ? `<img src="${prod.image}" alt="${prod.name}" class="product-thumb">` 
+        : `<div class="product-thumb no-img-thumb" style="display:flex; align-items:center; justify-content:center; background:rgba(255,255,255,0.08); border-radius:8px; font-size:22px;" title="Sản phẩm không hình ảnh">👟</div>`}
       <div class="product-info flex-1">
         <h3>${prod.name}</h3>
         <div class="product-prices">
@@ -524,6 +526,48 @@ function bindEvents() {
     }
     alert(`🌐 Đã load thành công ${count} sản phẩm trực tiếp từ trang web dincox.com!`);
   });
+
+  // Export All Products Catalog to JSON
+  const btnExportProdJson = document.getElementById('btn-export-prod-json');
+  if (btnExportProdJson) {
+    btnExportProdJson.addEventListener('click', () => {
+      const jsonStr = exportAllProductsCatalogJSON();
+      const blob = new Blob([jsonStr], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `dincox_products_catalog_${new Date().toISOString().slice(0, 10)}.json`;
+      a.click();
+      URL.revokeObjectURL(url);
+    });
+  }
+
+  // Import Products Catalog from JSON File
+  const prodFileInput = document.getElementById('prod-json-file-input');
+  const btnImportProdJson = document.getElementById('btn-import-prod-json');
+  if (btnImportProdJson && prodFileInput) {
+    btnImportProdJson.addEventListener('click', () => {
+      prodFileInput.click();
+    });
+
+    prodFileInput.addEventListener('change', (e) => {
+      const file = e.target.files[0];
+      if (file) {
+        const reader = new FileReader();
+        reader.onload = (evt) => {
+          const count = importAllProductsCatalogJSON(evt.target.result);
+          if (count > 0) {
+            renderProductList();
+            if (DINCOX_PRODUCTS.length > 0) {
+              selectProduct(DINCOX_PRODUCTS[0]);
+            }
+            alert(`🎉 Đã nạp thành công ${count} sản phẩm mới từ tệp JSON!`);
+          }
+        };
+        reader.readAsText(file);
+      }
+    });
+  }
 
   // Clear/Reset All Products Catalog
   const btnResetCatalog = document.getElementById('btn-reset-catalog');

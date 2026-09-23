@@ -53,13 +53,17 @@
           <div class="section-header-flex">
             <h2><i data-lucide="package"></i> 1. Nguồn Sản Phẩm DinCox</h2>
             <div class="import-btn-group">
-              <button id="btn-import-web" class="btn btn-xs btn-outline" title="Import 36+ sản phẩm từ dincox.com">
+              <button id="btn-export-prod-json" class="btn btn-xs btn-outline" title="Xuất toàn bộ danh sách sản phẩm & kịch bản ra tệp JSON">
+                <i data-lucide="download"></i> 📤 Xuất JSON SP
+              </button>
+              <button id="btn-import-prod-json" class="btn btn-xs btn-accent" title="Nạp tệp JSON sản phẩm mới">
+                <i data-lucide="upload"></i> 📥 Nạp JSON SP
+              </button>
+              <input type="file" id="prod-json-file-input" accept=".json,.txt" class="hidden">
+              <button id="btn-import-web" class="btn btn-xs btn-ghost" title="Import 36+ sản phẩm từ dincox.com">
                 <i data-lucide="globe"></i> 🌐 dincox.com
               </button>
-              <button id="btn-import-shopee" class="btn btn-xs btn-accent" title="Import sản phẩm từ Shopee Mall">
-                <i data-lucide="shopping-bag"></i> ⚡ Shopee Mall
-              </button>
-              <button id="btn-reset-catalog" class="btn btn-xs btn-danger" title="Xóa tất cả sản phẩm để nhập mới thủ công">
+              <button id="btn-reset-catalog" class="btn btn-xs btn-danger" title="Xóa tất cả sản phẩm">
                 <i data-lucide="trash-2"></i> 🗑️ Xóa Hết
               </button>
             </div>

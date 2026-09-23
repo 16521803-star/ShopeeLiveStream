@@ -903,6 +903,7 @@ export function addProductToCatalog(product) {
   } else {
     DINCOX_PRODUCTS.push(product);
   }
+  saveProductsCatalogToLocalStorage();
   return product;
 }
 
@@ -914,6 +915,7 @@ export function updateProductInCatalog(id, fields) {
       prod.discountPercent = Math.round(((prod.originalPrice - prod.salePrice) / prod.originalPrice) * 100);
     }
   }
+  saveProductsCatalogToLocalStorage();
   return prod;
 }
 
@@ -922,12 +924,14 @@ export function toggleProductEnabled(id, enabledState) {
   if (prod) {
     prod.enabled = enabledState !== undefined ? enabledState : !prod.enabled;
   }
+  saveProductsCatalogToLocalStorage();
   return prod;
 }
 
 export function clearAllProductsFromCatalog() {
   const removedCount = DINCOX_PRODUCTS.length;
   DINCOX_PRODUCTS.length = 0;
+  saveProductsCatalogToLocalStorage();
   return removedCount;
 }
 
@@ -939,6 +943,7 @@ export function importShopeeOfficialCatalog() {
       addedCount++;
     }
   });
+  saveProductsCatalogToLocalStorage();
   return addedCount;
 }
 
@@ -950,6 +955,7 @@ export function importWebDincoxCatalog() {
       addedCount++;
     }
   });
+  saveProductsCatalogToLocalStorage();
   return addedCount;
 }
 
@@ -994,11 +1000,91 @@ export function parseBatchProductsList(rawText) {
     parsed.push(item);
   });
 
+  saveProductsCatalogToLocalStorage();
   return parsed;
 }
 
-// LocalStorage Custom Script Persistence
+// LocalStorage Custom Script & Product Catalog Persistence
 const SCRIPTS_STORAGE_KEY = 'dincox_custom_scripts_v1';
+const CATALOG_STORAGE_KEY = 'dincox_custom_products_catalog_v2';
+
+export function saveProductsCatalogToLocalStorage() {
+  try {
+    localStorage.setItem(CATALOG_STORAGE_KEY, JSON.stringify(DINCOX_PRODUCTS));
+  } catch (e) {
+    console.warn("Could not save products catalog to localStorage:", e);
+  }
+}
+
+export function restoreProductsCatalogFromLocalStorage() {
+  try {
+    const jsonStr = localStorage.getItem(CATALOG_STORAGE_KEY);
+    if (jsonStr) {
+      const parsed = JSON.parse(jsonStr);
+      if (Array.isArray(parsed) && parsed.length > 0) {
+        DINCOX_PRODUCTS.length = 0;
+        parsed.forEach(p => DINCOX_PRODUCTS.push(p));
+      }
+    }
+  } catch (e) {
+    console.warn("Could not restore products catalog from localStorage:", e);
+  }
+}
+
+export function exportAllProductsCatalogJSON() {
+  const exportData = DINCOX_PRODUCTS.map(prod => {
+    return {
+      ...prod,
+      scriptStages: generateScriptForProduct(prod)
+    };
+  });
+  return JSON.stringify(exportData, null, 2);
+}
+
+export function importAllProductsCatalogJSON(jsonStr) {
+  try {
+    const parsed = JSON.parse(jsonStr);
+    const list = Array.isArray(parsed) ? parsed : (parsed.products || []);
+    if (!Array.isArray(list) || list.length === 0) {
+      throw new Error("Tệp JSON không chứa danh sách sản phẩm hợp lệ!");
+    }
+
+    DINCOX_PRODUCTS.length = 0;
+    list.forEach((item, index) => {
+      const prod = {
+        id: item.id || `custom_import_${Date.now()}_${index}`,
+        enabled: item.enabled !== false,
+        name: item.name || 'Sản Phẩm Chưa Đặt Tên',
+        code: item.code || `DC-${index + 1}`,
+        category: item.category || 'Giày DinCox',
+        originalPrice: Number(item.originalPrice) || 500000,
+        salePrice: Number(item.salePrice) || 299000,
+        discountPercent: Number(item.discountPercent) || Math.round((1 - (Number(item.salePrice) || 299000) / (Number(item.originalPrice) || 500000)) * 100),
+        voucherCode: item.voucherCode || 'DINCOX50K',
+        voucherValue: item.voucherValue || '50.000đ',
+        image: item.image !== undefined ? item.image : '',
+        rating: item.rating || 5.0,
+        soldCount: item.soldCount || 100,
+        stockCount: item.stockCount || 10,
+        sizes: Array.isArray(item.sizes) ? item.sizes : ['39', '40', '41', '42'],
+        features: Array.isArray(item.features) ? item.features : [item.feature || 'Sản phẩm chính hãng DinCox']
+      };
+
+      DINCOX_PRODUCTS.push(prod);
+
+      // Save custom script if attached
+      if (Array.isArray(item.scriptStages) && item.scriptStages.length > 0) {
+        saveProductScript(prod.id, item.scriptStages);
+      }
+    });
+
+    saveProductsCatalogToLocalStorage();
+    return DINCOX_PRODUCTS.length;
+  } catch (err) {
+    alert(`⚠️ Lỗi đọc tệp JSON Sản phẩm: ${err.message}`);
+    return 0;
+  }
+}
 
 function getAllCustomScriptsMap() {
   try {
@@ -1076,6 +1162,7 @@ export function moveProductInCatalog(id, direction) {
   const temp = DINCOX_PRODUCTS[index];
   DINCOX_PRODUCTS[index] = DINCOX_PRODUCTS[targetIndex];
   DINCOX_PRODUCTS[targetIndex] = temp;
+  saveProductsCatalogToLocalStorage();
   return true;
 }
 
@@ -1127,3 +1214,6 @@ export function generateScriptForProduct(product) {
     }
   ];
 }
+
+// Automatically restore saved catalog from localStorage on load
+restoreProductsCatalogFromLocalStorage();

@@ -39,11 +39,18 @@ export class ShopeeCanvasRenderer {
     this.currentProduct = product;
     this.isProductImgLoaded = false;
     this.productImg = new Image();
-    this.productImg.crossOrigin = 'anonymous';
-    this.productImg.src = product.image;
-    this.productImg.onload = () => {
-      this.isProductImgLoaded = true;
-    };
+    if (product && product.image && typeof product.image === 'string' && product.image.trim().length > 0) {
+      this.productImg.crossOrigin = 'anonymous';
+      this.productImg.src = product.image;
+      this.productImg.onload = () => {
+        this.isProductImgLoaded = true;
+      };
+      this.productImg.onerror = () => {
+        this.isProductImgLoaded = false;
+      };
+    } else {
+      this.isProductImgLoaded = false;
+    }
   }
 
   setPresenterEngine(presenterEngine) {
@@ -180,9 +187,10 @@ export class ShopeeCanvasRenderer {
     if (!this.currentProduct) return;
 
     ctx.save();
-    // Floating Small Corner Product Card
+    // If image is loaded, card is 420px tall. If NO image, shrink card to 150px tall!
+    const hasImg = this.isProductImgLoaded && this.currentProduct.image && typeof this.currentProduct.image === 'string' && this.currentProduct.image.trim().length > 0;
     const cardW = 340;
-    const cardH = 420;
+    const cardH = hasImg ? 420 : 150;
     const cardX = this.width - cardW - 40;
     const cardY = 180;
 
@@ -213,10 +221,10 @@ export class ShopeeCanvasRenderer {
     const shortName = this.currentProduct.name.length > 22 
       ? this.currentProduct.name.substring(0, 20) + '...' 
       : this.currentProduct.name;
-    ctx.fillText(shortName, cardX + 15, cardY + floatY + 80);
+    ctx.fillText(shortName, cardX + 15, cardY + floatY + 76);
 
-    // Shoe Product Thumbnail Box
-    if (this.isProductImgLoaded) {
+    // Shoe Product Thumbnail Box (ONLY if image is available & loaded)
+    if (hasImg) {
       const imgW = 260;
       const imgH = 260;
       const imgX = cardX + (cardW - imgW) / 2;
@@ -235,7 +243,8 @@ export class ShopeeCanvasRenderer {
     const saleStr = new Intl.NumberFormat('vi-VN').format(this.currentProduct.salePrice) + 'đ';
     ctx.fillStyle = '#FF2A54';
     ctx.font = 'bold 26px sans-serif';
-    ctx.fillText(saleStr, cardX + 15, cardY + floatY + cardH - 20);
+    const priceY = hasImg ? (cardY + floatY + cardH - 20) : (cardY + floatY + 124);
+    ctx.fillText(saleStr, cardX + 15, priceY);
 
     ctx.restore();
   }
