@@ -732,20 +732,35 @@ function bindEvents() {
       createIcons({ icons });
 
       if (voices && voices.length > 0) {
-        let accountGroup = elevenLabsVoiceSelect.querySelector('optgroup[label="🌟 Giọng Từ Tài Khoản Của Bạn"]');
-        if (!accountGroup) {
-          accountGroup = document.createElement('optgroup');
-          accountGroup.label = "🌟 Giọng Từ Tài Khoản Của Bạn";
-          elevenLabsVoiceSelect.insertBefore(accountGroup, elevenLabsVoiceSelect.firstChild);
+        // Remove previous fetched groups if any
+        elevenLabsVoiceSelect.querySelectorAll('.fetched-group').forEach(el => el.remove());
+
+        const clonedVoices = voices.filter(v => (v.category || '').toLowerCase().includes('cloned') || (v.category || '').toLowerCase().includes('generated') || (v.category || '').toLowerCase().includes('professional'));
+        const otherVoices = voices.filter(v => !clonedVoices.includes(v));
+
+        if (clonedVoices.length > 0) {
+          const clonedGroup = document.createElement('optgroup');
+          clonedGroup.label = "🌟 Giọng Clone Tiếng Việt Của Bạn (Your Voice Lab)";
+          clonedGroup.className = "fetched-group";
+          clonedGroup.innerHTML = clonedVoices.map(v => `
+            <option value="${v.voice_id}">${v.name} (Giọng Clone)</option>
+          `).join('');
+          elevenLabsVoiceSelect.insertBefore(clonedGroup, elevenLabsVoiceSelect.firstChild);
         }
 
-        accountGroup.innerHTML = voices.map(v => `
-          <option value="${v.voice_id}">${v.name} (${v.category || 'Custom'})</option>
-        `).join('');
+        if (otherVoices.length > 0) {
+          const viGroup = document.createElement('optgroup');
+          viGroup.label = "🇻🇳 Giọng Đọc Đa Ngôn Ngữ / Tiếng Việt";
+          viGroup.className = "fetched-group";
+          viGroup.innerHTML = otherVoices.map(v => `
+            <option value="${v.voice_id}">${v.name} (${v.category || 'Preset'})</option>
+          `).join('');
+          elevenLabsVoiceSelect.insertBefore(viGroup, elevenLabsVoiceSelect.firstChild);
+        }
 
-        alert(`🎉 Đã tải thành công ${voices.length} giọng đọc từ tài khoản ElevenLabs của bạn!`);
+        alert(`🎉 Đã nạp thành công ${voices.length} giọng đọc (đã lọc giọng Tiếng Việt & Giọng Clone)!`);
       } else {
-        alert("⚠️ Không tìm thấy giọng đọc nào trong tài khoản hoặc API Key không hợp lệ.");
+        alert("⚠️ Không tìm thấy giọng đọc Tiếng Việt nào trong tài khoản hoặc API Key không hợp lệ.");
       }
     });
   }

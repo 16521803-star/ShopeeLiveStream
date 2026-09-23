@@ -30,7 +30,7 @@ export class SpeechEngine {
     if (enabled !== undefined) this.elevenLabsConfig.enabled = !!enabled;
   }
 
-  async fetchElevenLabsUserVoices(apiKey) {
+  async fetchElevenLabsUserVoices(apiKey, filterVietnameseOnly = true) {
     const key = apiKey || this.elevenLabsConfig.apiKey;
     if (!key) return [];
     try {
@@ -39,7 +39,28 @@ export class SpeechEngine {
       });
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const data = await res.json();
-      return data.voices || [];
+      const allVoices = data.voices || [];
+
+      if (!filterVietnameseOnly) return allVoices;
+
+      // Smart Filter: Keep Cloned voices + Vietnamese capable voices
+      return allVoices.filter(v => {
+        const name = (v.name || '').toLowerCase();
+        const category = (v.category || '').toLowerCase();
+        const labels = JSON.stringify(v.labels || {}).toLowerCase();
+        const verifiedLangs = JSON.stringify(v.verified_languages || []).toLowerCase();
+
+        // Always keep user's cloned/custom voices
+        if (category.includes('cloned') || category.includes('generated') || category.includes('professional')) return true;
+
+        // Keep voices with Vietnamese tag/accent
+        if (name.includes('viet') || name.includes('vn') || labels.includes('vietnam') || verifiedLangs.includes('vi')) return true;
+
+        // Keep voices supporting Multilingual v2 model
+        if (v.high_quality_base_model_ids && v.high_quality_base_model_ids.includes('eleven_multilingual_v2')) return true;
+
+        return false;
+      });
     } catch (err) {
       console.error("Failed to fetch user voices from ElevenLabs:", err);
       return [];
