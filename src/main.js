@@ -382,7 +382,7 @@ async function toggleVideoRecording() {
 
 // Bind Events
 function bindEvents() {
-  document.getElementById('script-text-input').addEventListener('input', (e) => {
+  document.getElementById('script-text-input')?.addEventListener('input', (e) => {
     if (currentScriptStages[activeStageIdx]) {
       currentScriptStages[activeStageIdx].text = e.target.value;
       canvasRenderer.setSpeechState(e.target.value, currentScriptStages[activeStageIdx].stage);
@@ -391,8 +391,8 @@ function bindEvents() {
     }
   });
 
-  document.getElementById('btn-preview-speech').addEventListener('click', () => {
-    const text = document.getElementById('script-text-input').value;
+  document.getElementById('btn-preview-speech')?.addEventListener('click', () => {
+    const text = document.getElementById('script-text-input')?.value || '';
     const apiKey = document.getElementById('elevenlabs-api-key')?.value?.trim();
     const isEnabled = document.getElementById('chk-use-elevenlabs')?.checked;
 
@@ -409,12 +409,12 @@ function bindEvents() {
     });
   });
 
-  document.getElementById('btn-stop-speech').addEventListener('click', () => {
+  document.getElementById('btn-stop-speech')?.addEventListener('click', () => {
     speechEngine.stop();
   });
 
   // Export All Scripts to JSON
-  document.getElementById('btn-export-script').addEventListener('click', () => {
+  document.getElementById('btn-export-script')?.addEventListener('click', () => {
     const jsonStr = exportAllScriptsJSON();
     const blob = new Blob([jsonStr], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
@@ -427,11 +427,11 @@ function bindEvents() {
 
   // Import Scripts from JSON File
   const fileInput = document.getElementById('script-file-input');
-  document.getElementById('btn-import-script').addEventListener('click', () => {
-    fileInput.click();
+  document.getElementById('btn-import-script')?.addEventListener('click', () => {
+    fileInput?.click();
   });
 
-  fileInput.addEventListener('change', (e) => {
+  fileInput?.addEventListener('change', (e) => {
     const file = e.target.files[0];
     if (file) {
       const reader = new FileReader();
@@ -447,7 +447,7 @@ function bindEvents() {
   });
 
   // Reset current script to default
-  document.getElementById('btn-regen-script').addEventListener('click', () => {
+  document.getElementById('btn-regen-script')?.addEventListener('click', () => {
     if (confirm("Khôi phục kịch bản mặc định cho sản phẩm này? Các chỉnh sửa cá nhân sẽ bị xóa.")) {
       resetProductScript(activeProduct.id);
       currentScriptStages = generateScriptForProduct(activeProduct);
@@ -457,22 +457,22 @@ function bindEvents() {
     }
   });
 
-  document.getElementById('btn-play-full-sequence').addEventListener('click', playScriptSequence);
-  document.getElementById('btn-start-record').addEventListener('click', toggleVideoRecording);
+  document.getElementById('btn-play-full-sequence')?.addEventListener('click', playScriptSequence);
+  document.getElementById('btn-start-record')?.addEventListener('click', toggleVideoRecording);
 
-  document.getElementById('btn-download-video').addEventListener('click', () => {
+  document.getElementById('btn-download-video')?.addEventListener('click', () => {
     if (recordedBlob) {
       videoExporter.downloadVideo(recordedBlob, `DinCox_ShopeeLive_${activeProduct.id}.webm`);
     }
   });
 
-  document.getElementById('btn-obs-mode').addEventListener('click', () => {
+  document.getElementById('btn-obs-mode')?.addEventListener('click', () => {
     alert("Dán đường dẫn bên dưới vào nguồn Browser Source trong OBS Studio:\n" + window.location.href);
   });
 
   // Custom Product Form Toggle & Tabs
-  document.getElementById('toggle-custom-product').addEventListener('click', () => {
-    document.getElementById('custom-product-form').classList.toggle('hidden');
+  document.getElementById('toggle-custom-product')?.addEventListener('click', () => {
+    document.getElementById('custom-product-form')?.classList.toggle('hidden');
   });
 
   const tabSingle = document.getElementById('tab-single-prod');
@@ -480,22 +480,22 @@ function bindEvents() {
   const singleContainer = document.getElementById('single-prod-container');
   const batchContainer = document.getElementById('batch-prod-container');
 
-  tabSingle.addEventListener('click', () => {
+  tabSingle?.addEventListener('click', () => {
     tabSingle.classList.add('active');
-    tabBatch.classList.remove('active');
-    singleContainer.classList.remove('hidden');
-    batchContainer.classList.add('hidden');
+    tabBatch?.classList.remove('active');
+    singleContainer?.classList.remove('hidden');
+    batchContainer?.classList.add('hidden');
   });
 
-  tabBatch.addEventListener('click', () => {
+  tabBatch?.addEventListener('click', () => {
     tabBatch.classList.add('active');
-    tabSingle.classList.remove('active');
-    batchContainer.classList.remove('hidden');
-    singleContainer.classList.add('hidden');
+    tabSingle?.classList.remove('active');
+    batchContainer?.classList.remove('hidden');
+    singleContainer?.classList.add('hidden');
   });
 
   // Custom MC Video MP4 Upload Reader
-  document.getElementById('mc-video-file').addEventListener('change', (e) => {
+  document.getElementById('mc-video-file')?.addEventListener('change', (e) => {
     const file = e.target.files[0];
     if (file) {
       const videoObjectUrl = URL.createObjectURL(file);
@@ -503,22 +503,24 @@ function bindEvents() {
       alert("🎥 Đã nạp thành công Video MP4 MC Người Thật! Video sẽ tự động lặp trên khung Shopee Live 9:16.");
     }
   });
-  document.getElementById('cust-img-file').addEventListener('change', (e) => {
+  document.getElementById('cust-img-file')?.addEventListener('change', (e) => {
     const file = e.target.files[0];
     if (file) {
       const reader = new FileReader();
       reader.onload = (evt) => {
         customUploadedImageDataUrl = evt.target.result;
         const previewBox = document.getElementById('cust-img-preview');
-        previewBox.innerHTML = `<img src="${customUploadedImageDataUrl}" alt="Preview">`;
-        previewBox.classList.remove('hidden');
+        if (previewBox) {
+          previewBox.innerHTML = `<img src="${customUploadedImageDataUrl}" alt="Preview">`;
+          previewBox.classList.remove('hidden');
+        }
       };
       reader.readAsDataURL(file);
     }
   });
 
   // 1-Click Shopee Official Store Importer
-  document.getElementById('btn-import-shopee').addEventListener('click', () => {
+  document.getElementById('btn-import-shopee')?.addEventListener('click', () => {
     const count = importShopeeOfficialCatalog();
     renderProductList();
     if (DINCOX_PRODUCTS.length > 0) {
@@ -528,7 +530,7 @@ function bindEvents() {
   });
 
   // 1-Click dincox.com Web Importer
-  document.getElementById('btn-import-web').addEventListener('click', () => {
+  document.getElementById('btn-import-web')?.addEventListener('click', () => {
     const count = importWebDincoxCatalog();
     renderProductList();
     if (DINCOX_PRODUCTS.length > 0) {
@@ -592,11 +594,11 @@ function bindEvents() {
   }
 
   // Single Product Adder
-  document.getElementById('btn-apply-custom').addEventListener('click', () => {
-    const name = document.getElementById('cust-name').value || 'Giày DinCox Mới';
-    const orig = parseInt(document.getElementById('cust-orig-price').value, 10) || 750000;
-    const sale = parseInt(document.getElementById('cust-sale-price').value, 10) || 450000;
-    const feat = document.getElementById('cust-feature').value || 'Lót Latex Memory Foam siêu êm';
+  document.getElementById('btn-apply-custom')?.addEventListener('click', () => {
+    const name = document.getElementById('cust-name')?.value || 'Giày DinCox Mới';
+    const orig = parseInt(document.getElementById('cust-orig-price')?.value, 10) || 750000;
+    const sale = parseInt(document.getElementById('cust-sale-price')?.value, 10) || 450000;
+    const feat = document.getElementById('cust-feature')?.value || 'Lót Latex Memory Foam siêu êm';
 
     const customProd = {
       id: 'custom_' + Date.now(),
@@ -619,32 +621,32 @@ function bindEvents() {
     selectProduct(customProd);
 
     // Reset inputs
-    document.getElementById('cust-name').value = '';
-    document.getElementById('cust-orig-price').value = '';
-    document.getElementById('cust-sale-price').value = '';
-    document.getElementById('cust-feature').value = '';
-    document.getElementById('cust-img-file').value = '';
-    document.getElementById('cust-img-preview').classList.add('hidden');
+    if (document.getElementById('cust-name')) document.getElementById('cust-name').value = '';
+    if (document.getElementById('cust-orig-price')) document.getElementById('cust-orig-price').value = '';
+    if (document.getElementById('cust-sale-price')) document.getElementById('cust-sale-price').value = '';
+    if (document.getElementById('cust-feature')) document.getElementById('cust-feature').value = '';
+    if (document.getElementById('cust-img-file')) document.getElementById('cust-img-file').value = '';
+    document.getElementById('cust-img-preview')?.classList.add('hidden');
     customUploadedImageDataUrl = null;
   });
 
   // Batch List Importer
-  document.getElementById('btn-apply-batch').addEventListener('click', () => {
-    const rawText = document.getElementById('batch-text-input').value;
+  document.getElementById('btn-apply-batch')?.addEventListener('click', () => {
+    const rawText = document.getElementById('batch-text-input')?.value || '';
     const parsed = parseBatchProductsList(rawText);
     if (parsed.length > 0) {
       renderProductList();
       selectProduct(parsed[0]);
       alert(`🎉 Đã import thành công danh sách ${parsed.length} mẫu giày mới vào hệ thống!`);
-      document.getElementById('batch-text-input').value = '';
+      if (document.getElementById('batch-text-input')) document.getElementById('batch-text-input').value = '';
     } else {
       alert("Vui lòng nhập đúng định dạng: Tên Giày | Giá Gốc | Giá Live | Tính Năng");
     }
   });
 
   // Edit Modal Controls
-  document.getElementById('btn-close-modal').addEventListener('click', closeEditModal);
-  document.getElementById('btn-save-edit-prod').addEventListener('click', saveEditModal);
+  document.getElementById('btn-close-modal')?.addEventListener('click', closeEditModal);
+  document.getElementById('btn-save-edit-prod')?.addEventListener('click', saveEditModal);
 
   // Direct Shopee RTMP Broadcaster Controls
   const btnStartRtmp = document.getElementById('btn-start-rtmp');
