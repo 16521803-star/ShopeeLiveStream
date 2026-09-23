@@ -17,7 +17,7 @@ import {
   exportAllScriptsJSON,
   importAllScriptsJSON
 } from './data/dincoxCatalog.js';
-import { speechEngine } from './engine/speechSynthesizer.js';
+import { speechEngine, audioCacheDB } from './engine/speechSynthesizer.js';
 import { AIPresenterEngine } from './engine/aiPresenterEngine.js';
 import { ShopeeCanvasRenderer } from './engine/canvasRenderer.js';
 import { VideoExporter } from './engine/videoExporter.js';
@@ -768,10 +768,17 @@ function bindEvents() {
     });
   }
 
-  if (elevenLabsApiKeyInput) elevenLabsApiKeyInput.addEventListener('input', updateElevenLabsSettings);
-  if (elevenLabsVoiceIdInput) elevenLabsVoiceIdInput.addEventListener('input', updateElevenLabsSettings);
-  if (elevenLabsModelSelect) elevenLabsModelSelect.addEventListener('change', updateElevenLabsSettings);
-  if (chkUseElevenLabs) chkUseElevenLabs.addEventListener('change', updateElevenLabsSettings);
+  // Clear Audio Cache
+  const btnClearAudioCache = document.getElementById('btn-clear-audio-cache');
+  if (btnClearAudioCache) {
+    btnClearAudioCache.addEventListener('click', async () => {
+      if (confirm("⚠️ Bạn có chắc muốn xóa tất cả bộ nhớ đệm âm thanh đã lưu trên máy tính?")) {
+        await audioCacheDB.clearAll();
+        if (speechEngine.audioCache) speechEngine.audioCache.clear();
+        alert("🧹 Đã xóa toàn bộ cache âm thanh! Các câu thoại tiếp theo sẽ được gọi lại API để tạo âm thanh mới.");
+      }
+    });
+  }
 }
 
 // Initialize Application
