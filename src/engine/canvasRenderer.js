@@ -183,30 +183,30 @@ export class ShopeeCanvasRenderer {
   // Official Shopee AI Livestream Compliance Watermark Badge
   renderAiComplianceWatermark(ctx) {
     ctx.save();
-    const w = 400;
-    const h = 44;
+    const w = 445;
+    const h = 50;
     const x = 40;
     const y = 60;
 
     // Translucent dark glass pill
     ctx.fillStyle = 'rgba(0, 0, 0, 0.55)';
-    ctx.strokeStyle = 'rgba(255, 255, 255, 0.2)';
+    ctx.strokeStyle = 'rgba(255, 255, 255, 0.25)';
     ctx.lineWidth = 1.5;
     ctx.beginPath();
-    ctx.roundRect(x, y, w, h, 22);
+    ctx.roundRect(x, y, w, h, 25);
     ctx.fill();
     ctx.stroke();
 
     // Compliance green indicator dot
     ctx.fillStyle = '#10b981';
     ctx.beginPath();
-    ctx.arc(x + 22, y + 22, 6, 0, Math.PI * 2);
+    ctx.arc(x + 24, y + 25, 7, 0, Math.PI * 2);
     ctx.fill();
 
     // AI Disclosure text
     ctx.fillStyle = '#FFFFFF';
-    ctx.font = 'bold 18px sans-serif';
-    ctx.fillText('🤖 Trợ lý AI Streamer • Shopee Compliant', x + 38, y + 28);
+    ctx.font = 'bold 20px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
+    ctx.fillText('🤖 Trợ lý AI Streamer • Shopee Compliant', x + 42, y + 32);
 
     ctx.restore();
   }
