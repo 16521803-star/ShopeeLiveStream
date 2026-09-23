@@ -91,19 +91,30 @@ export class AIPresenterEngine {
     }
 
     const video = document.createElement('video');
-    video.crossOrigin = 'anonymous';
+    // Only set crossOrigin for remote http/https URLs (NOT for local blob: or data: URIs!)
+    if (typeof urlOrBlob === 'string' && (urlOrBlob.startsWith('http://') || urlOrBlob.startsWith('https://'))) {
+      video.crossOrigin = 'anonymous';
+    }
+
     video.src = urlOrBlob;
     video.loop = true;
     video.muted = true; // Muted for canvas capture safe autoplay
     video.playsInline = true;
+    video.autoplay = true;
 
     this.isVideoLoaded = false;
     this.useRealVideo = true;
 
-    video.onloadeddata = () => {
+    const onReady = () => {
       this.isVideoLoaded = true;
       video.play().catch(err => console.warn("Video play error:", err));
     };
+
+    video.onloadeddata = onReady;
+    video.oncanplay = onReady;
+    video.onloadedmetadata = onReady;
+
+    video.load();
 
     this.videoEl = video;
   }
@@ -132,10 +143,16 @@ export class AIPresenterEngine {
 
   render(ctx, x, y, width, height) {
     // MODE B: Real MC MP4 Video Stream
-    if (this.useRealVideo && this.isVideoLoaded && this.videoEl) {
+    if (this.useRealVideo && this.videoEl && (this.isVideoLoaded || this.videoEl.readyState >= 2)) {
       ctx.save();
-      // Draw real MC MP4 video frame into canvas 9:16 spotlight
-      ctx.drawImage(this.videoEl, x, y, width, height);
+      try {
+        if (this.videoEl.paused) {
+          this.videoEl.play().catch(() => {});
+        }
+        ctx.drawImage(this.videoEl, x, y, width, height);
+      } catch (err) {
+        console.warn("Could not draw video frame:", err);
+      }
 
       // Real MC Video Active Badge
       ctx.fillStyle = 'rgba(0, 230, 118, 0.9)';
