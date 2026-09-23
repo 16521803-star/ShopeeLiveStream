@@ -24,7 +24,11 @@ import { VideoExporter } from './engine/videoExporter.js';
 import { ShopeeRtmpStreamer } from './engine/shopeeRtmpStreamer.js';
 
 // Application State
-let activeProduct = DINCOX_PRODUCTS[0];
+let activeProduct = (DINCOX_PRODUCTS && DINCOX_PRODUCTS.length > 0) ? DINCOX_PRODUCTS[0] : null;
+if (!activeProduct) {
+  importWebDincoxCatalog();
+  activeProduct = (DINCOX_PRODUCTS && DINCOX_PRODUCTS.length > 0) ? DINCOX_PRODUCTS[0] : null;
+}
 let activePresenter = PRESENTERS[0];
 let currentScriptStages = generateScriptForProduct(activeProduct);
 let activeStageIdx = 0;
@@ -42,7 +46,9 @@ const videoExporter = new VideoExporter(canvas);
 const rtmpStreamer = new ShopeeRtmpStreamer(canvas);
 
 canvasRenderer.setPresenterEngine(presenterEngine);
-canvasRenderer.setProduct(activeProduct);
+if (activeProduct) {
+  canvasRenderer.setProduct(activeProduct);
+}
 
 // Animation Loop
 let lastTime = 0;
@@ -1101,8 +1107,10 @@ function bindEvents() {
   if (window.innerWidth <= 850) {
     updateMobileTabs('preview-panel');
   }
+}
 
-  // Studio Password Protection Gate Logic
+// Studio Password Protection Gate Logic
+function initAuthGate() {
   const STUDIO_PASSWORD = 'beanh1510';
   const authOverlay = document.getElementById('auth-lock-overlay');
   const authForm = document.getElementById('auth-form');
@@ -1110,23 +1118,24 @@ function bindEvents() {
   const authErrorMsg = document.getElementById('auth-error-msg');
   const btnToggleAuthPwd = document.getElementById('btn-toggle-auth-pwd');
   const btnLockStudio = document.getElementById('btn-lock-studio');
+  const btnSubmitAuth = document.getElementById('btn-submit-auth');
+
+  if (!authOverlay) return;
 
   const isAuth = localStorage.getItem('dincox_studio_authenticated') === 'true';
 
-  if (!isAuth && authOverlay) {
+  if (!isAuth) {
     authOverlay.classList.remove('hidden');
     setTimeout(() => authPasswordInput && authPasswordInput.focus(), 300);
-  } else if (authOverlay) {
+  } else {
     authOverlay.classList.add('hidden');
   }
-
-  const btnSubmitAuth = document.getElementById('btn-submit-auth');
 
   const checkAndAuthenticate = () => {
     const val = authPasswordInput ? authPasswordInput.value.trim() : '';
     if (val.toLowerCase() === STUDIO_PASSWORD.toLowerCase()) {
       localStorage.setItem('dincox_studio_authenticated', 'true');
-      if (authOverlay) authOverlay.classList.add('hidden');
+      authOverlay.classList.add('hidden');
       if (authErrorMsg) authErrorMsg.classList.add('hidden');
     } else {
       if (authErrorMsg) authErrorMsg.classList.remove('hidden');
@@ -1138,21 +1147,24 @@ function bindEvents() {
     }
   };
 
-  if (btnSubmitAuth) {
+  if (btnSubmitAuth && !btnSubmitAuth._hasAuthListener) {
+    btnSubmitAuth._hasAuthListener = true;
     btnSubmitAuth.addEventListener('click', (e) => {
       e.preventDefault();
       checkAndAuthenticate();
     });
   }
 
-  if (authForm) {
+  if (authForm && !authForm._hasAuthListener) {
+    authForm._hasAuthListener = true;
     authForm.addEventListener('submit', (e) => {
       e.preventDefault();
       checkAndAuthenticate();
     });
   }
 
-  if (authPasswordInput) {
+  if (authPasswordInput && !authPasswordInput._hasAuthListener) {
+    authPasswordInput._hasAuthListener = true;
     authPasswordInput.addEventListener('keydown', (e) => {
       if (e.key === 'Enter') {
         e.preventDefault();
@@ -1161,7 +1173,8 @@ function bindEvents() {
     });
   }
 
-  if (btnToggleAuthPwd && authPasswordInput) {
+  if (btnToggleAuthPwd && authPasswordInput && !btnToggleAuthPwd._hasAuthListener) {
+    btnToggleAuthPwd._hasAuthListener = true;
     btnToggleAuthPwd.addEventListener('click', () => {
       const type = authPasswordInput.getAttribute('type') === 'password' ? 'text' : 'password';
       authPasswordInput.setAttribute('type', type);
@@ -1170,7 +1183,8 @@ function bindEvents() {
     });
   }
 
-  if (btnLockStudio && authOverlay) {
+  if (btnLockStudio && authOverlay && !btnLockStudio._hasAuthListener) {
+    btnLockStudio._hasAuthListener = true;
     btnLockStudio.addEventListener('click', () => {
       if (confirm("🔒 Bạn có muốn khóa Studio lại? (Cần nhập lại mật khẩu truy cập để mở lại Studio)")) {
         localStorage.removeItem('dincox_studio_authenticated');
@@ -1186,6 +1200,7 @@ function bindEvents() {
 
 // Initialize Application
 function init() {
+  initAuthGate();
   createIcons({ icons });
   renderProductList();
   renderPresenterList();

@@ -1180,9 +1180,18 @@ export function getRandomTransitionPhrase(prevProd, nextProd) {
 }
 
 export function generateScriptForProduct(product) {
+  if (!product) {
+    return [
+      { stage: 'Intro', text: 'Xin chào tất cả mọi người đang theo dõi phiên Shopee Live chính hãng của DinCox!', duration: 5 },
+      { stage: 'Highlights', text: 'Sản phẩm nổi bật với định hướng Giày Chuẩn EU - Giá Ưu Việt. Lót Memory Foam siêu êm.', duration: 7 },
+      { stage: 'Deal & Voucher', text: 'Duy nhất trong phiên Live hôm nay, giá gốc ưu đãi lớn!', duration: 8 },
+      { stage: 'Call to Action', text: 'Số lượng có hạn! Mọi người bấm ngay vào giỏ hàng góc trái bên dưới để săn size chuẩn nhé!', duration: 6 }
+    ];
+  }
+
   // Check if custom user script exists in localStorage
   const customMap = getAllCustomScriptsMap();
-  if (customMap[product.id] && Array.isArray(customMap[product.id]) && customMap[product.id].length > 0) {
+  if (product.id && customMap[product.id] && Array.isArray(customMap[product.id]) && customMap[product.id].length > 0) {
     return customMap[product.id];
   }
 
