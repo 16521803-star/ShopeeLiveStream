@@ -186,7 +186,7 @@ export class ShopeeCanvasRenderer {
     const w = 445;
     const h = 50;
     const x = 40;
-    const y = 60;
+    const y = 135;
 
     // Translucent dark glass pill
     ctx.fillStyle = 'rgba(0, 0, 0, 0.55)';
