@@ -31,8 +31,21 @@
 
     <!-- Main Workspace Split Screen Layout -->
     <main class="workspace">
+      <!-- Mobile Tab Switcher Navigation -->
+      <div class="mobile-tab-bar">
+        <button class="mobile-tab-btn active" data-target="preview-panel">
+          <i data-lucide="tv"></i> 🎬 Live 9:16
+        </button>
+        <button class="mobile-tab-btn" data-target="control-panel">
+          <i data-lucide="package"></i> 📦 Sản Phẩm & MC
+        </button>
+        <button class="mobile-tab-btn" data-target="timeline-panel">
+          <i data-lucide="radio"></i> ⚡ Khóa Luồng & Live
+        </button>
+      </div>
+
       <!-- Left Panel: Product & AI Host Configuration -->
-      <section class="panel control-panel">
+      <section class="panel control-panel mobile-hidden">
         <div class="panel-section">
           <div class="section-header-flex">
             <h2><i data-lucide="package"></i> 1. Nguồn Sản Phẩm DinCox</h2>
@@ -224,7 +237,7 @@
       </section>
 
       <!-- Right Panel: Deal Configuration & Video Exporter -->
-      <section class="panel timeline-panel">
+      <section class="panel timeline-panel mobile-hidden">
         <div class="panel-section">
           <h2><i data-lucide="zap"></i> Shopee Flash Sale & Voucher</h2>
           <div class="form-group">

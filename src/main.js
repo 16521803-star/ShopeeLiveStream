@@ -828,6 +828,59 @@ function bindEvents() {
       }
     });
   }
+
+  // Mobile Tab Navigation Switcher Logic
+  const mobileTabBtns = document.querySelectorAll('.mobile-tab-btn');
+  const panelMap = {
+    'preview-panel': document.querySelector('.preview-panel'),
+    'control-panel': document.querySelector('.control-panel'),
+    'timeline-panel': document.querySelector('.timeline-panel')
+  };
+
+  const updateMobileTabs = (targetId) => {
+    mobileTabBtns.forEach(btn => {
+      if (btn.dataset.target === targetId) {
+        btn.classList.add('active');
+      } else {
+        btn.classList.remove('active');
+      }
+    });
+
+    if (window.innerWidth <= 850) {
+      Object.keys(panelMap).forEach(id => {
+        if (panelMap[id]) {
+          if (id === targetId) {
+            panelMap[id].classList.remove('mobile-hidden');
+          } else {
+            panelMap[id].classList.add('mobile-hidden');
+          }
+        }
+      });
+    } else {
+      // Restore all panels on desktop/laptop
+      Object.values(panelMap).forEach(p => p && p.classList.remove('mobile-hidden'));
+    }
+  };
+
+  mobileTabBtns.forEach(btn => {
+    btn.addEventListener('click', () => {
+      updateMobileTabs(btn.dataset.target);
+    });
+  });
+
+  window.addEventListener('resize', () => {
+    if (window.innerWidth > 850) {
+      Object.values(panelMap).forEach(p => p && p.classList.remove('mobile-hidden'));
+    } else {
+      const activeBtn = document.querySelector('.mobile-tab-btn.active');
+      if (activeBtn) updateMobileTabs(activeBtn.dataset.target);
+    }
+  });
+
+  // Perform initial check for mobile screen load
+  if (window.innerWidth <= 850) {
+    updateMobileTabs('preview-panel');
+  }
 }
 
 // Initialize Application
