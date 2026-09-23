@@ -1,5 +1,36 @@
 // AI MC Presenter & Real Video Controller Engine
 
+// Polyfill Canvas roundRect for browsers without native support
+if (typeof window !== 'undefined' && typeof HTMLCanvasElement !== 'undefined') {
+  if (CanvasRenderingContext2D && !CanvasRenderingContext2D.prototype.roundRect) {
+    CanvasRenderingContext2D.prototype.roundRect = function(x, y, w, h, radii) {
+      if (typeof radii === 'number') {
+        radii = [radii, radii, radii, radii];
+      } else if (!radii) {
+        radii = [0, 0, 0, 0];
+      } else if (!Array.isArray(radii)) {
+        radii = [radii, radii, radii, radii];
+      }
+      const r0 = Math.min(Math.abs(w) / 2, Math.abs(h) / 2, radii[0] || 0);
+      const r1 = Math.min(Math.abs(w) / 2, Math.abs(h) / 2, radii[1] || r0);
+      const r2 = Math.min(Math.abs(w) / 2, Math.abs(h) / 2, radii[2] || r0);
+      const r3 = Math.min(Math.abs(w) / 2, Math.abs(h) / 2, radii[3] || r1);
+
+      this.moveTo(x + r0, y);
+      this.lineTo(x + w - r1, y);
+      this.quadraticCurveTo(x + w, y, x + w, y + r1);
+      this.lineTo(x + w, y + h - r2);
+      this.quadraticCurveTo(x + w, y + h, x + w - r2, y + h);
+      this.lineTo(x + r3, y + h);
+      this.quadraticCurveTo(x, y + h, x, y + h - r3);
+      this.lineTo(x, y + r0);
+      this.quadraticCurveTo(x, y, x + r0, y);
+      this.closePath();
+      return this;
+    };
+  }
+}
+
 export class AIPresenterEngine {
   constructor(presenterData) {
     this.presenter = presenterData;
@@ -22,11 +53,24 @@ export class AIPresenterEngine {
 
   loadAvatar(url) {
     this.isLoaded = false;
+    const cleanUrl = (typeof url === 'string' && url.startsWith('/assets/')) ? '.' + url : url;
     this.img = new Image();
     this.img.crossOrigin = 'anonymous';
-    this.img.src = url;
+    this.img.src = cleanUrl;
     this.img.onload = () => {
       this.isLoaded = true;
+    };
+    this.img.onerror = () => {
+      // Fallback without crossOrigin
+      const fallbackImg = new Image();
+      fallbackImg.src = cleanUrl;
+      fallbackImg.onload = () => {
+        this.img = fallbackImg;
+        this.isLoaded = true;
+      };
+      fallbackImg.onerror = () => {
+        this.isLoaded = false;
+      };
     };
   }
 

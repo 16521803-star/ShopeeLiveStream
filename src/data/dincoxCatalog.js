@@ -12,7 +12,7 @@ export let DINCOX_PRODUCTS = [
     discountPercent: 38,
     voucherCode: 'DINCOX50K',
     voucherValue: '50.000đ',
-    image: '/assets/dincox_dc47.png',
+    image: './assets/dincox_dc47.png',
     rating: 4.9,
     soldCount: 1420,
     stockCount: 12,
@@ -35,7 +35,7 @@ export let DINCOX_PRODUCTS = [
     discountPercent: 33,
     voucherCode: 'DINCOX30K',
     voucherValue: '30.000đ',
-    image: '/assets/dincox_e12.png',
+    image: './assets/dincox_e12.png',
     rating: 5.0,
     soldCount: 3890,
     stockCount: 8,
@@ -58,7 +58,7 @@ export let DINCOX_PRODUCTS = [
     discountPercent: 38,
     voucherCode: 'DINCOX50K',
     voucherValue: '50.000đ',
-    image: '/assets/dincox_c40.png',
+    image: './assets/dincox_c40.png',
     rating: 4.8,
     soldCount: 2150,
     stockCount: 5,
@@ -81,7 +81,7 @@ export let DINCOX_PRODUCTS = [
     discountPercent: 37,
     voucherCode: 'DINCOX20K',
     voucherValue: '20.000đ',
-    image: '/assets/dincox_e10.png',
+    image: './assets/dincox_e10.png',
     rating: 4.9,
     soldCount: 1840,
     stockCount: 15,
@@ -99,7 +99,7 @@ export const PRESENTERS = [
   {
     id: 'female_an',
     name: 'MC Hải An (AI Nữ)',
-    avatar: '/assets/presenter_female.png',
+    avatar: './assets/presenter_female.png',
     gender: 'female',
     style: 'Năng động, tươi vui, chuyên nghiệp',
     voicePitch: 1.2,
@@ -108,7 +108,7 @@ export const PRESENTERS = [
   {
     id: 'male_duc',
     name: 'MC Minh Đức (AI Nam)',
-    avatar: '/assets/presenter_male.png',
+    avatar: './assets/presenter_male.png',
     gender: 'male',
     style: 'Trẻ trung, lôi cuốn, ấm áp',
     voicePitch: 0.7,
@@ -128,7 +128,7 @@ export const SHOPEE_OFFICIAL_DINCOX_CATALOG = [
     discountPercent: 38,
     voucherCode: 'DINCOX50K',
     voucherValue: '50.000đ',
-    image: '/assets/dincox_dc47.png',
+    image: './assets/dincox_dc47.png',
     rating: 4.9,
     soldCount: 1980,
     stockCount: 10,
@@ -150,7 +150,7 @@ export const SHOPEE_OFFICIAL_DINCOX_CATALOG = [
     discountPercent: 35,
     voucherCode: 'DINCOX30K',
     voucherValue: '30.000đ',
-    image: '/assets/dincox_e12.png',
+    image: './assets/dincox_e12.png',
     rating: 4.8,
     soldCount: 1250,
     stockCount: 7,
@@ -172,7 +172,7 @@ export const SHOPEE_OFFICIAL_DINCOX_CATALOG = [
     discountPercent: 35,
     voucherCode: 'DINCOX50K',
     voucherValue: '50.000đ',
-    image: '/assets/dincox_c40.png',
+    image: './assets/dincox_c40.png',
     rating: 5.0,
     soldCount: 890,
     stockCount: 6,
@@ -194,7 +194,7 @@ export const SHOPEE_OFFICIAL_DINCOX_CATALOG = [
     discountPercent: 35,
     voucherCode: 'DINCOX20K',
     voucherValue: '20.000đ',
-    image: '/assets/dincox_e10.png',
+    image: './assets/dincox_e10.png',
     rating: 4.9,
     soldCount: 1670,
     stockCount: 14,
@@ -987,7 +987,7 @@ export function parseBatchProductsList(rawText) {
       discountPercent: Math.round(((orig - sale) / orig) * 100),
       voucherCode: 'DINCOX50K',
       voucherValue: '50.000đ',
-      image: '/assets/dincox_dc47.png',
+      image: './assets/dincox_dc47.png',
       stockCount: 10,
       features: [
         feat,
@@ -1023,7 +1023,12 @@ export function restoreProductsCatalogFromLocalStorage() {
       const parsed = JSON.parse(jsonStr);
       if (Array.isArray(parsed) && parsed.length > 0) {
         DINCOX_PRODUCTS.length = 0;
-        parsed.forEach(p => DINCOX_PRODUCTS.push(p));
+        parsed.forEach(p => {
+          if (p.image && typeof p.image === 'string' && p.image.startsWith('/assets/')) {
+            p.image = '.' + p.image;
+          }
+          DINCOX_PRODUCTS.push(p);
+        });
       }
     }
   } catch (e) {

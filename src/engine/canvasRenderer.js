@@ -1,5 +1,36 @@
 // Authentic Shopee Live 9:16 Vertical Video Renderer Engine
 
+// Polyfill Canvas roundRect for browsers without native support
+if (typeof window !== 'undefined' && typeof HTMLCanvasElement !== 'undefined') {
+  if (CanvasRenderingContext2D && !CanvasRenderingContext2D.prototype.roundRect) {
+    CanvasRenderingContext2D.prototype.roundRect = function(x, y, w, h, radii) {
+      if (typeof radii === 'number') {
+        radii = [radii, radii, radii, radii];
+      } else if (!radii) {
+        radii = [0, 0, 0, 0];
+      } else if (!Array.isArray(radii)) {
+        radii = [radii, radii, radii, radii];
+      }
+      const r0 = Math.min(Math.abs(w) / 2, Math.abs(h) / 2, radii[0] || 0);
+      const r1 = Math.min(Math.abs(w) / 2, Math.abs(h) / 2, radii[1] || r0);
+      const r2 = Math.min(Math.abs(w) / 2, Math.abs(h) / 2, radii[2] || r0);
+      const r3 = Math.min(Math.abs(w) / 2, Math.abs(h) / 2, radii[3] || r1);
+
+      this.moveTo(x + r0, y);
+      this.lineTo(x + w - r1, y);
+      this.quadraticCurveTo(x + w, y, x + w, y + r1);
+      this.lineTo(x + w, y + h - r2);
+      this.quadraticCurveTo(x + w, y + h, x + w - r2, y + h);
+      this.lineTo(x + r3, y + h);
+      this.quadraticCurveTo(x, y + h, x, y + h - r3);
+      this.lineTo(x, y + r0);
+      this.quadraticCurveTo(x, y, x + r0, y);
+      this.closePath();
+      return this;
+    };
+  }
+}
+
 export class ShopeeCanvasRenderer {
   constructor(canvas) {
     this.canvas = canvas;
@@ -40,13 +71,23 @@ export class ShopeeCanvasRenderer {
     this.isProductImgLoaded = false;
     this.productImg = new Image();
     if (product && product.image && typeof product.image === 'string' && product.image.trim().length > 0) {
+      const cleanUrl = product.image.startsWith('/assets/') ? '.' + product.image : product.image;
       this.productImg.crossOrigin = 'anonymous';
-      this.productImg.src = product.image;
+      this.productImg.src = cleanUrl;
       this.productImg.onload = () => {
         this.isProductImgLoaded = true;
       };
       this.productImg.onerror = () => {
-        this.isProductImgLoaded = false;
+        // Fallback retry without crossOrigin
+        const fallbackImg = new Image();
+        fallbackImg.src = cleanUrl;
+        fallbackImg.onload = () => {
+          this.productImg = fallbackImg;
+          this.isProductImgLoaded = true;
+        };
+        fallbackImg.onerror = () => {
+          this.isProductImgLoaded = false;
+        };
       };
     } else {
       this.isProductImgLoaded = false;

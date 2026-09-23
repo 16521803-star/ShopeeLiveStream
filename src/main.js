@@ -56,9 +56,13 @@ function animate(time) {
   const delta = (time - lastTime) / 1000;
   lastTime = time;
 
-  presenterEngine.update(speechEngine.simulatedVolume);
-  canvasRenderer.update(delta);
-  canvasRenderer.render(time);
+  try {
+    presenterEngine.update(speechEngine.simulatedVolume);
+    canvasRenderer.update(delta);
+    canvasRenderer.render(time);
+  } catch (err) {
+    console.error("Canvas render loop error:", err);
+  }
 
   requestAnimationFrame(animate);
 }
@@ -605,7 +609,7 @@ function bindEvents() {
       discountPercent: Math.round(((orig - sale) / orig) * 100),
       voucherCode: 'DINCOX50K',
       voucherValue: '50.000đ',
-      image: customUploadedImageDataUrl || '/assets/dincox_dc47.png',
+      image: customUploadedImageDataUrl || './assets/dincox_dc47.png',
       stockCount: 10,
       features: [feat, 'Công nghệ đế cao su lưu hóa (Vulcanized) 100% bám đường', 'Bảo hành 12 tháng chính hãng Shopee Mall']
     };
