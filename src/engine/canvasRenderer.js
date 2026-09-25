@@ -211,7 +211,7 @@ export class ShopeeCanvasRenderer {
     ctx.restore();
   }
 
-  // Authentic Shopee Floating Product Corner Card (Upper Right / Center Right)
+  // Authentic Shopee Floating Product Corner Card (Left Central)
   renderFloatingProductCorner(ctx, timestamp) {
     if (!this.currentProduct) return;
 
@@ -220,8 +220,8 @@ export class ShopeeCanvasRenderer {
     const floatY = Math.sin(timestamp * 0.003) * 6;
     const cardW = 340;
     const cardH = hasImg ? 390 : 130;
-    const cardX = this.width - cardW - 40;
-    const cardY = 180;
+    const cardX = 40;
+    const cardY = 560;
 
     // Glassmorphism card backdrop
     ctx.fillStyle = 'rgba(10, 20, 38, 0.88)';
