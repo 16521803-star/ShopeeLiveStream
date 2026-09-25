@@ -410,6 +410,19 @@ function bindEvents() {
     });
   }
 
+  const chkShowProductCard = document.getElementById('chk-show-product-card');
+  const savedShowProductCard = localStorage.getItem('dincox_show_product_card') === null ? true : (localStorage.getItem('dincox_show_product_card') === 'true'); // Default true
+  if (chkShowProductCard) {
+    chkShowProductCard.checked = savedShowProductCard;
+    canvasRenderer.setShowProductCard(savedShowProductCard);
+
+    chkShowProductCard.addEventListener('change', (e) => {
+      const isChecked = e.target.checked;
+      canvasRenderer.setShowProductCard(isChecked);
+      localStorage.setItem('dincox_show_product_card', isChecked ? 'true' : 'false');
+    });
+  }
+
   document.getElementById('script-text-input')?.addEventListener('input', (e) => {
     if (currentScriptStages[activeStageIdx]) {
       currentScriptStages[activeStageIdx].text = e.target.value;

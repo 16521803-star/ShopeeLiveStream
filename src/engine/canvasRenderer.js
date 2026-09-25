@@ -59,6 +59,9 @@ export class ShopeeCanvasRenderer {
     // Subtitle toggle state (default: true)
     this.showSubtitles = true;
 
+    // Floating product card toggle state (default: true)
+    this.showProductCard = true;
+
     // Shopee Live simulated chat feed
     this.chatFeed = [
       { user: 'ThuTrang_99', text: 'Mẫu DC47 lót đi êm không ạ?' },
@@ -77,6 +80,10 @@ export class ShopeeCanvasRenderer {
 
   setShowSubtitles(show) {
     this.showSubtitles = !!show;
+  }
+
+  setShowProductCard(show) {
+    this.showProductCard = !!show;
   }
 
   setProduct(product) {
@@ -213,7 +220,7 @@ export class ShopeeCanvasRenderer {
 
   // Authentic Shopee Floating Product Corner Card (Left Central)
   renderFloatingProductCorner(ctx, timestamp) {
-    if (!this.currentProduct) return;
+    if (!this.showProductCard || !this.currentProduct) return;
 
     ctx.save();
     const hasImg = this.isProductImgLoaded && this.currentProduct.image && typeof this.currentProduct.image === 'string' && this.currentProduct.image.trim().length > 0;
