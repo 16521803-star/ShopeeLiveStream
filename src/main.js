@@ -115,6 +115,11 @@ if (studioSyncChannel) {
           canvasRenderer.setSpeechState(data.text, currentScriptStages[data.stageIdx].stage);
         }
         break;
+      case 'LOAD_CUSTOM_VIDEO':
+        if (data.dataUrl) {
+          presenterEngine.loadVideoSource(data.dataUrl);
+        }
+        break;
     }
   };
 }
@@ -639,9 +644,19 @@ function bindEvents() {
   document.getElementById('mc-video-file')?.addEventListener('change', (e) => {
     const file = e.target.files[0];
     if (file) {
-      const videoObjectUrl = URL.createObjectURL(file);
-      presenterEngine.loadVideoSource(videoObjectUrl);
-      alert("🎥 Đã nạp thành công Video MP4 MC Người Thật! Video sẽ tự động lặp trên khung Shopee Live 9:16.");
+      const reader = new FileReader();
+      reader.onload = (evt) => {
+        const videoDataUrl = evt.target.result;
+        presenterEngine.loadVideoSource(videoDataUrl);
+        try {
+          localStorage.setItem('dincox_custom_mc_video', videoDataUrl);
+        } catch (err) {
+          console.warn("Could not save video dataUrl to localStorage (exceeds size limit), broadcasting via Channel", err);
+        }
+        studioSyncChannel?.postMessage({ type: 'LOAD_CUSTOM_VIDEO', dataUrl: videoDataUrl });
+        alert("🎥 Đã nạp thành công Video MP4 MC Người Thật! Video sẽ tự động lặp trên khung Shopee Live 9:16 và đồng bộ trực tiếp sang OBS.");
+      };
+      reader.readAsDataURL(file);
     }
   });
   document.getElementById('cust-img-file')?.addEventListener('change', (e) => {
@@ -1353,6 +1368,12 @@ function init() {
     document.getElementById('auth-lock-overlay')?.classList.add('hidden');
   } else {
     initAuthGate();
+  }
+
+  // Restore saved custom MP4 video presenter if previously uploaded
+  const savedMcVideo = localStorage.getItem('dincox_custom_mc_video');
+  if (savedMcVideo) {
+    presenterEngine.loadVideoSource(savedMcVideo);
   }
 
   createIcons({ icons });
