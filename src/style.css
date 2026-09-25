@@ -1233,4 +1233,73 @@ body {
   gap: 8px;
 }
 
+/* Dedicated OBS Overlay Fullscreen Mode (?obs=true) */
+body.obs-mode {
+  background: #000000 !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  overflow: hidden !important;
+}
+
+body.obs-mode .app-header,
+body.obs-mode .control-panel,
+body.obs-mode .timeline-panel,
+body.obs-mode .canvas-header,
+body.obs-mode .preview-actions,
+body.obs-mode .mobile-tab-bar,
+body.obs-mode #auth-lock-overlay,
+body.obs-mode .modal-backdrop {
+  display: none !important;
+}
+
+body.obs-mode #app,
+body.obs-mode .app-container {
+  padding: 0 !important;
+  margin: 0 !important;
+  max-width: none !important;
+  height: 100vh !important;
+  width: 100vw !important;
+}
+
+body.obs-mode .workspace {
+  display: flex !important;
+  justify-content: center !important;
+  align-items: center !important;
+  height: 100vh !important;
+  width: 100vw !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  background: #000000 !important;
+}
+
+body.obs-mode .preview-panel {
+  padding: 0 !important;
+  margin: 0 !important;
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+  width: 100vw !important;
+  height: 100vh !important;
+  display: flex !important;
+  justify-content: center !important;
+  align-items: center !important;
+}
+
+body.obs-mode .canvas-container {
+  width: 100vw !important;
+  height: 100vh !important;
+  max-width: none !important;
+  max-height: none !important;
+  border: none !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+}
+
+body.obs-mode #shopee-canvas {
+  width: 100% !important;
+  height: 100% !important;
+  border-radius: 0 !important;
+  object-fit: contain !important;
+}
+
 

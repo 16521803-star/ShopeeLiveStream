@@ -508,7 +508,11 @@ function bindEvents() {
   });
 
   document.getElementById('btn-obs-mode')?.addEventListener('click', () => {
-    alert("Dán đường dẫn bên dưới vào nguồn Browser Source trong OBS Studio:\n" + window.location.href);
+    const obsUrl = `${window.location.origin}${window.location.pathname}?obs=true`;
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(obsUrl);
+    }
+    alert(`✅ ĐÃ SAO CHÉP LINK OBS OVERLAY VÀO CLIPBOARD!\n\nLink OBS chuyên dụng:\n${obsUrl}\n\nHướng dẫn kết nối mượt mà vào OBS:\n1. Mở phần mềm OBS ➔ Ô Sources ➔ Bấm dấu "+" ➔ Chọn "Browser".\n2. Dán đường link trên vào ô URL.\n3. Điền Width: 1080, Height: 1920 ➔ Bấm OK.\n\nMàn hình OBS sẽ tự động hiển thị 100% khung Livestream 9:16 full-screen siêu sạch mà KHÔNG CẦN CROP!`);
   });
 
   // Custom Product Form Toggle & Tabs
@@ -1247,7 +1251,14 @@ function initAuthGate() {
 
 // Initialize Application
 function init() {
-  initAuthGate();
+  const isObsMode = window.location.search.includes('obs=true') || window.location.search.includes('overlay=true');
+  if (isObsMode) {
+    document.body.classList.add('obs-mode');
+    document.getElementById('auth-lock-overlay')?.classList.add('hidden');
+  } else {
+    initAuthGate();
+  }
+
   createIcons({ icons });
   renderProductList();
   renderPresenterList();
