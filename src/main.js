@@ -40,6 +40,11 @@ let recordTimerInterval = null;
 let recordSeconds = 0;
 let customUploadedImageDataUrl = null;
 
+// Cross-Tab Broadcast Channel for Real-time Remote Control & OBS Sync
+const studioSyncChannel = typeof BroadcastChannel !== 'undefined' 
+  ? new BroadcastChannel('dincox_studio_remote_sync') 
+  : null;
+
 // Initialize Core Engines
 const canvas = document.getElementById('shopee-canvas');
 const canvasRenderer = new ShopeeCanvasRenderer(canvas);
@@ -50,6 +55,68 @@ const rtmpStreamer = new ShopeeRtmpStreamer(canvas);
 canvasRenderer.setPresenterEngine(presenterEngine);
 if (activeProduct) {
   canvasRenderer.setProduct(activeProduct);
+}
+
+// Listen for Remote Control Commands from Main Studio Tab
+if (studioSyncChannel) {
+  studioSyncChannel.onmessage = (event) => {
+    const data = event.data;
+    if (!data || !data.type) return;
+
+    switch (data.type) {
+      case 'PLAY_SEQUENCE':
+        if (!isSequencePlaying) {
+          playScriptSequence(false);
+        }
+        break;
+      case 'STOP_SEQUENCE':
+        if (isSequencePlaying) {
+          playScriptSequence(false);
+        }
+        break;
+      case 'SELECT_PRODUCT':
+        if (data.productId) {
+          const target = DINCOX_PRODUCTS.find(p => p.id === data.productId);
+          if (target && (!activeProduct || activeProduct.id !== target.id)) {
+            selectProduct(target, false);
+          }
+        }
+        break;
+      case 'SELECT_PRESENTER':
+        if (data.presenterId) {
+          const targetP = PRESENTERS.find(p => p.id === data.presenterId);
+          if (targetP && (!activePresenter || activePresenter.id !== targetP.id)) {
+            selectPresenter(targetP, false);
+          }
+        }
+        break;
+      case 'TOGGLE_SETTING':
+        if (data.key === 'showFlashSale') {
+          canvasRenderer.setShowFlashSaleBanner(data.value);
+          const el = document.getElementById('chk-show-flash-sale');
+          if (el) el.checked = data.value;
+        } else if (data.key === 'showSubtitles') {
+          canvasRenderer.setShowSubtitles(data.value);
+          const el = document.getElementById('chk-show-subtitles');
+          if (el) el.checked = data.value;
+        } else if (data.key === 'showProductCard') {
+          canvasRenderer.setShowProductCard(data.value);
+          const el = document.getElementById('chk-show-product-card');
+          if (el) el.checked = data.value;
+        }
+        break;
+      case 'UPDATE_SCRIPT_TEXT':
+        if (data.productId && data.text !== undefined && currentScriptStages[data.stageIdx]) {
+          currentScriptStages[data.stageIdx].text = data.text;
+          const inputEl = document.getElementById('script-text-input');
+          if (inputEl && activeStageIdx === data.stageIdx) {
+            inputEl.value = data.text;
+          }
+          canvasRenderer.setSpeechState(data.text, currentScriptStages[data.stageIdx].stage);
+        }
+        break;
+    }
+  };
 }
 
 // Animation Loop
@@ -148,7 +215,7 @@ function renderProductList() {
   });
 }
 
-function selectProduct(product) {
+function selectProduct(product, broadcast = true) {
   activeProduct = product;
   currentScriptStages = generateScriptForProduct(activeProduct);
   activeStageIdx = 0;
@@ -158,6 +225,20 @@ function selectProduct(product) {
   renderScriptTabs();
   renderTimelineSteps();
   loadCurrentStageText();
+
+  if (broadcast && studioSyncChannel) {
+    studioSyncChannel.postMessage({ type: 'SELECT_PRODUCT', productId: product.id });
+  }
+}
+
+function selectPresenter(presenter, broadcast = true) {
+  activePresenter = presenter;
+  presenterEngine.setPresenter(activePresenter);
+  renderPresenterList();
+
+  if (broadcast && studioSyncChannel) {
+    studioSyncChannel.postMessage({ type: 'SELECT_PRESENTER', presenterId: presenter.id });
+  }
 }
 
 function renderPresenterList() {
@@ -174,9 +255,7 @@ function renderPresenterList() {
       const id = card.dataset.id;
       const found = PRESENTERS.find(p => p.id === id);
       if (found) {
-        activePresenter = found;
-        presenterEngine.setPresenter(activePresenter);
-        renderPresenterList();
+        selectPresenter(found);
       }
     });
   });
@@ -266,18 +345,26 @@ function saveEditModal() {
 }
 
 // Play script sequence automatically stage by stage
-function playScriptSequence() {
+function playScriptSequence(broadcast = true) {
   if (isSequencePlaying) {
     speechEngine.stop();
     isSequencePlaying = false;
-    document.getElementById('btn-play-full-sequence').innerHTML = `<i data-lucide="play"></i> Phát Kịch Bản Tự Động`;
+    const btn = document.getElementById('btn-play-full-sequence');
+    if (btn) btn.innerHTML = `<i data-lucide="play"></i> Phát Kịch Bản Tự Động`;
     createIcons({ icons });
+    if (broadcast && studioSyncChannel) {
+      studioSyncChannel.postMessage({ type: 'STOP_SEQUENCE' });
+    }
     return;
   }
 
   isSequencePlaying = true;
-  document.getElementById('btn-play-full-sequence').innerHTML = `<i data-lucide="square"></i> Dừng Kịch Bản`;
+  const btn = document.getElementById('btn-play-full-sequence');
+  if (btn) btn.innerHTML = `<i data-lucide="square"></i> Dừng Kịch Bản`;
   createIcons({ icons });
+  if (broadcast && studioSyncChannel) {
+    studioSyncChannel.postMessage({ type: 'PLAY_SEQUENCE' });
+  }
 
   activeStageIdx = 0;
   playNextStageInSequence();
@@ -394,6 +481,7 @@ function bindEvents() {
       const isChecked = e.target.checked;
       canvasRenderer.setShowFlashSaleBanner(isChecked);
       localStorage.setItem('dincox_show_flash_sale', isChecked ? 'true' : 'false');
+      studioSyncChannel?.postMessage({ type: 'TOGGLE_SETTING', key: 'showFlashSale', value: isChecked });
     });
   }
 
@@ -407,6 +495,7 @@ function bindEvents() {
       const isChecked = e.target.checked;
       canvasRenderer.setShowSubtitles(isChecked);
       localStorage.setItem('dincox_show_subtitles', isChecked ? 'true' : 'false');
+      studioSyncChannel?.postMessage({ type: 'TOGGLE_SETTING', key: 'showSubtitles', value: isChecked });
     });
   }
 
@@ -420,6 +509,7 @@ function bindEvents() {
       const isChecked = e.target.checked;
       canvasRenderer.setShowProductCard(isChecked);
       localStorage.setItem('dincox_show_product_card', isChecked ? 'true' : 'false');
+      studioSyncChannel?.postMessage({ type: 'TOGGLE_SETTING', key: 'showProductCard', value: isChecked });
     });
   }
 
@@ -429,6 +519,12 @@ function bindEvents() {
       canvasRenderer.setSpeechState(e.target.value, currentScriptStages[activeStageIdx].stage);
       // Auto-save script changes to localStorage immediately
       saveProductScript(activeProduct.id, currentScriptStages);
+      studioSyncChannel?.postMessage({ 
+        type: 'UPDATE_SCRIPT_TEXT', 
+        productId: activeProduct.id, 
+        stageIdx: activeStageIdx, 
+        text: e.target.value 
+      });
     }
   });
 
