@@ -347,15 +347,20 @@ export class ShopeeCanvasRenderer {
     ctx.fill();
     ctx.stroke();
 
-    // Subtitle Tag
-    ctx.fillStyle = '#FF2A54';
+    // Subtitle Tag (Dynamic badge based on speech stage)
+    const isLiveReply = this.speechStage === 'LIVE_REPLY' || this.speechStage === 'Reply';
+    const tagText = isLiveReply ? '💬 TRẢ LỜI KHÁCH HÀNG' : '🎙️ MC TƯ VẤN LIVE';
+    const tagBg = isLiveReply ? '#FF7A45' : '#FF2A54';
+    const tagW = isLiveReply ? 230 : 170;
+
+    ctx.fillStyle = tagBg;
     ctx.beginPath();
-    ctx.roundRect(bubX + 20, bubY - 16, 170, 32, 8);
+    ctx.roundRect(bubX + 20, bubY - 16, tagW, 32, 8);
     ctx.fill();
 
     ctx.fillStyle = '#FFFFFF';
     ctx.font = 'bold 18px sans-serif';
-    ctx.fillText(`🎙️ MC TƯ VẤN LIVE`, bubX + 28, bubY + 6);
+    ctx.fillText(tagText, bubX + 28, bubY + 6);
 
     // Text wrapping for subtitles (Max 2 lines)
     ctx.fillStyle = '#FFFFFF';

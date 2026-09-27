@@ -1233,6 +1233,56 @@ body {
   gap: 8px;
 }
 
+/* Live Comment Quick Reply Section */
+.live-reply-box {
+  background: rgba(13, 24, 41, 0.95);
+  border: 1px solid rgba(255, 122, 69, 0.4);
+  border-radius: 14px;
+  box-shadow: 0 4px 16px rgba(255, 122, 69, 0.15);
+}
+
+.live-reply-box h2 {
+  color: #ff7a45;
+}
+
+.quick-reply-chips-wrapper {
+  margin-top: 6px;
+}
+
+.quick-chips-label {
+  display: block;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-muted);
+  margin-bottom: 6px;
+}
+
+.quick-chips-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.btn-quick-chip {
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  color: var(--text-main);
+  font-size: 11px;
+  font-weight: 600;
+  padding: 4px 10px;
+  border-radius: 20px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+}
+
+.btn-quick-chip:hover {
+  background: rgba(255, 122, 69, 0.2);
+  border-color: #ff7a45;
+  color: #ffffff;
+  transform: translateY(-1px);
+}
+
 /* Dedicated OBS Overlay Fullscreen Mode (?obs=true) */
 body.obs-mode {
   background: #000000 !important;

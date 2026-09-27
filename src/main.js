@@ -120,6 +120,11 @@ if (studioSyncChannel) {
           presenterEngine.loadVideoSource(data.dataUrl);
         }
         break;
+      case 'SPEAK_LIVE_REPLY':
+        if (data.text) {
+          speakLiveReply(data.text, false);
+        }
+        break;
     }
   };
 }
@@ -349,6 +354,59 @@ function saveEditModal() {
   closeEditModal();
 }
 
+// Live Comment Quick Reply Interrupter
+let isLiveReplying = false;
+
+function speakLiveReply(replyText, broadcast = true) {
+  if (!replyText || typeof replyText !== 'string' || !replyText.trim()) {
+    alert("⚠️ Vui lòng nhập nội dung trả lời hoặc chọn một mẫu trả lời nhanh!");
+    return;
+  }
+
+  const cleanText = replyText.trim();
+  const wasSequencePlaying = isSequencePlaying;
+
+  // Interrupt current speech
+  speechEngine.stop();
+  if (wasSequencePlaying) {
+    isSequencePlaying = false;
+  }
+
+  isLiveReplying = true;
+  canvasRenderer.setSpeechState(cleanText, 'LIVE_REPLY');
+
+  if (broadcast && studioSyncChannel) {
+    studioSyncChannel.postMessage({ type: 'SPEAK_LIVE_REPLY', text: cleanText });
+  }
+
+  speechEngine.speak(cleanText, {
+    pitch: activePresenter.voicePitch,
+    rate: activePresenter.voiceRate,
+    gender: activePresenter.gender,
+    onEnd: () => {
+      isLiveReplying = false;
+
+      // Clear input field on completion if present
+      const replyInput = document.getElementById('live-reply-input');
+      if (replyInput) replyInput.value = '';
+
+      // Resume script sequence seamlessly if it was playing before reply
+      if (wasSequencePlaying) {
+        isSequencePlaying = true;
+        const btn = document.getElementById('btn-play-full-sequence');
+        if (btn) btn.innerHTML = `<i data-lucide="square"></i> Dừng Kịch Bản`;
+        createIcons({ icons });
+
+        // Resume next stage gracefully
+        setTimeout(() => playNextStageInSequence(), 800);
+      } else {
+        // Reset subtitle state if no longer speaking
+        canvasRenderer.setSpeechState('', '');
+      }
+    }
+  });
+}
+
 // Play script sequence automatically stage by stage
 function playScriptSequence(broadcast = true) {
   if (isSequencePlaying) {
@@ -531,6 +589,33 @@ function bindEvents() {
         text: e.target.value 
       });
     }
+  });
+
+  // Live Comment Reply Interrupter Event Bindings
+  const btnSendReply = document.getElementById('btn-send-live-reply');
+  const liveReplyInput = document.getElementById('live-reply-input');
+
+  btnSendReply?.addEventListener('click', () => {
+    const text = liveReplyInput ? liveReplyInput.value : '';
+    speakLiveReply(text);
+  });
+
+  liveReplyInput?.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      const text = liveReplyInput ? liveReplyInput.value : '';
+      speakLiveReply(text);
+    }
+  });
+
+  document.querySelectorAll('.btn-quick-chip').forEach(chip => {
+    chip.addEventListener('click', () => {
+      const text = chip.dataset.text || chip.innerText;
+      if (liveReplyInput) {
+        liveReplyInput.value = text;
+      }
+      speakLiveReply(text);
+    });
   });
 
   document.getElementById('btn-preview-speech')?.addEventListener('click', () => {

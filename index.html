@@ -264,6 +264,31 @@
 
       <!-- Right Panel: Deal Configuration & Video Exporter -->
       <section class="panel timeline-panel mobile-hidden">
+        <!-- Live Comment Interrupter & Quick Reply Box -->
+        <div class="panel-section live-reply-box">
+          <h2><i data-lucide="message-square"></i> 💬 Trả Lời Bình Luận Live (Ưu Tiên Phát)</h2>
+          <p class="form-hint" style="font-size: 12px; color: var(--text-muted); margin-bottom: 8px;">
+            Nhập nội dung trả lời khách hàng. MC AI sẽ <strong>tạm dừng kịch bản ➔ ưu tiên đọc câu trả lời này ➔ tự động quay lại kịch bản</strong> mượt mà.
+          </p>
+          <div class="form-group" style="margin-bottom: 8px;">
+            <textarea id="live-reply-input" class="input-field" rows="2" placeholder="Ví dụ: Dạ bạn ThuTrang_99 ơi, mẫu DC47 bên em có lót cao su đi siêu êm nha..."></textarea>
+          </div>
+          
+          <div class="quick-reply-chips-wrapper">
+            <span class="quick-chips-label">⚡ Mẫu Trả Lời Nhanh 1-Click:</span>
+            <div class="quick-chips-list">
+              <button type="button" class="btn-quick-chip" data-text="Dạ mẫu này bên em đang sẵn đủ size nha bạn ơi, bạn bấm giỏ hàng góc dưới chọn ngay nhé!">👟 Đủ size nha bạn</button>
+              <button type="button" class="btn-quick-chip" data-text="Dạ shop đang áp mã giảm 50K cực xịn trên live, bạn tranh thủ chốt đơn ngay kẻo hết mã ạ!">🔥 Mã giảm 50K</button>
+              <button type="button" class="btn-quick-chip" data-text="Dạ sản phẩm chính hãng DinCox bảo hành 12 tháng, miễn phí đổi trả nếu không vừa size ạ!">🛡️ Bảo hành 12T</button>
+              <button type="button" class="btn-quick-chip" data-text="Dạ bạn bấm vào biểu tượng giỏ hàng góc dưới bên trái màn hình để xem và chọn quà tặng nha!">🛒 Hướng dẫn giỏ hàng</button>
+            </div>
+          </div>
+
+          <button id="btn-send-live-reply" class="btn btn-primary btn-block" style="margin-top: 10px; background: linear-gradient(135deg, #ff7a45, #ff4d4f); border: none;">
+            <i data-lucide="send"></i> 🎙️ Phát Trả Lời Khách Hàng Ngay (Ưu Tiên)
+          </button>
+        </div>
+
         <div class="panel-section">
           <h2><i data-lucide="zap"></i> Shopee Flash Sale & Voucher</h2>
           <div class="form-group">
