@@ -1056,18 +1056,38 @@ export function importAllProductsCatalogJSON(jsonStr) {
 
     DINCOX_PRODUCTS.length = 0;
     list.forEach((item, index) => {
+      const parsePrice = (val) => {
+        if (typeof val === 'number' && !isNaN(val) && val > 0) return val;
+        if (typeof val === 'string' && val.trim()) {
+          const num = parseFloat(val.replace(/[^\d.]/g, ''));
+          if (!isNaN(num) && num > 0) return num;
+        }
+        return 0;
+      };
+
+      const origPrice = parsePrice(item.originalPrice);
+      const salePrice = parsePrice(item.salePrice);
+
+      let discountPercent = 0;
+      if (salePrice > 0 && origPrice > salePrice) {
+        discountPercent = Math.round(((origPrice - salePrice) / origPrice) * 100);
+      } else if (typeof item.discountPercent === 'number' && !isNaN(item.discountPercent) && item.discountPercent > 0) {
+        discountPercent = item.discountPercent;
+      }
+
       const prod = {
         id: item.id || `custom_import_${Date.now()}_${index}`,
         enabled: item.enabled !== false,
         name: item.name || 'Sản Phẩm Chưa Đặt Tên',
         code: item.code || `DC-${index + 1}`,
         category: item.category || 'Giày DinCox',
-        originalPrice: Number(item.originalPrice) || 500000,
-        salePrice: Number(item.salePrice) || 299000,
-        discountPercent: Number(item.discountPercent) || Math.round((1 - (Number(item.salePrice) || 299000) / (Number(item.originalPrice) || 500000)) * 100),
+        originalPrice: origPrice,
+        salePrice: salePrice,
+        discountPercent: discountPercent,
         voucherCode: item.voucherCode || 'DINCOX50K',
         voucherValue: item.voucherValue || '50.000đ',
         image: item.image !== undefined ? item.image : '',
+        videoUrl: item.videoUrl || '',
         rating: item.rating || 5.0,
         soldCount: item.soldCount || 100,
         stockCount: item.stockCount || 10,
