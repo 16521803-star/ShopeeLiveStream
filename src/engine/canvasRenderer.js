@@ -231,9 +231,9 @@ export class ShopeeCanvasRenderer {
     const cardX = 40;
     const cardY = 560;
 
-    // Glassmorphism card backdrop with translucent white background & white border
-    ctx.fillStyle = 'rgba(255, 255, 255, 0.92)';
-    ctx.strokeStyle = 'rgba(255, 255, 255, 0.7)';
+    // Glassmorphism card backdrop with transparent white background & crisp white border
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.45)';
+    ctx.strokeStyle = 'rgba(255, 255, 255, 0.8)';
     ctx.lineWidth = 3;
     ctx.beginPath();
     ctx.roundRect(cardX, cardY + floatY, cardW, cardH, 24);
@@ -255,9 +255,9 @@ export class ShopeeCanvasRenderer {
       const imgX = cardX + (cardW - imgW) / 2;
       const imgY = cardY + floatY + 62;
 
-      // Inner image frame with translucent white border
-      ctx.fillStyle = 'rgba(0, 0, 0, 0.04)';
-      ctx.strokeStyle = 'rgba(255, 255, 255, 0.8)';
+      // Inner image frame with transparent white background & border
+      ctx.fillStyle = 'rgba(255, 255, 255, 0.25)';
+      ctx.strokeStyle = 'rgba(255, 255, 255, 0.85)';
       ctx.lineWidth = 2.5;
       ctx.beginPath();
       ctx.roundRect(imgX, imgY, imgW, imgH, 16);
