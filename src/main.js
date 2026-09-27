@@ -961,14 +961,15 @@ function bindEvents() {
   const savedElevenKey = localStorage.getItem('dincox_elevenlabs_key');
   const savedElevenVoice = localStorage.getItem('dincox_elevenlabs_voice');
   const savedElevenModel = localStorage.getItem('dincox_elevenlabs_model');
-  const savedElevenEnabledVal = localStorage.getItem('dincox_elevenlabs_enabled');
-  const savedElevenEnabled = savedElevenEnabledVal === 'true'; // Default OFF (false) to protect user credits
+  // Force ElevenLabs to OFF (false) on page load to protect user credits
+  localStorage.setItem('dincox_elevenlabs_enabled', 'false');
+  const savedElevenEnabled = false;
   const savedElevenConfirmVal = localStorage.getItem('dincox_elevenlabs_confirm');
   const savedElevenConfirm = savedElevenConfirmVal === null ? true : (savedElevenConfirmVal === 'true');
 
   if (savedElevenKey && elevenLabsApiKeyInput) elevenLabsApiKeyInput.value = savedElevenKey;
   if (savedElevenModel && elevenLabsModelSelect) elevenLabsModelSelect.value = savedElevenModel;
-  if (chkUseElevenLabs) chkUseElevenLabs.checked = savedElevenEnabled;
+  if (chkUseElevenLabs) chkUseElevenLabs.checked = false;
   if (chkConfirmElevenLabs) chkConfirmElevenLabs.checked = savedElevenConfirm;
 
   // Restore Voice Selection
@@ -1055,9 +1056,6 @@ function bindEvents() {
 
   if (elevenLabsApiKeyInput) {
     elevenLabsApiKeyInput.addEventListener('input', () => {
-      if (elevenLabsApiKeyInput.value.trim() && chkUseElevenLabs && !chkUseElevenLabs.checked) {
-        chkUseElevenLabs.checked = true;
-      }
       updateElevenLabsSettings();
     });
   }
@@ -1256,7 +1254,6 @@ function bindEvents() {
             if (elevenLabsVoiceIdInput) elevenLabsVoiceIdInput.value = vId;
           }
         }
-        if (chkUseElevenLabs) chkUseElevenLabs.checked = true;
         updateElevenLabsSettings();
         if (cacheModalBackdrop) cacheModalBackdrop.classList.add('hidden');
         alert(`🎉 Đã khôi phục cài đặt sang Giọng đọc: ${knownVoiceNames[vId] || vId}!\n\nCác câu thoại đã từng phát bằng giọng này sẽ tự động chạy 0 Credit.`);
