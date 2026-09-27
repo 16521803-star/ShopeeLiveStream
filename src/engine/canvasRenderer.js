@@ -224,9 +224,10 @@ export class ShopeeCanvasRenderer {
 
     ctx.save();
     const hasImg = this.isProductImgLoaded && this.currentProduct.image && typeof this.currentProduct.image === 'string' && this.currentProduct.image.trim().length > 0;
+    const hasSalePrice = typeof this.currentProduct.salePrice === 'number' && !isNaN(this.currentProduct.salePrice) && this.currentProduct.salePrice > 0;
     const floatY = Math.sin(timestamp * 0.003) * 6;
     const cardW = 340;
-    const cardH = hasImg ? 390 : 130;
+    const cardH = hasImg ? (hasSalePrice ? 390 : 340) : (hasSalePrice ? 130 : 80);
     const cardX = 40;
     const cardY = 560;
 
@@ -263,12 +264,14 @@ export class ShopeeCanvasRenderer {
       ctx.drawImage(this.productImg, imgX + 10, imgY + 10, imgW - 20, imgH - 20);
     }
 
-    // Price Pill at bottom of corner card
-    const saleStr = new Intl.NumberFormat('vi-VN').format(this.currentProduct.salePrice) + 'đ';
-    ctx.fillStyle = '#FF2A54';
-    ctx.font = 'bold 26px sans-serif';
-    const priceY = hasImg ? (cardY + floatY + cardH - 18) : (cardY + floatY + 100);
-    ctx.fillText(saleStr, cardX + 15, priceY);
+    // Price Pill at bottom of corner card (ONLY if valid price is entered)
+    if (hasSalePrice) {
+      const saleStr = new Intl.NumberFormat('vi-VN').format(this.currentProduct.salePrice) + 'đ';
+      ctx.fillStyle = '#FF2A54';
+      ctx.font = 'bold 26px sans-serif';
+      const priceY = hasImg ? (cardY + floatY + cardH - 18) : (cardY + floatY + 100);
+      ctx.fillText(saleStr, cardX + 15, priceY);
+    }
 
     ctx.restore();
   }
@@ -296,34 +299,46 @@ export class ShopeeCanvasRenderer {
     ctx.font = 'bold 32px sans-serif';
     ctx.fillText(`🔥 GIÁ LIVE ƯU ĐÃI`, banX + 30, banY + 45);
 
-    // Pricing
-    const saleStr = new Intl.NumberFormat('vi-VN').format(this.currentProduct.salePrice) + 'đ';
-    const origStr = new Intl.NumberFormat('vi-VN').format(this.currentProduct.originalPrice) + 'đ';
+    // Pricing (ONLY if valid prices entered)
+    const hasSale = typeof this.currentProduct.salePrice === 'number' && !isNaN(this.currentProduct.salePrice) && this.currentProduct.salePrice > 0;
+    const hasOrig = typeof this.currentProduct.originalPrice === 'number' && !isNaN(this.currentProduct.originalPrice) && this.currentProduct.originalPrice > 0;
 
-    ctx.fillStyle = '#FFFFFF';
-    ctx.font = 'bold 42px sans-serif';
-    ctx.fillText(saleStr, banX + 30, banY + 92);
+    if (hasSale) {
+      const saleStr = new Intl.NumberFormat('vi-VN').format(this.currentProduct.salePrice) + 'đ';
+      ctx.fillStyle = '#FFFFFF';
+      ctx.font = 'bold 42px sans-serif';
+      ctx.fillText(saleStr, banX + 30, banY + 92);
+    }
 
-    ctx.fillStyle = 'rgba(255,255,255,0.7)';
-    ctx.font = '26px sans-serif';
-    ctx.fillText(origStr, banX + 280, banY + 92);
-    // Strike through original price
-    const origW = ctx.measureText(origStr).width;
-    ctx.strokeStyle = 'rgba(255,255,255,0.8)';
-    ctx.lineWidth = 3;
-    ctx.beginPath();
-    ctx.moveTo(banX + 280, banY + 82);
-    ctx.lineTo(banX + 280 + origW, banY + 82);
-    ctx.stroke();
+    if (hasOrig) {
+      const origStr = new Intl.NumberFormat('vi-VN').format(this.currentProduct.originalPrice) + 'đ';
+      const origX = hasSale ? banX + 280 : banX + 30;
+      ctx.fillStyle = 'rgba(255,255,255,0.7)';
+      ctx.font = '26px sans-serif';
+      ctx.fillText(origStr, origX, banY + 92);
+      // Strike through original price
+      const origW = ctx.measureText(origStr).width;
+      ctx.strokeStyle = 'rgba(255,255,255,0.8)';
+      ctx.lineWidth = 3;
+      ctx.beginPath();
+      ctx.moveTo(origX, banY + 82);
+      ctx.lineTo(origX + origW, banY + 82);
+      ctx.stroke();
+    }
 
-    // Discount percentage badge
-    ctx.fillStyle = '#FFEC3D';
-    ctx.beginPath();
-    ctx.roundRect(banX + banW - 180, banY + 25, 150, 60, 15);
-    ctx.fill();
-    ctx.fillStyle = '#D00000';
-    ctx.font = 'bold 30px sans-serif';
-    ctx.fillText(`-${this.currentProduct.discountPercent || 38}%`, banX + banW - 155, banY + 66);
+    // Discount percentage badge (ONLY if discount is valid & positive)
+    if (hasSale && hasOrig && this.currentProduct.originalPrice > this.currentProduct.salePrice) {
+      const discountPercent = Math.round(((this.currentProduct.originalPrice - this.currentProduct.salePrice) / this.currentProduct.originalPrice) * 100);
+      if (discountPercent > 0) {
+        ctx.fillStyle = '#FFEC3D';
+        ctx.beginPath();
+        ctx.roundRect(banX + banW - 180, banY + 25, 150, 60, 15);
+        ctx.fill();
+        ctx.fillStyle = '#D00000';
+        ctx.font = 'bold 30px sans-serif';
+        ctx.fillText(`-${discountPercent}%`, banX + banW - 155, banY + 66);
+      }
+    }
 
     ctx.restore();
   }

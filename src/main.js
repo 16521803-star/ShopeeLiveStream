@@ -160,7 +160,11 @@ function renderProductList() {
     return;
   }
 
-  container.innerHTML = DINCOX_PRODUCTS.map((prod, idx) => `
+  container.innerHTML = DINCOX_PRODUCTS.map((prod, idx) => {
+    const hasSale = typeof prod.salePrice === 'number' && !isNaN(prod.salePrice) && prod.salePrice > 0;
+    const hasOrig = typeof prod.originalPrice === 'number' && !isNaN(prod.originalPrice) && prod.originalPrice > 0;
+
+    return `
     <div class="product-item-card ${activeProduct && prod.id === activeProduct.id ? 'active' : ''} ${prod.enabled === false ? 'disabled' : ''}" data-id="${prod.id}">
       <input type="checkbox" class="prod-checkbox" data-id="${prod.id}" ${prod.enabled !== false ? 'checked' : ''} title="Bật/Tắt mẫu này khi lặp kịch bản">
       ${prod.image && typeof prod.image === 'string' && prod.image.trim() 
@@ -169,8 +173,8 @@ function renderProductList() {
       <div class="product-info flex-1">
         <h3>${prod.name}</h3>
         <div class="product-prices">
-          <span class="sale-price">${new Intl.NumberFormat('vi-VN').format(prod.salePrice)}đ</span>
-          <span class="orig-price">${new Intl.NumberFormat('vi-VN').format(prod.originalPrice)}đ</span>
+          ${hasSale ? `<span class="sale-price">${new Intl.NumberFormat('vi-VN').format(prod.salePrice)}đ</span>` : ''}
+          ${hasOrig ? `<span class="orig-price">${new Intl.NumberFormat('vi-VN').format(prod.originalPrice)}đ</span>` : ''}
         </div>
       </div>
       <button class="btn-edit-prod" data-id="${prod.id}" title="Chỉnh sửa giá & thông tin">✏️ Sửa</button>
@@ -179,7 +183,8 @@ function renderProductList() {
         <button class="btn-move-prod" data-id="${prod.id}" data-dir="down" ${idx === DINCOX_PRODUCTS.length - 1 ? 'disabled' : ''} title="Di chuyển xuống">▼</button>
       </div>
     </div>
-  `).join('');
+  `;
+  }).join('');
 
   // Select Product click
   container.querySelectorAll('.product-item-card').forEach(card => {
@@ -317,8 +322,8 @@ function openEditModal(productId) {
 
   document.getElementById('edit-prod-id').value = prod.id;
   document.getElementById('edit-prod-name').value = prod.name;
-  document.getElementById('edit-orig-price').value = prod.originalPrice;
-  document.getElementById('edit-sale-price').value = prod.salePrice;
+  document.getElementById('edit-orig-price').value = (prod.originalPrice && !isNaN(prod.originalPrice) && prod.originalPrice > 0) ? prod.originalPrice : '';
+  document.getElementById('edit-sale-price').value = (prod.salePrice && !isNaN(prod.salePrice) && prod.salePrice > 0) ? prod.salePrice : '';
   document.getElementById('edit-stock-count').value = prod.stockCount || 10;
   document.getElementById('edit-feature').value = (prod.features && prod.features[0]) ? prod.features[0] : '';
 
@@ -332,9 +337,15 @@ function closeEditModal() {
 function saveEditModal() {
   const id = document.getElementById('edit-prod-id').value;
   const name = document.getElementById('edit-prod-name').value;
-  const orig = parseInt(document.getElementById('edit-orig-price').value, 10);
-  const sale = parseInt(document.getElementById('edit-sale-price').value, 10);
-  const stock = parseInt(document.getElementById('edit-stock-count').value, 10);
+  const origVal = document.getElementById('edit-orig-price').value.trim();
+  const saleVal = document.getElementById('edit-sale-price').value.trim();
+
+  const origParsed = parseInt(origVal, 10);
+  const saleParsed = parseInt(saleVal, 10);
+
+  const orig = (!isNaN(origParsed) && origParsed > 0) ? origParsed : 0;
+  const sale = (!isNaN(saleParsed) && saleParsed > 0) ? saleParsed : 0;
+  const stock = parseInt(document.getElementById('edit-stock-count').value, 10) || 10;
   const feature = document.getElementById('edit-feature').value;
 
   const updated = updateProductInCatalog(id, {
