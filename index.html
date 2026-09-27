@@ -279,12 +279,14 @@
           </div>
           
           <div class="quick-reply-chips-wrapper">
-            <span class="quick-chips-label">⚡ Mẫu Trả Lời Nhanh 1-Click:</span>
-            <div class="quick-chips-list">
-              <button type="button" class="btn-quick-chip" data-text="Dạ mẫu này bên em đang sẵn đủ size nha bạn ơi, bạn bấm giỏ hàng góc dưới chọn ngay nhé!">👟 Đủ size nha bạn</button>
-              <button type="button" class="btn-quick-chip" data-text="Dạ shop đang áp mã giảm 50K cực xịn trên live, bạn tranh thủ chốt đơn ngay kẻo hết mã ạ!">🔥 Mã giảm 50K</button>
-              <button type="button" class="btn-quick-chip" data-text="Dạ sản phẩm chính hãng DinCox bảo hành 12 tháng, miễn phí đổi trả nếu không vừa size ạ!">🛡️ Bảo hành 12T</button>
-              <button type="button" class="btn-quick-chip" data-text="Dạ bạn bấm vào biểu tượng giỏ hàng góc dưới bên trái màn hình để xem và chọn quà tặng nha!">🛒 Hướng dẫn giỏ hàng</button>
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+              <span class="quick-chips-label" style="margin-bottom:0;">⚡ Mẫu Trả Lời Nhanh 1-Click:</span>
+              <button type="button" id="btn-open-quick-reply-modal" class="btn btn-xs btn-ghost" style="font-size: 11px; color: #ff7a45; padding: 2px 6px; display: inline-flex; align-items: center; gap: 4px; border: 1px dashed rgba(255, 122, 69, 0.4); border-radius: 6px;" title="Chỉnh sửa nội dung các mẫu trả lời nhanh">
+                <i data-lucide="edit-3" style="width: 12px; height: 12px;"></i> Sửa Mẫu
+              </button>
+            </div>
+            <div id="quick-chips-container" class="quick-chips-list">
+              <!-- Rendered dynamically via JS -->
             </div>
           </div>
 
@@ -420,6 +422,41 @@
           <button id="btn-clear-all-cache-modal" class="btn btn-xs btn-danger">
             <i data-lucide="trash-2"></i> Xóa Tất Cả Cache Trong Máy
           </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Quick Reply Templates Management Modal -->
+  <div id="quick-reply-modal-backdrop" class="modal-backdrop hidden">
+    <div class="modal-box" style="max-width: 580px; width: 95vw;">
+      <div class="modal-header">
+        <h3>⚙️ Tùy Chỉnh Nút Trả Lời Nhanh 1-Click</h3>
+        <button id="btn-close-quick-reply-modal" class="btn-icon">&times;</button>
+      </div>
+      <div class="modal-body">
+        <p class="form-hint" style="margin-bottom: 10px; font-size: 12px; color: var(--text-muted);">
+          Tùy chỉnh tiêu đề nút bấm và nội dung chi tiết MC AI sẽ phát biểu khi bấm nút. Bấm <strong>"+ Thêm Mẫu Trả Lời"</strong> để bổ sung thêm nhiều mẫu khác!
+        </p>
+
+        <div id="quick-reply-edit-list" style="display: flex; flex-direction: column; gap: 10px; max-height: 55vh; overflow-y: auto; padding-right: 4px;">
+          <!-- 4+ template edit items rendered via JS -->
+        </div>
+
+        <div style="margin-top: 6px;">
+          <button id="btn-add-quick-reply-item" class="btn btn-xs btn-ghost" style="color: #10b981; border: 1px dashed rgba(16, 185, 129, 0.4); width: 100%; justify-content: center; padding: 6px;">
+            <i data-lucide="plus"></i> Thêm Mẫu Trả Lời Mới
+          </button>
+        </div>
+
+        <div style="margin-top: 14px; display: flex; justify-content: space-between; align-items: center; border-top: 1px solid var(--border-color); padding-top: 12px;">
+          <button id="btn-reset-quick-replies" class="btn btn-xs btn-danger" style="font-size: 11px;">
+            <i data-lucide="rotate-ccw"></i> Mặc Định
+          </button>
+          <div style="display: flex; gap: 8px;">
+            <button id="btn-cancel-quick-replies" class="btn btn-xs btn-secondary" style="padding: 6px 14px;">Hủy</button>
+            <button id="btn-save-quick-replies" class="btn btn-xs btn-primary" style="padding: 6px 18px;">Lưu Thay Đổi</button>
+          </div>
         </div>
       </div>
     </div>

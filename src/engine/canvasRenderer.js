@@ -231,9 +231,9 @@ export class ShopeeCanvasRenderer {
     const cardX = 40;
     const cardY = 560;
 
-    // Glassmorphism card backdrop
+    // Glassmorphism card backdrop with semi-transparent white border
     ctx.fillStyle = 'rgba(10, 20, 38, 0.88)';
-    ctx.strokeStyle = 'rgba(229, 169, 60, 0.6)';
+    ctx.strokeStyle = 'rgba(255, 255, 255, 0.5)';
     ctx.lineWidth = 3;
     ctx.beginPath();
     ctx.roundRect(cardX, cardY + floatY, cardW, cardH, 24);
@@ -255,13 +255,22 @@ export class ShopeeCanvasRenderer {
       const imgX = cardX + (cardW - imgW) / 2;
       const imgY = cardY + floatY + 62;
 
-      // Inner image frame
-      ctx.fillStyle = 'rgba(0, 0, 0, 0.4)';
+      // Inner image frame with semi-transparent white background & crisp white border
+      ctx.fillStyle = 'rgba(255, 255, 255, 0.1)';
+      ctx.strokeStyle = 'rgba(255, 255, 255, 0.45)';
+      ctx.lineWidth = 2.5;
       ctx.beginPath();
       ctx.roundRect(imgX, imgY, imgW, imgH, 16);
       ctx.fill();
+      ctx.stroke();
 
-      ctx.drawImage(this.productImg, imgX + 10, imgY + 10, imgW - 20, imgH - 20);
+      // Clip product image nicely inside rounded white border
+      ctx.save();
+      ctx.beginPath();
+      ctx.roundRect(imgX + 3, imgY + 3, imgW - 6, imgH - 6, 13);
+      ctx.clip();
+      ctx.drawImage(this.productImg, imgX + 3, imgY + 3, imgW - 6, imgH - 6);
+      ctx.restore();
     }
 
     // Price Pill at bottom of corner card (ONLY if valid price is entered)

@@ -402,6 +402,116 @@ function saveEditModal() {
   closeEditModal();
 }
 
+// Default Quick Replies Data
+const DEFAULT_QUICK_REPLIES = [
+  { id: 'qr_1', label: '👟 Đủ size nha bạn', text: 'Dạ mẫu này bên em đang sẵn đủ size nha bạn ơi, bạn bấm giỏ hàng góc dưới chọn ngay nhé!' },
+  { id: 'qr_2', label: '🔥 Mã giảm 50K', text: 'Dạ shop đang áp mã giảm 50K cực xịn trên live, bạn tranh thủ chốt đơn ngay kẻo hết mã ạ!' },
+  { id: 'qr_3', label: '🛡️ Bảo hành 12T', text: 'Dạ sản phẩm chính hãng DinCox bảo hành 12 tháng, miễn phí đổi trả nếu không vừa size ạ!' },
+  { id: 'qr_4', label: '🛒 Hướng dẫn giỏ hàng', text: 'Dạ bạn bấm vào biểu tượng giỏ hàng góc dưới bên trái màn hình để xem và chọn quà tặng nha!' }
+];
+
+function getQuickReplies() {
+  try {
+    const saved = localStorage.getItem('dincox_quick_replies');
+    if (saved) {
+      const parsed = JSON.parse(saved);
+      if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+    }
+  } catch (err) {
+    console.warn("Could not parse saved quick replies", err);
+  }
+  return DEFAULT_QUICK_REPLIES;
+}
+
+function saveQuickReplies(list) {
+  try {
+    localStorage.setItem('dincox_quick_replies', JSON.stringify(list));
+  } catch (err) {
+    console.warn("Could not save quick replies to localStorage", err);
+  }
+}
+
+function renderQuickReplyChips() {
+  const container = document.getElementById('quick-chips-container');
+  if (!container) return;
+
+  const replies = getQuickReplies();
+  container.innerHTML = replies.map(qr => `
+    <button type="button" class="btn-quick-chip" data-id="${qr.id}" data-text="${qr.text.replace(/"/g, '&quot;')}">
+      ${qr.label}
+    </button>
+  `).join('');
+
+  container.querySelectorAll('.btn-quick-chip').forEach(chip => {
+    chip.addEventListener('click', () => {
+      const text = chip.dataset.text;
+      const liveReplyInput = document.getElementById('live-reply-input');
+      if (liveReplyInput) {
+        liveReplyInput.value = text;
+      }
+      speakLiveReply(text);
+    });
+  });
+}
+
+let editingQuickReplies = [];
+
+function openQuickReplyModal() {
+  editingQuickReplies = JSON.parse(JSON.stringify(getQuickReplies()));
+  renderQuickReplyEditList();
+  document.getElementById('quick-reply-modal-backdrop')?.classList.remove('hidden');
+}
+
+function closeQuickReplyModal() {
+  document.getElementById('quick-reply-modal-backdrop')?.classList.add('hidden');
+}
+
+function renderQuickReplyEditList() {
+  const listEl = document.getElementById('quick-reply-edit-list');
+  if (!listEl) return;
+
+  listEl.innerHTML = editingQuickReplies.map((item, idx) => `
+    <div class="qr-edit-card" style="background: rgba(0,0,0,0.35); border: 1px solid var(--border-color); border-radius: 8px; padding: 10px;" data-idx="${idx}">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+        <span style="font-size: 12px; font-weight: 700; color: #ff7a45;">Mẫu ${idx + 1}</span>
+        ${editingQuickReplies.length > 1 ? `<button type="button" class="btn-remove-qr btn-icon" data-idx="${idx}" style="font-size: 16px; color: #ff4d4f; padding: 0 4px; line-height: 1;" title="Xóa mẫu này">&times;</button>` : ''}
+      </div>
+      <div class="form-group" style="margin-bottom: 6px;">
+        <label style="font-size: 11px; color: var(--text-muted);">Tên nút bấm (Nút hiển thị ngắn)</label>
+        <input type="text" class="input-field input-xs qr-edit-label" value="${item.label.replace(/"/g, '&quot;')}" placeholder="Ví dụ: 👟 Đủ size nha bạn">
+      </div>
+      <div class="form-group" style="margin-bottom: 0;">
+        <label style="font-size: 11px; color: var(--text-muted);">Nội dung phát biểu chi tiết của MC AI</label>
+        <textarea class="input-field input-xs qr-edit-text" rows="2" placeholder="Nội dung MC sẽ phát khi bấm nút...">${item.text}</textarea>
+      </div>
+    </div>
+  `).join('');
+
+  // Bind remove item buttons
+  listEl.querySelectorAll('.btn-remove-qr').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const idx = parseInt(btn.dataset.idx, 10);
+      editingQuickReplies.splice(idx, 1);
+      renderQuickReplyEditList();
+    });
+  });
+
+  // Bind input listeners to update memory array
+  listEl.querySelectorAll('.qr-edit-card').forEach(card => {
+    const idx = parseInt(card.dataset.idx, 10);
+    const labelInput = card.querySelector('.qr-edit-label');
+    const textInput = card.querySelector('.qr-edit-text');
+
+    labelInput?.addEventListener('input', (e) => {
+      if (editingQuickReplies[idx]) editingQuickReplies[idx].label = e.target.value;
+    });
+
+    textInput?.addEventListener('input', (e) => {
+      if (editingQuickReplies[idx]) editingQuickReplies[idx].text = e.target.value;
+    });
+  });
+}
+
 // Live Comment Quick Reply Interrupter
 let isLiveReplying = false;
 
@@ -752,14 +862,44 @@ function bindEvents() {
     }
   });
 
-  document.querySelectorAll('.btn-quick-chip').forEach(chip => {
-    chip.addEventListener('click', () => {
-      const text = chip.dataset.text || chip.innerText;
-      if (liveReplyInput) {
-        liveReplyInput.value = text;
-      }
-      speakLiveReply(text);
+  // Initial Render of Quick Reply Chips
+  renderQuickReplyChips();
+
+  // Quick Reply Manager Modal Listeners
+  document.getElementById('btn-open-quick-reply-modal')?.addEventListener('click', openQuickReplyModal);
+  document.getElementById('btn-close-quick-reply-modal')?.addEventListener('click', closeQuickReplyModal);
+  document.getElementById('btn-cancel-quick-replies')?.addEventListener('click', closeQuickReplyModal);
+
+  document.getElementById('btn-add-quick-reply-item')?.addEventListener('click', () => {
+    editingQuickReplies.push({
+      id: 'qr_' + Date.now(),
+      label: '✨ Mẫu mới',
+      text: 'Dạ shop xin chào bạn...'
     });
+    renderQuickReplyEditList();
+  });
+
+  document.getElementById('btn-save-quick-replies')?.addEventListener('click', () => {
+    // Basic validation
+    const hasEmpty = editingQuickReplies.some(r => !r.label.trim() || !r.text.trim());
+    if (hasEmpty) {
+      alert("⚠️ Vui lòng điền đầy đủ Tên nút và Nội dung câu thoại cho tất cả mẫu!");
+      return;
+    }
+
+    saveQuickReplies(editingQuickReplies);
+    renderQuickReplyChips();
+    closeQuickReplyModal();
+    alert("🎉 Đã lưu thành công các mẫu trả lời nhanh mới!");
+  });
+
+  document.getElementById('btn-reset-quick-replies')?.addEventListener('click', () => {
+    if (confirm("Khôi phục danh sách mẫu trả lời nhanh về mặc định ban đầu?")) {
+      saveQuickReplies(DEFAULT_QUICK_REPLIES);
+      renderQuickReplyChips();
+      closeQuickReplyModal();
+      alert("🧹 Đã khôi phục các mẫu mặc định!");
+    }
   });
 
   document.getElementById('btn-preview-speech')?.addEventListener('click', () => {
