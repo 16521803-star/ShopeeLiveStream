@@ -103,6 +103,10 @@ if (studioSyncChannel) {
           canvasRenderer.setShowProductCard(data.value);
           const el = document.getElementById('chk-show-product-card');
           if (el) el.checked = data.value;
+        } else if (data.key === 'flashSaleTitle') {
+          canvasRenderer.setFlashSaleTitle(data.value);
+          const el = document.getElementById('flash-sale-title-input');
+          if (el) el.value = data.value;
         }
         break;
       case 'UPDATE_SCRIPT_TEXT':
@@ -724,6 +728,20 @@ function bindEvents() {
       canvasRenderer.setShowFlashSaleBanner(isChecked);
       localStorage.setItem('dincox_show_flash_sale', isChecked ? 'true' : 'false');
       studioSyncChannel?.postMessage({ type: 'TOGGLE_SETTING', key: 'showFlashSale', value: isChecked });
+    });
+  }
+
+  const flashSaleTitleInput = document.getElementById('flash-sale-title-input');
+  const savedFlashSaleTitle = localStorage.getItem('dincox_flash_sale_title') || '🔥 GIÁ LIVE ƯU ĐÃI';
+  if (flashSaleTitleInput) {
+    flashSaleTitleInput.value = savedFlashSaleTitle;
+    canvasRenderer.setFlashSaleTitle(savedFlashSaleTitle);
+
+    flashSaleTitleInput.addEventListener('input', (e) => {
+      const title = e.target.value;
+      canvasRenderer.setFlashSaleTitle(title);
+      localStorage.setItem('dincox_flash_sale_title', title);
+      studioSyncChannel?.postMessage({ type: 'TOGGLE_SETTING', key: 'flashSaleTitle', value: title });
     });
   }
 

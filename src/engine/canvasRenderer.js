@@ -78,6 +78,10 @@ export class ShopeeCanvasRenderer {
     this.showFlashSaleBanner = !!show;
   }
 
+  setFlashSaleTitle(title) {
+    this.flashSaleTitle = title || '🔥 GIÁ LIVE ƯU ĐÃI';
+  }
+
   setShowSubtitles(show) {
     this.showSubtitles = !!show;
   }
@@ -226,50 +230,50 @@ export class ShopeeCanvasRenderer {
     const hasImg = this.isProductImgLoaded && this.currentProduct.image && typeof this.currentProduct.image === 'string' && this.currentProduct.image.trim().length > 0;
     const hasSalePrice = typeof this.currentProduct.salePrice === 'number' && !isNaN(this.currentProduct.salePrice) && this.currentProduct.salePrice > 0;
     const floatY = Math.sin(timestamp * 0.003) * 6;
-    const cardW = 340;
-    const cardH = hasImg ? (hasSalePrice ? 390 : 340) : (hasSalePrice ? 130 : 80);
+    const cardW = 320;
+    const cardH = hasImg ? (hasSalePrice ? 395 : 355) : (hasSalePrice ? 95 : 55);
     const cardX = 40;
     const cardY = 560;
 
-    // Glassmorphism card backdrop with transparent white background & crisp white border
+    // Glassmorphism card backdrop with thin transparent white border
     ctx.fillStyle = 'rgba(255, 255, 255, 0.45)';
     ctx.strokeStyle = 'rgba(255, 255, 255, 0.8)';
-    ctx.lineWidth = 3;
+    ctx.lineWidth = 1.5;
     ctx.beginPath();
-    ctx.roundRect(cardX, cardY + floatY, cardW, cardH, 24);
+    ctx.roundRect(cardX, cardY + floatY, cardW, cardH, 20);
     ctx.fill();
     ctx.stroke();
 
-    // Product Title (Black font color)
+    // Product Title (Black font color, compact margin)
     ctx.fillStyle = '#000000';
-    ctx.font = 'bold 22px sans-serif';
-    const shortName = this.currentProduct.name.length > 22 
-      ? this.currentProduct.name.substring(0, 20) + '...' 
+    ctx.font = 'bold 20px sans-serif';
+    const shortName = this.currentProduct.name.length > 24 
+      ? this.currentProduct.name.substring(0, 22) + '...' 
       : this.currentProduct.name;
-    ctx.fillText(shortName, cardX + 15, cardY + floatY + 44);
+    ctx.fillText(shortName, cardX + 10, cardY + floatY + 32);
 
     // Shoe Product Thumbnail Box (ONLY if image is available & loaded)
     if (hasImg) {
-      const imgW = 260;
-      const imgH = 260;
-      const imgX = cardX + (cardW - imgW) / 2;
-      const imgY = cardY + floatY + 62;
+      const imgW = 300;
+      const imgH = 300;
+      const imgX = cardX + 10;
+      const imgY = cardY + floatY + 44;
 
-      // Inner image frame with transparent white background & border
-      ctx.fillStyle = 'rgba(255, 255, 255, 0.25)';
+      // Inner image frame with ultra-thin white border
+      ctx.fillStyle = 'rgba(255, 255, 255, 0.2)';
       ctx.strokeStyle = 'rgba(255, 255, 255, 0.85)';
-      ctx.lineWidth = 2.5;
+      ctx.lineWidth = 1.0;
       ctx.beginPath();
-      ctx.roundRect(imgX, imgY, imgW, imgH, 16);
+      ctx.roundRect(imgX, imgY, imgW, imgH, 14);
       ctx.fill();
       ctx.stroke();
 
-      // Clip product image nicely inside rounded white border
+      // Clip product image with zero padding inside ultra-thin border
       ctx.save();
       ctx.beginPath();
-      ctx.roundRect(imgX + 3, imgY + 3, imgW - 6, imgH - 6, 13);
+      ctx.roundRect(imgX + 1, imgY + 1, imgW - 2, imgH - 2, 13);
       ctx.clip();
-      ctx.drawImage(this.productImg, imgX + 3, imgY + 3, imgW - 6, imgH - 6);
+      ctx.drawImage(this.productImg, imgX + 1, imgY + 1, imgW - 2, imgH - 2);
       ctx.restore();
     }
 
@@ -277,9 +281,9 @@ export class ShopeeCanvasRenderer {
     if (hasSalePrice) {
       const saleStr = new Intl.NumberFormat('vi-VN').format(this.currentProduct.salePrice) + 'đ';
       ctx.fillStyle = '#FF2A54';
-      ctx.font = 'bold 26px sans-serif';
-      const priceY = hasImg ? (cardY + floatY + cardH - 18) : (cardY + floatY + 100);
-      ctx.fillText(saleStr, cardX + 15, priceY);
+      ctx.font = 'bold 24px sans-serif';
+      const priceY = hasImg ? (cardY + floatY + cardH - 12) : (cardY + floatY + 75);
+      ctx.fillText(saleStr, cardX + 10, priceY);
     }
 
     ctx.restore();
@@ -306,7 +310,8 @@ export class ShopeeCanvasRenderer {
     // Banner title text
     ctx.fillStyle = '#FFEC3D';
     ctx.font = 'bold 32px sans-serif';
-    ctx.fillText(`🔥 GIÁ LIVE ƯU ĐÃI`, banX + 30, banY + 45);
+    const bannerTitle = this.flashSaleTitle || '🔥 GIÁ LIVE ƯU ĐÃI';
+    ctx.fillText(bannerTitle, banX + 30, banY + 45);
 
     // Pricing (ONLY if valid prices entered)
     const hasSale = typeof this.currentProduct.salePrice === 'number' && !isNaN(this.currentProduct.salePrice) && this.currentProduct.salePrice > 0;
