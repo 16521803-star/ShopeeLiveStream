@@ -231,17 +231,17 @@ export class ShopeeCanvasRenderer {
     const cardX = 40;
     const cardY = 560;
 
-    // Glassmorphism card backdrop with semi-transparent white border
-    ctx.fillStyle = 'rgba(10, 20, 38, 0.88)';
-    ctx.strokeStyle = 'rgba(255, 255, 255, 0.5)';
+    // Glassmorphism card backdrop with translucent white background & white border
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.92)';
+    ctx.strokeStyle = 'rgba(255, 255, 255, 0.7)';
     ctx.lineWidth = 3;
     ctx.beginPath();
     ctx.roundRect(cardX, cardY + floatY, cardW, cardH, 24);
     ctx.fill();
     ctx.stroke();
 
-    // Product Title
-    ctx.fillStyle = '#FFFFFF';
+    // Product Title (Black font color)
+    ctx.fillStyle = '#000000';
     ctx.font = 'bold 22px sans-serif';
     const shortName = this.currentProduct.name.length > 22 
       ? this.currentProduct.name.substring(0, 20) + '...' 
@@ -255,9 +255,9 @@ export class ShopeeCanvasRenderer {
       const imgX = cardX + (cardW - imgW) / 2;
       const imgY = cardY + floatY + 62;
 
-      // Inner image frame with semi-transparent white background & crisp white border
-      ctx.fillStyle = 'rgba(255, 255, 255, 0.1)';
-      ctx.strokeStyle = 'rgba(255, 255, 255, 0.45)';
+      // Inner image frame with translucent white border
+      ctx.fillStyle = 'rgba(0, 0, 0, 0.04)';
+      ctx.strokeStyle = 'rgba(255, 255, 255, 0.8)';
       ctx.lineWidth = 2.5;
       ctx.beginPath();
       ctx.roundRect(imgX, imgY, imgW, imgH, 16);
