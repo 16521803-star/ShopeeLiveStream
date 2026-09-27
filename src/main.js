@@ -962,7 +962,7 @@ function bindEvents() {
   const savedElevenVoice = localStorage.getItem('dincox_elevenlabs_voice');
   const savedElevenModel = localStorage.getItem('dincox_elevenlabs_model');
   const savedElevenEnabledVal = localStorage.getItem('dincox_elevenlabs_enabled');
-  const savedElevenEnabled = savedElevenEnabledVal === null ? true : (savedElevenEnabledVal === 'true');
+  const savedElevenEnabled = savedElevenEnabledVal === 'true'; // Default OFF (false) to protect user credits
   const savedElevenConfirmVal = localStorage.getItem('dincox_elevenlabs_confirm');
   const savedElevenConfirm = savedElevenConfirmVal === null ? true : (savedElevenConfirmVal === 'true');
 
