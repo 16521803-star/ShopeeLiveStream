@@ -1283,6 +1283,15 @@ body {
   transform: translateY(-1px);
 }
 
+/* Advanced Studio Mode Visibility Controls */
+.advanced-only {
+  display: none !important;
+}
+
+body.advanced-mode .advanced-only {
+  display: block !important;
+}
+
 /* Dedicated OBS Overlay Fullscreen Mode (?obs=true) */
 body.obs-mode {
   background: #000000 !important;

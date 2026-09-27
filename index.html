@@ -250,6 +250,10 @@
               <input type="checkbox" id="chk-show-flash-sale">
               <span>🔥 Hiển thị Banner Giá Live Ưu Đãi</span>
             </label>
+            <label class="toggle-label" style="border: 1px solid rgba(255, 122, 69, 0.4); padding: 4px 10px; border-radius: 8px; background: rgba(255, 122, 69, 0.1);">
+              <input type="checkbox" id="chk-advanced-mode">
+              <span>⚙️ Bật Chế Độ Nâng Cao (Advanced Studio)</span>
+            </label>
           </div>
           <div class="action-buttons-row">
             <button id="btn-play-full-sequence" class="btn btn-lg btn-success">
@@ -282,6 +286,12 @@
               <button type="button" class="btn-quick-chip" data-text="Dạ sản phẩm chính hãng DinCox bảo hành 12 tháng, miễn phí đổi trả nếu không vừa size ạ!">🛡️ Bảo hành 12T</button>
               <button type="button" class="btn-quick-chip" data-text="Dạ bạn bấm vào biểu tượng giỏ hàng góc dưới bên trái màn hình để xem và chọn quà tặng nha!">🛒 Hướng dẫn giỏ hàng</button>
             </div>
+          </div>
+
+          <div class="form-group advanced-only" style="margin-top: 10px; background: rgba(0,0,0,0.2); padding: 8px 12px; border-radius: 8px; border: 1px dashed rgba(255,122,69,0.3);">
+            <label for="reply-video-file" style="color: #ff7a45; font-size: 12px;">🎥 Video MP4 MC Trả Lời Riêng (Chế Độ Nâng Cao)</label>
+            <input type="file" id="reply-video-file" accept="video/mp4,video/webm" class="input-field input-xs" style="margin-top:4px;">
+            <div id="reply-video-status" class="form-hint" style="font-size: 11px; color: #10b981; margin-top: 2px;"></div>
           </div>
 
           <button id="btn-send-live-reply" class="btn btn-primary btn-block" style="margin-top: 10px; background: linear-gradient(135deg, #ff7a45, #ff4d4f); border: none;">
@@ -379,6 +389,11 @@
         <div class="form-group">
           <label for="edit-feature">Tính năng nổi bật chính</label>
           <input type="text" id="edit-feature" class="input-field">
+        </div>
+        <div class="form-group advanced-only" style="background: rgba(255,122,69,0.08); padding: 10px; border-radius: 8px; border: 1px dashed rgba(255,122,69,0.4);">
+          <label for="edit-prod-video-file" style="color: #ff7a45; font-weight: 600;">🎥 Video MP4 MC Riêng Cho Mẫu Này (Chế Độ Nâng Cao)</label>
+          <input type="file" id="edit-prod-video-file" accept="video/mp4,video/webm" class="input-field input-xs" style="margin-top: 4px;">
+          <div id="edit-prod-video-status" class="form-hint" style="font-size: 11px; color: #10b981; margin-top: 4px;"></div>
         </div>
         <button id="btn-save-edit-prod" class="btn btn-primary btn-block">Lưu Thay Đổi</button>
       </div>

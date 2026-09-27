@@ -235,6 +235,19 @@ function selectProduct(product, broadcast = true) {
   currentScriptStages = generateScriptForProduct(activeProduct);
   activeStageIdx = 0;
 
+  // Check Advanced Mode per-product MC video
+  const isAdvanced = document.body.classList.contains('advanced-mode');
+  if (isAdvanced && activeProduct.videoUrl) {
+    presenterEngine.loadVideoSource(activeProduct.videoUrl);
+  } else if (!isAdvanced || !activeProduct.videoUrl) {
+    const savedMcVideo = localStorage.getItem('dincox_custom_mc_video');
+    if (savedMcVideo) {
+      presenterEngine.loadVideoSource(savedMcVideo);
+    } else {
+      presenterEngine.setPresenter(activePresenter);
+    }
+  }
+
   canvasRenderer.setProduct(activeProduct);
   renderProductList();
   renderScriptTabs();
@@ -316,9 +329,15 @@ function loadCurrentStageText() {
 }
 
 // Edit Modal Functions
+let currentEditProductVideoUrl = null;
+
 function openEditModal(productId) {
   const prod = DINCOX_PRODUCTS.find(p => p.id === productId);
   if (!prod) return;
+
+  currentEditProductVideoUrl = null;
+  const fileInput = document.getElementById('edit-prod-video-file');
+  if (fileInput) fileInput.value = '';
 
   document.getElementById('edit-prod-id').value = prod.id;
   document.getElementById('edit-prod-name').value = prod.name;
@@ -326,6 +345,17 @@ function openEditModal(productId) {
   document.getElementById('edit-sale-price').value = (prod.salePrice && !isNaN(prod.salePrice) && prod.salePrice > 0) ? prod.salePrice : '';
   document.getElementById('edit-stock-count').value = prod.stockCount || 10;
   document.getElementById('edit-feature').value = (prod.features && prod.features[0]) ? prod.features[0] : '';
+
+  const statusEl = document.getElementById('edit-prod-video-status');
+  if (statusEl) {
+    if (prod.videoUrl) {
+      statusEl.innerText = '✅ Sản phẩm đã có Video MP4 MC riêng';
+      statusEl.style.color = '#10b981';
+    } else {
+      statusEl.innerText = '⚪ Chưa nạp Video MC riêng (Dùng Video/Avatar mặc định)';
+      statusEl.style.color = '#9ca3af';
+    }
+  }
 
   document.getElementById('edit-modal-backdrop').classList.remove('hidden');
 }
@@ -348,13 +378,20 @@ function saveEditModal() {
   const stock = parseInt(document.getElementById('edit-stock-count').value, 10) || 10;
   const feature = document.getElementById('edit-feature').value;
 
-  const updated = updateProductInCatalog(id, {
+  const updateData = {
     name,
     originalPrice: orig,
     salePrice: sale,
     stockCount: stock,
     features: [feature, 'Công nghệ đế cao su lưu hóa (Vulcanized) chống trượt', 'Bảo hành 12 tháng chính hãng Shopee Mall']
-  });
+  };
+
+  if (currentEditProductVideoUrl) {
+    updateData.videoUrl = currentEditProductVideoUrl;
+    currentEditProductVideoUrl = null;
+  }
+
+  const updated = updateProductInCatalog(id, updateData);
 
   if (updated && activeProduct.id === id) {
     selectProduct(updated);
@@ -386,6 +423,13 @@ function speakLiveReply(replyText, broadcast = true) {
   isLiveReplying = true;
   canvasRenderer.setSpeechState(cleanText, 'LIVE_REPLY');
 
+  // Advanced Mode: Dedicated Reply Video MP4
+  const isAdvanced = document.body.classList.contains('advanced-mode');
+  const savedReplyVideo = localStorage.getItem('dincox_reply_mc_video');
+  if (isAdvanced && savedReplyVideo) {
+    presenterEngine.loadVideoSource(savedReplyVideo);
+  }
+
   if (broadcast && studioSyncChannel) {
     studioSyncChannel.postMessage({ type: 'SPEAK_LIVE_REPLY', text: cleanText });
   }
@@ -400,6 +444,20 @@ function speakLiveReply(replyText, broadcast = true) {
       // Clear input field on completion if present
       const replyInput = document.getElementById('live-reply-input');
       if (replyInput) replyInput.value = '';
+
+      // Advanced Mode: Restore product MC video or default avatar after reply finishes
+      if (isAdvanced && savedReplyVideo) {
+        if (activeProduct && activeProduct.videoUrl) {
+          presenterEngine.loadVideoSource(activeProduct.videoUrl);
+        } else {
+          const savedMcVideo = localStorage.getItem('dincox_custom_mc_video');
+          if (savedMcVideo) {
+            presenterEngine.loadVideoSource(savedMcVideo);
+          } else {
+            presenterEngine.setPresenter(activePresenter);
+          }
+        }
+      }
 
       // Resume script sequence seamlessly if it was playing before reply
       if (wasSequencePlaying) {
@@ -586,6 +644,81 @@ function bindEvents() {
       studioSyncChannel?.postMessage({ type: 'TOGGLE_SETTING', key: 'showProductCard', value: isChecked });
     });
   }
+
+  // Advanced Studio Mode Toggle Handler
+  const chkAdvancedMode = document.getElementById('chk-advanced-mode');
+  const savedAdvancedMode = localStorage.getItem('dincox_advanced_mode') === 'true'; // Default false
+  if (chkAdvancedMode) {
+    chkAdvancedMode.checked = savedAdvancedMode;
+    if (savedAdvancedMode) {
+      document.body.classList.add('advanced-mode');
+    } else {
+      document.body.classList.remove('advanced-mode');
+    }
+
+    chkAdvancedMode.addEventListener('change', (e) => {
+      const isChecked = e.target.checked;
+      document.body.classList.toggle('advanced-mode', isChecked);
+      localStorage.setItem('dincox_advanced_mode', isChecked ? 'true' : 'false');
+      if (activeProduct) {
+        selectProduct(activeProduct, false);
+      }
+    });
+  }
+
+  // Dedicated Reply MP4 Video Upload Handler (Advanced Mode)
+  const replyVideoInput = document.getElementById('reply-video-file');
+  const replyVideoStatus = document.getElementById('reply-video-status');
+  if (replyVideoStatus) {
+    const savedReplyVideo = localStorage.getItem('dincox_reply_mc_video');
+    if (savedReplyVideo) {
+      replyVideoStatus.innerText = '✅ Đã nạp Video MP4 MC Trả Lời Riêng';
+      replyVideoStatus.style.color = '#10b981';
+    } else {
+      replyVideoStatus.innerText = '⚪ Chưa nạp video reply riêng (Dùng video/avatar hiện tại)';
+      replyVideoStatus.style.color = '#9ca3af';
+    }
+  }
+
+  replyVideoInput?.addEventListener('change', (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onload = (evt) => {
+        const videoDataUrl = evt.target.result;
+        try {
+          localStorage.setItem('dincox_reply_mc_video', videoDataUrl);
+          if (replyVideoStatus) {
+            replyVideoStatus.innerText = '✅ Đã nạp Video MP4 MC Trả Lời Riêng';
+            replyVideoStatus.style.color = '#10b981';
+          }
+          alert("🎥 Đã nạp thành công Video MP4 MC Trả Lời Riêng cho Chế Độ Nâng Cao!");
+        } catch (err) {
+          console.warn("Could not save reply video to localStorage", err);
+          alert("⚠️ Video có dung lượng quá lớn để lưu tự động vào localStorage. Vui lòng chọn video MP4 ngắn (5s-15s)!");
+        }
+      };
+      reader.readAsDataURL(file);
+    }
+  });
+
+  // Per-Product Dedicated MC Video Input Handler in Edit Modal
+  const editProdVideoInput = document.getElementById('edit-prod-video-file');
+  const editProdVideoStatus = document.getElementById('edit-prod-video-status');
+  editProdVideoInput?.addEventListener('change', (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onload = (evt) => {
+        currentEditProductVideoUrl = evt.target.result;
+        if (editProdVideoStatus) {
+          editProdVideoStatus.innerText = '✅ Đã chọn Video MP4 MC mới cho mẫu này (Bấm "Lưu Thay Đổi" để lưu)';
+          editProdVideoStatus.style.color = '#10b981';
+        }
+      };
+      reader.readAsDataURL(file);
+    }
+  });
 
   document.getElementById('script-text-input')?.addEventListener('input', (e) => {
     if (currentScriptStages[activeStageIdx]) {
