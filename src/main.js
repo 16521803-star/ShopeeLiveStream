@@ -76,25 +76,41 @@ if (studioSyncChannel) {
         break;
       case 'SELECT_PRODUCT':
         if (data.productId) {
-          // Sync catalog from localStorage so per-product videoUrls are up-to-date across tabs
-          try {
-            const savedCatalog = localStorage.getItem('dincox_custom_products_catalog_v2');
-            if (savedCatalog) {
-              const parsed = JSON.parse(savedCatalog);
-              if (Array.isArray(parsed)) {
-                parsed.forEach(p => {
-                  const existing = DINCOX_PRODUCTS.find(item => item.id === p.id);
-                  if (existing) {
-                    Object.assign(existing, p);
-                  }
-                });
-              }
+          // Use videoUrl directly from broadcast message (it's a base64 data-URL that may not be in OBS tab's catalog)
+          const isAdvancedObs = !!(data.isAdvanced || localStorage.getItem('dincox_advanced_mode') === 'true');
+          
+          if (isAdvancedObs && data.videoUrl) {
+            // Product has a dedicated MC video — load it directly from broadcast
+            presenterEngine.loadVideoSource(data.videoUrl);
+          } else if (isAdvancedObs && !data.videoUrl) {
+            // Advanced mode but no per-product video — fallback to default MC video
+            const savedMcVideo = localStorage.getItem('dincox_custom_mc_video');
+            if (savedMcVideo) {
+              presenterEngine.loadVideoSource(savedMcVideo);
+            } else {
+              presenterEngine.setPresenter(activePresenter);
             }
-          } catch (e) {}
+          } else {
+            // Simple mode — use default MC video or avatar
+            const savedMcVideo = localStorage.getItem('dincox_custom_mc_video');
+            if (savedMcVideo) {
+              presenterEngine.loadVideoSource(savedMcVideo);
+            } else {
+              presenterEngine.setPresenter(activePresenter);
+            }
+          }
 
+          // Also sync the product data for canvas display (product card, prices etc)
           const target = DINCOX_PRODUCTS.find(p => p.id === data.productId);
           if (target) {
-            selectProduct(target, false);
+            activeProduct = target;
+            currentScriptStages = generateScriptForProduct(activeProduct);
+            activeStageIdx = 0;
+            canvasRenderer.setProduct(activeProduct);
+            renderProductList();
+            renderScriptTabs();
+            renderTimelineSteps();
+            loadCurrentStageText();
           }
         }
         break;
@@ -281,7 +297,13 @@ function selectProduct(product, broadcast = true) {
   loadCurrentStageText();
 
   if (broadcast && studioSyncChannel) {
-    studioSyncChannel.postMessage({ type: 'SELECT_PRODUCT', productId: product.id });
+    const isAdvanced = document.body.classList.contains('advanced-mode') || (localStorage.getItem('dincox_advanced_mode') === 'true');
+    studioSyncChannel.postMessage({ 
+      type: 'SELECT_PRODUCT', 
+      productId: product.id,
+      videoUrl: (isAdvanced && product.videoUrl) ? product.videoUrl : null,
+      isAdvanced: isAdvanced
+    });
   }
 }
 
