@@ -393,14 +393,18 @@ export class SpeechEngine {
 
     const startTime = Date.now();
     const estDuration = Math.max(3000, (text.length * 75) / finalRate);
+    const maxSafetyTimeout = estDuration + 3500; // Guaranteed safety ceiling to prevent any freeze
 
     const updateLipSync = () => {
       if (!this.isSpeaking) return;
 
       const elapsed = Date.now() - startTime;
-      if (elapsed >= estDuration && !this.synth?.speaking) {
+      const isSynthDone = !this.synth || !this.synth.speaking;
+
+      if ((elapsed >= estDuration && isSynthDone) || elapsed >= maxSafetyTimeout) {
+        const callback = this.onEndCallback;
         this.stop();
-        if (this.onEndCallback) this.onEndCallback();
+        if (callback) callback();
         return;
       }
 
@@ -431,8 +435,9 @@ export class SpeechEngine {
 
         utterance.onend = () => {
           if (this.isSpeaking) {
+            const callback = this.onEndCallback;
             this.stop();
-            if (this.onEndCallback) this.onEndCallback();
+            if (callback) callback();
           }
         };
 
@@ -442,6 +447,15 @@ export class SpeechEngine {
 
         this.activeUtterance = utterance;
         this.synth.speak(utterance);
+
+        // Chrome 15-second freeze workaround: Periodically pause & resume
+        if (this.resumeInterval) clearInterval(this.resumeInterval);
+        this.resumeInterval = setInterval(() => {
+          if (this.isSpeaking && this.synth && this.synth.speaking) {
+            this.synth.pause();
+            this.synth.resume();
+          }
+        }, 5000);
       } catch (err) {
         console.warn("SpeechSynthesis error:", err);
       }
@@ -454,6 +468,11 @@ export class SpeechEngine {
     this.isSpeaking = false;
     this.simulatedVolume = 0;
     this.activeUtterance = null;
+
+    if (this.resumeInterval) {
+      clearInterval(this.resumeInterval);
+      this.resumeInterval = null;
+    }
 
     if (this.activeAudio) {
       this.activeAudio.pause();

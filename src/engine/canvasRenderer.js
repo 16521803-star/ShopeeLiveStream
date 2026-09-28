@@ -358,15 +358,61 @@ export class ShopeeCanvasRenderer {
     ctx.restore();
   }
 
-  // Concise 1-2 Line Subtitle Box
+  // Dynamic 1-3 Line Subtitle Box with Adaptive Layout & Ellipsis
   renderSpeechSubtitle(ctx) {
     if (!this.showSubtitles || !this.speechText) return;
 
     ctx.save();
     const bubW = this.width - 100;
-    const bubH = 104;
     const bubX = 50;
-    const bubY = this.height - 350;
+
+    // Subtitle Tag (Dynamic badge based on speech stage)
+    const isLiveReply = this.speechStage === 'LIVE_REPLY' || this.speechStage === 'Reply';
+    const tagText = isLiveReply ? '💬 TRẢ LỜI KHÁCH HÀNG' : '🎙️ MC TƯ VẤN LIVE';
+    const tagBg = isLiveReply ? '#FF7A45' : '#FF2A54';
+    const tagW = isLiveReply ? 230 : 170;
+
+    // Text wrapping & line calculation (Max 3 lines)
+    const fontSize = this.speechText.length > 100 ? 21 : 23;
+    const lineHeight = fontSize + 8;
+    ctx.font = `bold ${fontSize}px sans-serif`;
+
+    const words = this.speechText.split(' ');
+    let line = '';
+    let lines = [];
+    const maxLines = 3;
+
+    for (let i = 0; i < words.length; i++) {
+      const testLine = line + words[i] + ' ';
+      const metrics = ctx.measureText(testLine);
+      if (metrics.width > bubW - 44 && i > 0) {
+        lines.push(line.trim());
+        line = words[i] + ' ';
+        if (lines.length === maxLines - 1) {
+          let remaining = words.slice(i).join(' ');
+          while (ctx.measureText(remaining + '...').width > bubW - 44 && remaining.length > 0) {
+            const lastSpace = remaining.lastIndexOf(' ');
+            if (lastSpace === -1) {
+              remaining = remaining.substring(0, remaining.length - 1);
+            } else {
+              remaining = remaining.substring(0, lastSpace);
+            }
+          }
+          lines.push(remaining ? (remaining + '...') : (words[i] + '...'));
+          line = '';
+          break;
+        }
+      } else {
+        line = testLine;
+      }
+    }
+    if (line.trim() && lines.length < maxLines) {
+      lines.push(line.trim());
+    }
+
+    // Dynamic box height and Y position based on line count
+    const bubH = lines.length === 3 ? 134 : (lines.length === 2 ? 106 : 76);
+    const bubY = this.height - 230 - bubH;
 
     // Subtitle Glassmorphism Box
     ctx.fillStyle = 'rgba(6, 14, 25, 0.92)';
@@ -377,47 +423,23 @@ export class ShopeeCanvasRenderer {
     ctx.fill();
     ctx.stroke();
 
-    // Subtitle Tag (Dynamic badge based on speech stage)
-    const isLiveReply = this.speechStage === 'LIVE_REPLY' || this.speechStage === 'Reply';
-    const tagText = isLiveReply ? '💬 TRẢ LỜI KHÁCH HÀNG' : '🎙️ MC TƯ VẤN LIVE';
-    const tagBg = isLiveReply ? '#FF7A45' : '#FF2A54';
-    const tagW = isLiveReply ? 230 : 170;
-
+    // Render Badge Tag
     ctx.fillStyle = tagBg;
     ctx.beginPath();
     ctx.roundRect(bubX + 20, bubY - 16, tagW, 32, 8);
     ctx.fill();
 
     ctx.fillStyle = '#FFFFFF';
-    ctx.font = 'bold 18px sans-serif';
-    ctx.fillText(tagText, bubX + 28, bubY + 6);
+    ctx.font = 'bold 17px sans-serif';
+    ctx.fillText(tagText, bubX + 28, bubY + 5);
 
-    // Text wrapping for subtitles (Max 2 lines)
+    // Render Subtitle Text Lines
     ctx.fillStyle = '#FFFFFF';
-    ctx.font = 'bold 24px sans-serif';
+    ctx.font = `bold ${fontSize}px sans-serif`;
 
-    const words = this.speechText.split(' ');
-    let line = '';
-    let lines = [];
-
-    for (let i = 0; i < words.length; i++) {
-      const testLine = line + words[i] + ' ';
-      const metrics = ctx.measureText(testLine);
-      if (metrics.width > bubW - 40 && i > 0) {
-        lines.push(line);
-        line = words[i] + ' ';
-        if (lines.length >= 2) break;
-      } else {
-        line = testLine;
-      }
-    }
-    if (lines.length < 2 && line) {
-      lines.push(line);
-    }
-
-    const startY = lines.length === 1 ? bubY + 58 : bubY + 44;
+    const startY = lines.length === 1 ? bubY + 48 : (lines.length === 2 ? bubY + 40 : bubY + 36);
     lines.forEach((l, idx) => {
-      ctx.fillText(l.trim(), bubX + 20, startY + idx * 32);
+      ctx.fillText(l.trim(), bubX + 22, startY + idx * lineHeight);
     });
 
     ctx.restore();
