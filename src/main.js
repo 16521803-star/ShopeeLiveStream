@@ -45,6 +45,74 @@ const studioSyncChannel = typeof BroadcastChannel !== 'undefined'
   ? new BroadcastChannel('dincox_studio_remote_sync') 
   : null;
 
+// --- Video IndexedDB Cache (shared across all tabs on same origin) ---
+// Stores Blob objects by key — much faster than passing base64 through BroadcastChannel
+const videoCacheDB = (() => {
+  const DB_NAME = 'dincox_video_cache_db';
+  const STORE = 'videos';
+  let _db = null;
+  const _init = () => {
+    if (_db) return Promise.resolve(_db);
+    return new Promise((res, rej) => {
+      const req = indexedDB.open(DB_NAME, 1);
+      req.onupgradeneeded = e => {
+        if (!e.target.result.objectStoreNames.contains(STORE))
+          e.target.result.createObjectStore(STORE);
+      };
+      req.onsuccess = e => { _db = e.target.result; res(_db); };
+      req.onerror = e => rej(e);
+    });
+  };
+  return {
+    async set(key, blob) {
+      const db = await _init();
+      return new Promise(res => {
+        const tx = db.transaction(STORE, 'readwrite');
+        tx.objectStore(STORE).put(blob, key);
+        tx.oncomplete = () => res(true);
+        tx.onerror = () => res(false);
+      });
+    },
+    async get(key) {
+      const db = await _init();
+      return new Promise(res => {
+        const tx = db.transaction(STORE, 'readonly');
+        const req = tx.objectStore(STORE).get(key);
+        req.onsuccess = () => res(req.result || null);
+        req.onerror = () => res(null);
+      });
+    }
+  };
+})();
+
+// Helper: save a data-URL as Blob into videoCacheDB
+async function saveVideoToCache(key, dataUrl) {
+  try {
+    const parts = dataUrl.split(',');
+    const mime = parts[0].match(/:(.*?);/)[1];
+    const byteStr = atob(parts[1]);
+    const arr = new Uint8Array(byteStr.length);
+    for (let i = 0; i < byteStr.length; i++) arr[i] = byteStr.charCodeAt(i);
+    const blob = new Blob([arr], { type: mime });
+    await videoCacheDB.set(key, blob);
+    return true;
+  } catch (e) {
+    console.warn('saveVideoToCache failed:', e);
+    return false;
+  }
+}
+
+// Helper: load video from IndexedDB into presenterEngine via Blob URL
+async function loadVideoFromCache(key) {
+  const blob = await videoCacheDB.get(key);
+  if (blob) {
+    const blobUrl = URL.createObjectURL(blob);
+    presenterEngine.loadVideoSource(blobUrl);
+    return true;
+  }
+  return false;
+}
+
 // Initialize Core Engines
 const canvas = document.getElementById('shopee-canvas');
 const canvasRenderer = new ShopeeCanvasRenderer(canvas);
@@ -76,31 +144,30 @@ if (studioSyncChannel) {
         break;
       case 'SELECT_PRODUCT':
         if (data.productId) {
-          // Use videoUrl directly from broadcast message (it's a base64 data-URL that may not be in OBS tab's catalog)
           const isAdvancedObs = !!(data.isAdvanced || localStorage.getItem('dincox_advanced_mode') === 'true');
-          
-          if (isAdvancedObs && data.videoUrl) {
-            // Product has a dedicated MC video — load it directly from broadcast
-            presenterEngine.loadVideoSource(data.videoUrl);
-          } else if (isAdvancedObs && !data.videoUrl) {
-            // Advanced mode but no per-product video — fallback to default MC video
-            const savedMcVideo = localStorage.getItem('dincox_custom_mc_video');
-            if (savedMcVideo) {
-              presenterEngine.loadVideoSource(savedMcVideo);
-            } else {
-              presenterEngine.setPresenter(activePresenter);
-            }
+
+          // Load video from IndexedDB by key — no large data transfer via BroadcastChannel
+          if (isAdvancedObs && data.hasProductVideo) {
+            // Try product-specific video from IndexedDB
+            loadVideoFromCache(`product_video_${data.productId}`).then(loaded => {
+              if (!loaded) {
+                // Fallback to default MC video
+                loadVideoFromCache('default_mc_video').then(ok => {
+                  if (!ok) presenterEngine.setPresenter(activePresenter);
+                });
+              }
+            });
+          } else if (isAdvancedObs) {
+            loadVideoFromCache('default_mc_video').then(ok => {
+              if (!ok) presenterEngine.setPresenter(activePresenter);
+            });
           } else {
-            // Simple mode — use default MC video or avatar
-            const savedMcVideo = localStorage.getItem('dincox_custom_mc_video');
-            if (savedMcVideo) {
-              presenterEngine.loadVideoSource(savedMcVideo);
-            } else {
-              presenterEngine.setPresenter(activePresenter);
-            }
+            loadVideoFromCache('default_mc_video').then(ok => {
+              if (!ok) presenterEngine.setPresenter(activePresenter);
+            });
           }
 
-          // Also sync the product data for canvas display (product card, prices etc)
+          // Sync product data for canvas display
           const target = DINCOX_PRODUCTS.find(p => p.id === data.productId);
           if (target) {
             activeProduct = target;
@@ -161,6 +228,17 @@ if (studioSyncChannel) {
         if (data.dataUrl) {
           presenterEngine.loadVideoSource(data.dataUrl);
         }
+        break;
+      case 'RELOAD_DEFAULT_VIDEO':
+        // OBS tab reloads default video from shared IndexedDB (no large data transfer)
+        loadVideoFromCache('default_mc_video').then(ok => {
+          if (!ok) {
+            const savedMcVideo = localStorage.getItem('dincox_custom_mc_video');
+            if (savedMcVideo && !savedMcVideo.startsWith('idb:')) {
+              presenterEngine.loadVideoSource(savedMcVideo);
+            }
+          }
+        });
         break;
       case 'SPEAK_LIVE_REPLY':
         if (data.text) {
@@ -298,10 +376,11 @@ function selectProduct(product, broadcast = true) {
 
   if (broadcast && studioSyncChannel) {
     const isAdvanced = document.body.classList.contains('advanced-mode') || (localStorage.getItem('dincox_advanced_mode') === 'true');
+    // Send only lightweight keys — video Blobs are read from IndexedDB by OBS tab (no base64 over BroadcastChannel)
     studioSyncChannel.postMessage({ 
       type: 'SELECT_PRODUCT', 
       productId: product.id,
-      videoUrl: (isAdvanced && product.videoUrl) ? product.videoUrl : null,
+      hasProductVideo: !!(isAdvanced && product.videoUrl),
       isAdvanced: isAdvanced
     });
   }
@@ -378,6 +457,7 @@ function loadCurrentStageText() {
 
 // Edit Modal Functions
 let currentEditProductVideoUrl = null;
+let currentEditProductVideoBlob = null;  // Blob for IndexedDB storage
 
 function openEditModal(productId) {
   const prod = DINCOX_PRODUCTS.find(p => p.id === productId);
@@ -435,7 +515,16 @@ function saveEditModal() {
   };
 
   if (currentEditProductVideoUrl) {
-    updateData.videoUrl = currentEditProductVideoUrl;
+    updateData.videoUrl = currentEditProductVideoUrl; // keep data-URL in product object for backward compat
+    // Also save Blob to IndexedDB with product-specific key for OBS tab
+    if (currentEditProductVideoBlob) {
+      const prodId = id;
+      currentEditProductVideoBlob.arrayBuffer().then(buffer => {
+        const blob = new Blob([buffer], { type: currentEditProductVideoBlob.type });
+        videoCacheDB.set(`product_video_${prodId}`, blob);
+      });
+      currentEditProductVideoBlob = null;
+    }
     currentEditProductVideoUrl = null;
   }
 
@@ -856,22 +945,25 @@ function bindEvents() {
   replyVideoInput?.addEventListener('change', (e) => {
     const file = e.target.files[0];
     if (file) {
-      const reader = new FileReader();
-      reader.onload = (evt) => {
-        const videoDataUrl = evt.target.result;
+      // Read as ArrayBuffer then save Blob to IndexedDB — no size limits like localStorage
+      file.arrayBuffer().then(async (buffer) => {
+        const blob = new Blob([buffer], { type: file.type });
+        await videoCacheDB.set('reply_mc_video', blob);
+        // Also try localStorage for backward compat (may fail for large files)
         try {
-          localStorage.setItem('dincox_reply_mc_video', videoDataUrl);
-          if (replyVideoStatus) {
-            replyVideoStatus.innerText = '✅ Đã nạp Video MP4 MC Trả Lời Riêng';
-            replyVideoStatus.style.color = '#10b981';
-          }
-          alert("🎥 Đã nạp thành công Video MP4 MC Trả Lời Riêng cho Chế Độ Nâng Cao!");
-        } catch (err) {
-          console.warn("Could not save reply video to localStorage", err);
-          alert("⚠️ Video có dung lượng quá lớn để lưu tự động vào localStorage. Vui lòng chọn video MP4 ngắn (5s-15s)!");
+          const reader = new FileReader();
+          reader.onload = evt => localStorage.setItem('dincox_reply_mc_video', 'idb:reply_mc_video');
+          reader.readAsDataURL(file);
+        } catch (e) {}
+        if (replyVideoStatus) {
+          replyVideoStatus.innerText = '✅ Đã nạp Video MP4 MC Trả Lời Riêng';
+          replyVideoStatus.style.color = '#10b981';
         }
-      };
-      reader.readAsDataURL(file);
+        alert("🎥 Đã nạp thành công Video MP4 MC Trả Lời Riêng cho Chế Độ Nâng Cao!");
+      }).catch(err => {
+        console.warn('Reply video save failed:', err);
+        alert('⚠️ Không thể lưu video. Vui lòng thử lại với file MP4 ngắn hơn.');
+      });
     }
   });
 
@@ -881,9 +973,13 @@ function bindEvents() {
   editProdVideoInput?.addEventListener('change', (e) => {
     const file = e.target.files[0];
     if (file) {
+      // Store blob directly — productId will be known when user saves the edit modal
+      // We keep the data-URL in currentEditProductVideoUrl for backward compat with saveEditModal
       const reader = new FileReader();
       reader.onload = (evt) => {
         currentEditProductVideoUrl = evt.target.result;
+        // Also pre-save to IndexedDB using a temp key; saveEditModal will move it to correct key
+        currentEditProductVideoBlob = file;
         if (editProdVideoStatus) {
           editProdVideoStatus.innerText = '✅ Đã chọn Video MP4 MC mới cho mẫu này (Bấm "Lưu Thay Đổi" để lưu)';
           editProdVideoStatus.style.color = '#10b981';
@@ -1175,19 +1271,22 @@ function bindEvents() {
   document.getElementById('mc-video-file')?.addEventListener('change', (e) => {
     const file = e.target.files[0];
     if (file) {
-      const reader = new FileReader();
-      reader.onload = (evt) => {
-        const videoDataUrl = evt.target.result;
-        presenterEngine.loadVideoSource(videoDataUrl);
-        try {
-          localStorage.setItem('dincox_custom_mc_video', videoDataUrl);
-        } catch (err) {
-          console.warn("Could not save video dataUrl to localStorage (exceeds size limit), broadcasting via Channel", err);
-        }
-        studioSyncChannel?.postMessage({ type: 'LOAD_CUSTOM_VIDEO', dataUrl: videoDataUrl });
+      file.arrayBuffer().then(async (buffer) => {
+        const blob = new Blob([buffer], { type: file.type });
+        // Save to IndexedDB (no size limit, shared across tabs)
+        await videoCacheDB.set('default_mc_video', blob);
+        // Create blob URL for immediate local playback
+        const blobUrl = URL.createObjectURL(blob);
+        presenterEngine.loadVideoSource(blobUrl);
+        // Mark in localStorage that IDB has the video (lightweight flag)
+        localStorage.setItem('dincox_custom_mc_video', 'idb:default_mc_video');
+        // Notify OBS tab to reload from IDB (no data transfer)
+        studioSyncChannel?.postMessage({ type: 'RELOAD_DEFAULT_VIDEO' });
         alert("🎥 Đã nạp thành công Video MP4 MC Người Thật! Video sẽ tự động lặp trên khung Shopee Live 9:16 và đồng bộ trực tiếp sang OBS.");
-      };
-      reader.readAsDataURL(file);
+      }).catch(err => {
+        console.warn('MC video save failed:', err);
+        alert('⚠️ Không thể lưu video. Vui lòng thử lại.');
+      });
     }
   });
   document.getElementById('cust-img-file')?.addEventListener('change', (e) => {
@@ -1903,10 +2002,17 @@ function init() {
     document.body.classList.add('advanced-mode');
   }
 
-  // Restore saved custom MP4 video presenter if previously uploaded
-  const savedMcVideo = localStorage.getItem('dincox_custom_mc_video');
-  if (savedMcVideo) {
-    presenterEngine.loadVideoSource(savedMcVideo);
+  // Load video from IndexedDB (fast Blob URL) — fallback to localStorage base64 for old data
+  const videoFlag = localStorage.getItem('dincox_custom_mc_video');
+  if (videoFlag && videoFlag.startsWith('idb:')) {
+    // New IndexedDB path — fast Blob URL, no base64 overhead
+    loadVideoFromCache('default_mc_video');
+  } else if (videoFlag && !videoFlag.startsWith('idb:')) {
+    // Legacy: base64 in localStorage — load and also migrate to IndexedDB
+    presenterEngine.loadVideoSource(videoFlag);
+    saveVideoToCache('default_mc_video', videoFlag).then(ok => {
+      if (ok) localStorage.setItem('dincox_custom_mc_video', 'idb:default_mc_video');
+    });
   }
 
   createIcons({ icons });

@@ -85,6 +85,47 @@ export class AIPresenterEngine {
   }
 
   loadVideoSource(urlOrBlob) {
+    // Skip reload if already playing the same source — avoids stutter on re-selection
+    if (this.currentVideoSrc === urlOrBlob && this.videoEl && !this.videoEl.paused && this.isVideoLoaded) {
+      return;
+    }
+
+    // Convert data-URLs to Blob URLs once and cache them in memory
+    // Blob URLs decode much faster than re-parsing base64 on every product switch
+    if (typeof urlOrBlob === 'string' && urlOrBlob.startsWith('data:')) {
+      if (!AIPresenterEngine._blobUrlCache) AIPresenterEngine._blobUrlCache = new Map();
+      if (AIPresenterEngine._blobUrlCache.has(urlOrBlob)) {
+        const cachedBlobUrl = AIPresenterEngine._blobUrlCache.get(urlOrBlob);
+        this._doLoadVideo(cachedBlobUrl, urlOrBlob);
+        return;
+      }
+      // Convert base64 → Blob → Object URL (runs once per unique video)
+      try {
+        const parts = urlOrBlob.split(',');
+        const mime = parts[0].match(/:(.*?);/)[1];
+        const byteStr = atob(parts[1]);
+        const arr = new Uint8Array(byteStr.length);
+        for (let i = 0; i < byteStr.length; i++) arr[i] = byteStr.charCodeAt(i);
+        const blob = new Blob([arr], { type: mime });
+        const blobUrl = URL.createObjectURL(blob);
+        AIPresenterEngine._blobUrlCache.set(urlOrBlob, blobUrl);
+        this._doLoadVideo(blobUrl, urlOrBlob);
+      } catch (e) {
+        this._doLoadVideo(urlOrBlob, urlOrBlob);
+      }
+      return;
+    }
+
+    this._doLoadVideo(urlOrBlob, urlOrBlob);
+  }
+
+  _doLoadVideo(src, originalSrc) {
+    // If resolved src is same and video already loaded — just ensure playing, skip full reload
+    if (this.currentVideoSrc === originalSrc && this.videoEl && this.isVideoLoaded) {
+      if (this.videoEl.paused) this.videoEl.play().catch(() => {});
+      return;
+    }
+
     if (this.videoEl) {
       this.videoEl.pause();
       this.videoEl.remove();
@@ -92,18 +133,20 @@ export class AIPresenterEngine {
 
     const video = document.createElement('video');
     // Only set crossOrigin for remote http/https URLs (NOT for local blob: or data: URIs!)
-    if (typeof urlOrBlob === 'string' && (urlOrBlob.startsWith('http://') || urlOrBlob.startsWith('https://'))) {
+    if (typeof src === 'string' && (src.startsWith('http://') || src.startsWith('https://'))) {
       video.crossOrigin = 'anonymous';
     }
 
-    video.src = urlOrBlob;
+    video.src = src;
     video.loop = true;
-    video.muted = true; // Muted for canvas capture safe autoplay
+    video.muted = true;
     video.playsInline = true;
     video.autoplay = true;
+    video.preload = 'auto';
 
     this.isVideoLoaded = false;
     this.useRealVideo = true;
+    this.currentVideoSrc = originalSrc;
 
     const onReady = () => {
       this.isVideoLoaded = true;
@@ -115,9 +158,9 @@ export class AIPresenterEngine {
     video.onloadedmetadata = onReady;
 
     video.load();
-
     this.videoEl = video;
   }
+
 
   update(lipVolume = 0) {
     this.lipVolume = lipVolume;
