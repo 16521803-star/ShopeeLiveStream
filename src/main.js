@@ -102,15 +102,52 @@ async function saveVideoToCache(key, dataUrl) {
   }
 }
 
-// Helper: load video from IndexedDB into presenterEngine via Blob URL
-async function loadVideoFromCache(key) {
+// Helper: get a Blob URL from IndexedDB cache (returns null if not found)
+async function getBlobUrlFromCache(key) {
   const blob = await videoCacheDB.get(key);
   if (blob) {
-    const blobUrl = URL.createObjectURL(blob);
-    presenterEngine.loadVideoSource(blobUrl);
+    return URL.createObjectURL(blob);
+  }
+  return null;
+}
+
+// Helper: load video from IDB into given engine — engine is passed to avoid timing issues
+async function loadVideoFromCache(key, engine) {
+  const blobUrl = await getBlobUrlFromCache(key);
+  if (blobUrl && engine) {
+    engine.loadVideoSource(blobUrl);
     return true;
   }
   return false;
+}
+
+// Unified helper: resolve the correct default MC video and load it into an engine
+// Handles both 'idb:' flag (new) and raw base64/URL (legacy)
+async function loadDefaultMcVideo(engine) {
+  const flag = localStorage.getItem('dincox_custom_mc_video');
+  if (!flag) return false;
+  if (flag.startsWith('idb:')) {
+    return loadVideoFromCache('default_mc_video', engine);
+  } else {
+    // Legacy base64 — load directly, also migrate to IDB in background
+    engine.loadVideoSource(flag);
+    saveVideoToCache('default_mc_video', flag).then(ok => {
+      if (ok) localStorage.setItem('dincox_custom_mc_video', 'idb:default_mc_video');
+    });
+    return true;
+  }
+}
+
+// Unified helper: resolve reply video and load it
+async function loadReplyMcVideo(engine) {
+  const flag = localStorage.getItem('dincox_reply_mc_video');
+  if (!flag) return false;
+  if (flag === 'idb:reply_mc_video') {
+    return loadVideoFromCache('reply_mc_video', engine);
+  } else {
+    engine.loadVideoSource(flag);
+    return true;
+  }
 }
 
 // Initialize Core Engines
@@ -148,21 +185,17 @@ if (studioSyncChannel) {
 
           // Load video from IndexedDB by key — no large data transfer via BroadcastChannel
           if (isAdvancedObs && data.hasProductVideo) {
-            // Try product-specific video from IndexedDB
-            loadVideoFromCache(`product_video_${data.productId}`).then(loaded => {
+            // Try product-specific video from IndexedDB first, fallback to default
+            loadVideoFromCache(`product_video_${data.productId}`, presenterEngine).then(loaded => {
               if (!loaded) {
-                // Fallback to default MC video
-                loadVideoFromCache('default_mc_video').then(ok => {
+                loadDefaultMcVideo(presenterEngine).then(ok => {
                   if (!ok) presenterEngine.setPresenter(activePresenter);
                 });
               }
             });
-          } else if (isAdvancedObs) {
-            loadVideoFromCache('default_mc_video').then(ok => {
-              if (!ok) presenterEngine.setPresenter(activePresenter);
-            });
           } else {
-            loadVideoFromCache('default_mc_video').then(ok => {
+            // Advanced mode without product video, or simple mode — load default
+            loadDefaultMcVideo(presenterEngine).then(ok => {
               if (!ok) presenterEngine.setPresenter(activePresenter);
             });
           }
@@ -231,13 +264,8 @@ if (studioSyncChannel) {
         break;
       case 'RELOAD_DEFAULT_VIDEO':
         // OBS tab reloads default video from shared IndexedDB (no large data transfer)
-        loadVideoFromCache('default_mc_video').then(ok => {
-          if (!ok) {
-            const savedMcVideo = localStorage.getItem('dincox_custom_mc_video');
-            if (savedMcVideo && !savedMcVideo.startsWith('idb:')) {
-              presenterEngine.loadVideoSource(savedMcVideo);
-            }
-          }
+        loadDefaultMcVideo(presenterEngine).then(ok => {
+          if (!ok) presenterEngine.setPresenter(activePresenter);
         });
         break;
       case 'SPEAK_LIVE_REPLY':
@@ -358,14 +386,13 @@ function selectProduct(product, broadcast = true) {
   // Check Advanced Mode per-product MC video
   const isAdvanced = document.body.classList.contains('advanced-mode') || (localStorage.getItem('dincox_advanced_mode') === 'true');
   if (isAdvanced && activeProduct && activeProduct.videoUrl) {
+    // Product has dedicated MC video stored in-memory as data-URL or IDB
     presenterEngine.loadVideoSource(activeProduct.videoUrl);
-  } else if (!isAdvanced || !activeProduct || !activeProduct.videoUrl) {
-    const savedMcVideo = localStorage.getItem('dincox_custom_mc_video');
-    if (savedMcVideo) {
-      presenterEngine.loadVideoSource(savedMcVideo);
-    } else {
-      presenterEngine.setPresenter(activePresenter);
-    }
+  } else {
+    // Load default MC video via unified helper (handles both idb: flag and legacy base64)
+    loadDefaultMcVideo(presenterEngine).then(ok => {
+      if (!ok) presenterEngine.setPresenter(activePresenter);
+    });
   }
 
   canvasRenderer.setProduct(activeProduct);
@@ -672,9 +699,9 @@ function speakLiveReply(replyText, broadcast = true) {
 
   // Advanced Mode: Dedicated Reply Video MP4
   const isAdvanced = document.body.classList.contains('advanced-mode');
-  const savedReplyVideo = localStorage.getItem('dincox_reply_mc_video');
-  if (isAdvanced && savedReplyVideo) {
-    presenterEngine.loadVideoSource(savedReplyVideo);
+  const hasReplyVideo = !!(localStorage.getItem('dincox_reply_mc_video'));
+  if (isAdvanced && hasReplyVideo) {
+    loadReplyMcVideo(presenterEngine);
   }
 
   if (broadcast && studioSyncChannel) {
@@ -693,16 +720,13 @@ function speakLiveReply(replyText, broadcast = true) {
       if (replyInput) replyInput.value = '';
 
       // Advanced Mode: Restore product MC video or default avatar after reply finishes
-      if (isAdvanced && savedReplyVideo) {
+      if (isAdvanced && hasReplyVideo) {
         if (activeProduct && activeProduct.videoUrl) {
           presenterEngine.loadVideoSource(activeProduct.videoUrl);
         } else {
-          const savedMcVideo = localStorage.getItem('dincox_custom_mc_video');
-          if (savedMcVideo) {
-            presenterEngine.loadVideoSource(savedMcVideo);
-          } else {
-            presenterEngine.setPresenter(activePresenter);
-          }
+          loadDefaultMcVideo(presenterEngine).then(ok => {
+            if (!ok) presenterEngine.setPresenter(activePresenter);
+          });
         }
       }
 
@@ -2002,18 +2026,9 @@ function init() {
     document.body.classList.add('advanced-mode');
   }
 
-  // Load video from IndexedDB (fast Blob URL) — fallback to localStorage base64 for old data
-  const videoFlag = localStorage.getItem('dincox_custom_mc_video');
-  if (videoFlag && videoFlag.startsWith('idb:')) {
-    // New IndexedDB path — fast Blob URL, no base64 overhead
-    loadVideoFromCache('default_mc_video');
-  } else if (videoFlag && !videoFlag.startsWith('idb:')) {
-    // Legacy: base64 in localStorage — load and also migrate to IndexedDB
-    presenterEngine.loadVideoSource(videoFlag);
-    saveVideoToCache('default_mc_video', videoFlag).then(ok => {
-      if (ok) localStorage.setItem('dincox_custom_mc_video', 'idb:default_mc_video');
-    });
-  }
+  // Load default MC video using unified helper — handles idb: flag and legacy base64
+  // selectProduct below will also call this, but calling here ensures video preloads ASAP on OBS tab
+  loadDefaultMcVideo(presenterEngine);
 
   createIcons({ icons });
   renderProductList();
