@@ -1091,8 +1091,61 @@ function bindEvents() {
     if (navigator.clipboard && navigator.clipboard.writeText) {
       navigator.clipboard.writeText(obsUrl);
     }
-    alert(`✅ ĐÃ SAO CHÉP LINK OBS OVERLAY VÀO CLIPBOARD!\n\nLink OBS chuyên dụng:\n${obsUrl}\n\nHướng dẫn kết nối mượt mà vào OBS:\n1. Mở phần mềm OBS ➔ Ô Sources ➔ Bấm dấu "+" ➔ Chọn "Browser".\n2. Dán đường link trên vào ô URL.\n3. Điền Width: 1080, Height: 1920 ➔ Bấm OK.\n\nMàn hình OBS sẽ tự động hiển thị 100% khung Livestream 9:16 full-screen siêu sạch mà KHÔNG CẦN CROP!`);
+    alert(`✅ ĐÃ SAO CHÉP LINK OBS OVERLAY VÀO CLIPBOARD!\n\nLink OBS chuyên dụng:\n${obsUrl}\n\nHướng dẫn kết nối vào OBS:\n1. Mở phần mềm OBS ➔ Ô Sources ➔ Bấm dấu "+" ➔ Chọn "Browser".\n2. Dán đường link trên vào ô URL.\n3. Điền Width: 1080, Height: 1920 ➔ Bấm OK.\n\nHoặc bấm nút "🖥️ Pop-out OBS" để mở cửa sổ riêng và dùng Window Capture trong OBS!`);
   });
+
+  // Pop-out OBS Overlay in a dedicated separate browser window
+  let obsPopupWindow = null;
+  document.getElementById('btn-obs-popout')?.addEventListener('click', () => {
+    const obsUrl = `${window.location.origin}${window.location.pathname}?obs=true`;
+
+    // If popup already open and not closed, just focus it
+    if (obsPopupWindow && !obsPopupWindow.closed) {
+      obsPopupWindow.focus();
+      return;
+    }
+
+    // Calculate popup size — 9:16 ratio, half of 1080x1920 = 540x960
+    // Position near top-right corner so it doesn't overlap the main studio
+    const popW = 540;
+    const popH = 960;
+    const screenLeft = window.screenLeft ?? window.screenX;
+    const screenTop = window.screenTop ?? window.screenY;
+    const left = screenLeft + window.outerWidth + 20;
+    const top = screenTop;
+
+    obsPopupWindow = window.open(
+      obsUrl,
+      'DinCox_OBS_Overlay',
+      `width=${popW},height=${popH},left=${left},top=${top},resizable=yes,scrollbars=no,toolbar=no,menubar=no,location=no,status=no`
+    );
+
+    if (!obsPopupWindow) {
+      alert('⚠️ Popup bị chặn bởi trình duyệt!\n\nVui lòng bấm "Cho phép popup" ở thanh địa chỉ rồi thử lại.\nHoặc vào Settings > Privacy > Pop-ups and redirects > Thêm site này vào danh sách cho phép.');
+      return;
+    }
+
+    // Notify user 
+    const btn = document.getElementById('btn-obs-popout');
+    if (btn) {
+      const origHTML = btn.innerHTML;
+      btn.innerHTML = `<i data-lucide="check-circle"></i> ✅ OBS Đang Mở`;
+      btn.style.background = 'linear-gradient(135deg, #059669, #10b981)';
+      createIcons({ icons });
+
+      // Monitor popup close to reset button
+      const pollTimer = setInterval(() => {
+        if (obsPopupWindow.closed) {
+          clearInterval(pollTimer);
+          btn.innerHTML = origHTML;
+          btn.style.background = 'linear-gradient(135deg, #7c3aed, #a855f7)';
+          createIcons({ icons });
+          obsPopupWindow = null;
+        }
+      }, 1000);
+    }
+  });
+
 
   // Custom Product Form Toggle & Tabs
   document.getElementById('toggle-custom-product')?.addEventListener('click', () => {
