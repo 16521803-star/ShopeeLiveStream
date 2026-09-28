@@ -920,6 +920,52 @@ function bindEvents() {
     }
   });
 
+  // Sidebar Navigation Drawer & Tutorial Modal Event Listeners
+  const btnToggleSidebar = document.getElementById('btn-toggle-sidebar');
+  const btnCloseSidebar = document.getElementById('btn-close-sidebar');
+  const sidebarBackdrop = document.getElementById('sidebar-drawer-backdrop');
+
+  const openSidebar = () => {
+    sidebarBackdrop?.classList.remove('hidden');
+  };
+  const closeSidebar = () => {
+    sidebarBackdrop?.classList.add('hidden');
+  };
+
+  btnToggleSidebar?.addEventListener('click', openSidebar);
+  btnCloseSidebar?.addEventListener('click', closeSidebar);
+
+  sidebarBackdrop?.addEventListener('click', (e) => {
+    if (e.target === sidebarBackdrop) closeSidebar();
+  });
+
+  // Drawer Tabs Switcher
+  document.querySelectorAll('.drawer-tab-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const targetTab = btn.dataset.tab;
+      document.querySelectorAll('.drawer-tab-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+
+      if (targetTab === 'guide') {
+        document.getElementById('drawer-tab-guide')?.classList.remove('hidden');
+        document.getElementById('drawer-tab-faq')?.classList.add('hidden');
+      } else {
+        document.getElementById('drawer-tab-faq')?.classList.remove('hidden');
+        document.getElementById('drawer-tab-guide')?.classList.add('hidden');
+      }
+    });
+  });
+
+  document.getElementById('btn-quick-lock-drawer')?.addEventListener('click', () => {
+    closeSidebar();
+    document.getElementById('btn-lock-studio')?.click();
+  });
+
+  document.getElementById('btn-quick-obs-drawer')?.addEventListener('click', () => {
+    closeSidebar();
+    document.getElementById('btn-obs-mode')?.click();
+  });
+
   document.getElementById('btn-preview-speech')?.addEventListener('click', () => {
     const text = document.getElementById('script-text-input')?.value || '';
     const apiKey = document.getElementById('elevenlabs-api-key')?.value?.trim();

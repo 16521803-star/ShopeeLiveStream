@@ -23,6 +23,9 @@
       </div>
       <div class="header-actions">
         <span class="status-pill"><span class="pulse-dot"></span> Studio Ready</span>
+        <button id="btn-toggle-sidebar" class="btn btn-sm btn-primary" style="background: linear-gradient(135deg, #ff7a45, #ff4d4f); border: none; font-weight: 700;">
+          <i data-lucide="book-open"></i> 📖 Hướng Dẫn & Menu
+        </button>
         <button id="btn-lock-studio" class="btn btn-xs btn-outline" title="Khóa Studio">
           <i data-lucide="lock"></i> Khóa Studio
         </button>
@@ -499,6 +502,126 @@
         <span>Giày Chuẩn EU - Giá Ưu Việt © DinCox Shoes</span>
       </div>
     </div>
+  </div>
+
+  <!-- Sidebar Navigation & Tutorial Drawer Backdrop -->
+  <div id="sidebar-drawer-backdrop" class="drawer-backdrop hidden">
+    <aside class="sidebar-drawer">
+      <div class="drawer-header">
+        <div class="drawer-title">
+          <i data-lucide="book-open" style="color: #ff7a45; width: 22px; height: 22px;"></i>
+          <h3>Hướng Dẫn & Cẩm Nang Studio</h3>
+        </div>
+        <button id="btn-close-sidebar" class="btn-icon">&times;</button>
+      </div>
+
+      <div class="drawer-tabs">
+        <button class="drawer-tab-btn active" data-tab="guide">📖 Hướng Dẫn Bước-Theo-Bước</button>
+        <button class="drawer-tab-btn" data-tab="faq">💡 Câu Hỏi & Mẹo Studio</button>
+      </div>
+
+      <div class="drawer-content">
+        <!-- Tab 1: Step-by-Step Guide -->
+        <div id="drawer-tab-guide" class="drawer-tab-pane">
+          <div class="guide-step-card">
+            <div class="step-badge">Bước 1</div>
+            <h4>📦 Thêm & Quản Lý Sản Phẩm DinCox</h4>
+            <p>Hệ thống hỗ trợ 4 cách nạp danh sách sản phẩm linh hoạt:</p>
+            <ul>
+              <li><strong>Import 1-Click:</strong> Bấm nút <code>Shopee Mall</code> hoặc <code>dincox.com</code> để nạp mẫu sản phẩm hot lập tức.</li>
+              <li><strong>Thêm thủ công:</strong> Bấm <code>+ Nhập / Thêm Giày Mới</code> để nhập tên, giá gốc, giá live, tính năng & tải ảnh lên.</li>
+              <li><strong>Nhập danh sách Batch:</strong> Nhập nhanh nhiều mẫu dạng <code>Tên | Giá gốc | Giá live | Tính năng</code>.</li>
+              <li><strong>Xuất / Nạp JSON:</strong> Bấm <code>📤 Xuất JSON SP</code> để sao lưu hoặc <code>📥 Nạp JSON SP</code> để chuyển danh sách sang máy khác.</li>
+            </ul>
+          </div>
+
+          <div class="guide-step-card">
+            <div class="step-badge">Bước 2</div>
+            <h4>📝 Soạn Thảo Kịch Bản MC AI Presenter</h4>
+            <ul>
+              <li>Mỗi sản phẩm được tạo tự động kịch bản 5 giai đoạn: <em>1. Mở đầu ➔ 2. Giới thiệu ➔ 3. Điểm nổi bật ➔ 4. Ưu đãi ➔ 5. Kêu gọi mua</em>.</li>
+              <li>Bấm vào từng tab số (1, 2, 3...) để chỉnh sửa câu từ MC sẽ phát biểu. Thay đổi được **lưu tự động**.</li>
+              <li>Bấm <code>Phát Kịch Bản Tự Động</code> để MC AI đọc lần lượt từ sản phẩm này sang sản phẩm khác liên tục.</li>
+            </ul>
+          </div>
+
+          <div class="guide-step-card">
+            <div class="step-badge">Bước 3</div>
+            <h4>🎬 Nạp Video MC Người Thật (Chế Độ Nâng Cao)</h4>
+            <ul>
+              <li>Tích chọn <code>⚙️ Bật Chế Độ Nâng Cao (Advanced Studio)</code> trong phần Cài đặt.</li>
+              <li><strong>Video cho từng mẫu:</strong> Bấm <code>✏️ Sửa</code> sản phẩm ➔ Nạp tệp MP4 MC riêng của mẫu đó. Khi đổi sản phẩm, video MC tự đổi theo!</li>
+              <li><strong>Video Reply riêng:</strong> Chọn tệp MP4 MC trả lời riêng trong ô Live Reply. Khi bấm reply, stream sẽ chuyển video reply ➔ phát câu trả lời ➔ tự quay lại video cũ.</li>
+            </ul>
+          </div>
+
+          <div class="guide-step-card">
+            <div class="step-badge">Bước 4</div>
+            <h4>🔊 Cấu Hình Giọng Đọc AI & ElevenLabs (0 Credit)</h4>
+            <ul>
+              <li><strong>Giọng mặc định (Free):</strong> Sử dụng giọng chuẩn Tiếng Việt của trình duyệt, miễn phí 100%.</li>
+              <li><strong>Giọng ElevenLabs AI:</strong> Nhập API Key ElevenLabs để dùng giọng đọc AI nam/nữ siêu mượt.</li>
+              <li><strong>Công nghệ 0 Credit Cache:</strong> Các câu thoại đã từng đọc bằng ElevenLabs sẽ lưu vĩnh viễn trong bộ nhớ máy. Lần sau phát lại tốn <strong>0 Credit</strong>!</li>
+            </ul>
+          </div>
+
+          <div class="guide-step-card">
+            <div class="step-badge">Bước 5</div>
+            <h4>💬 Trả Lời Bình Luận Live (Ưu Tiên Phát)</h4>
+            <ul>
+              <li>Khi khách hỏi trên Shopee Live, nhập nội dung vào ô trả lời (hoặc bấm 1-click nút mẫu trả lời nhanh).</li>
+              <li>Bấm <code>🎙️ Phát Trả Lời Khách Hàng Ngay</code>. MC AI sẽ dừng kịch bản ➔ ưu tiên phát câu reply ➔ tự quay lại kịch bản lặp!</li>
+              <li>Bấm <code>⚙️ Sửa Mẫu</code> để tùy chỉnh nội dung các nút mẫu trả lời nhanh.</li>
+            </ul>
+          </div>
+
+          <div class="guide-step-card">
+            <div class="step-badge">Bước 6</div>
+            <h4>📡 Kết Nối OBS Studio Hoặc Phát RTMP Trực Tiếp</h4>
+            <ul>
+              <li><strong>Cách 1: Kết nối OBS Studio (Khuyên dùng):</strong>
+                <ol>
+                  <li>Bấm nút <code>OBS Overlay Link</code> trên cùng để sao chép đường link chuyên dụng.</li>
+                  <li>Mở OBS Studio ➔ Ô <em>Sources</em> ➔ Bấm dấu <code>+</code> ➔ Chọn <strong>Browser</strong>.</li>
+                  <li>Dán link vào ô URL, điền <strong>Width: 1080</strong>, <strong>Height: 1920</strong> ➔ Bấm OK. Khung stream 9:16 full-screen tự động hiện trên OBS!</li>
+                </ol>
+              </li>
+              <li><strong>Cách 2: Phát RTMP Trực Tiếp (Không cần OBS):</strong>
+                <ol>
+                  <li>Mở Shopee Seller Center ➔ Tạo phiên Live ➔ Lấy <em>Khóa Luồng (Stream Key)</em>.</li>
+                  <li>Dán vào ô <em>Khóa Luồng</em> bên panel phải ➔ Bấm <code>🔴 BẮT ĐẦU PHÁT LIVE SHOPEE</code> để phát thẳng từ trình duyệt!</li>
+                </ol>
+              </li>
+            </ul>
+          </div>
+        </div>
+
+        <!-- Tab 2: FAQs & Tips -->
+        <div id="drawer-tab-faq" class="drawer-tab-pane hidden">
+          <div class="guide-step-card">
+            <h4>❓ Trình duyệt bị đứng/khựng khi phát tiếng?</h4>
+            <p>Hệ thống đã tích hợp cơ chế Keep-Alive và Trần An Toàn (Safety Ceiling) để chống đứng Chrome. Nếu gặp sự cố, bạn chỉ cần bấm nút <code>⏹️ Dừng</code> rồi bấm <code>▶️ Phát Kịch Bản Tự Động</code> lại.</p>
+          </div>
+          <div class="guide-step-card">
+            <h4>❓ Ẩn/Hiện Giá và Banner Ưu Đãi trên Live?</h4>
+            <p>Nếu sản phẩm không nhập giá, khung giá sẽ tự động ẩn đi. Bạn cũng có thể tích/bỏ tích ô <code>🔥 Hiển thị Banner Giá Live Ưu Đãi</code> trong phần cài đặt để tùy biến màn hình theo chính sách Shopee.</p>
+          </div>
+          <div class="guide-step-card">
+            <h4>❓ Sao chép dữ liệu sang máy tính khác?</h4>
+            <p>Bấm nút <code>📤 Xuất JSON SP</code> để tải tệp dữ liệu về máy. Mở Studio trên máy tính mới và bấm <code>📥 Nạp JSON SP</code> để chuyển 100% sản phẩm & kịch bản sang máy mới chỉ trong 2 giây.</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="drawer-footer">
+        <button id="btn-quick-lock-drawer" class="btn btn-xs btn-outline">
+          <i data-lucide="lock"></i> Khóa Studio
+        </button>
+        <button id="btn-quick-obs-drawer" class="btn btn-xs btn-primary">
+          <i data-lucide="video"></i> Link OBS Overlay
+        </button>
+      </div>
+    </aside>
   </div>
 
   <script type="module" src="/src/main.js"></script>

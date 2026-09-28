@@ -1361,4 +1361,157 @@ body.obs-mode #shopee-canvas {
   object-fit: contain !important;
 }
 
+/* Sidebar Drawer & Tutorial Modal Styling */
+.drawer-backdrop {
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: rgba(0, 0, 0, 0.75);
+  backdrop-filter: blur(6px);
+  z-index: 1100;
+  display: flex;
+  justify-content: flex-end;
+  opacity: 1;
+  transition: opacity 0.3s ease;
+}
+
+.drawer-backdrop.hidden {
+  display: none !important;
+}
+
+.sidebar-drawer {
+  width: 500px;
+  max-width: 92vw;
+  height: 100%;
+  background: #0b172a;
+  border-left: 1px solid var(--border-active);
+  box-shadow: -10px 0 40px rgba(0, 0, 0, 0.85);
+  display: flex;
+  flex-direction: column;
+  animation: slideInRight 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes slideInRight {
+  from { transform: translateX(100%); }
+  to { transform: translateX(0); }
+}
+
+.drawer-header {
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--border-color);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: rgba(0, 0, 0, 0.25);
+}
+
+.drawer-title {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.drawer-title h3 {
+  font-size: 16px;
+  font-weight: 800;
+  color: #FFF;
+}
+
+.drawer-tabs {
+  display: flex;
+  background: rgba(0, 0, 0, 0.3);
+  padding: 6px 12px;
+  gap: 8px;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.drawer-tab-btn {
+  flex: 1;
+  padding: 8px 12px;
+  border: none;
+  background: transparent;
+  color: var(--text-muted);
+  font-size: 12px;
+  font-weight: 700;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.drawer-tab-btn.active {
+  background: var(--border-active);
+  color: #FFF;
+}
+
+.drawer-content {
+  flex: 1;
+  overflow-y: auto;
+  padding: 16px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.guide-step-card {
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  padding: 14px;
+  position: relative;
+}
+
+.guide-step-card .step-badge {
+  display: inline-block;
+  background: linear-gradient(135deg, #ff7a45, #ff4d4f);
+  color: #FFF;
+  font-size: 10px;
+  font-weight: 800;
+  text-transform: uppercase;
+  padding: 2px 8px;
+  border-radius: 6px;
+  margin-bottom: 6px;
+}
+
+.guide-step-card h4 {
+  font-size: 14px;
+  font-weight: 700;
+  color: #FFF;
+  margin-bottom: 8px;
+}
+
+.guide-step-card p {
+  font-size: 12px;
+  color: var(--text-muted);
+  line-height: 1.5;
+  margin-bottom: 6px;
+}
+
+.guide-step-card ul, .guide-step-card ol {
+  font-size: 12px;
+  color: #cbd5e1;
+  line-height: 1.6;
+  padding-left: 18px;
+}
+
+.guide-step-card li {
+  margin-bottom: 6px;
+}
+
+.guide-step-card code {
+  background: rgba(255, 122, 69, 0.15);
+  color: #ff7a45;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-family: monospace;
+  font-size: 11px;
+}
+
+.drawer-footer {
+  padding: 12px 20px;
+  border-top: 1px solid var(--border-color);
+  background: rgba(0, 0, 0, 0.3);
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+}
+
 
