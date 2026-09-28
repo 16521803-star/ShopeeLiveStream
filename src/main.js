@@ -76,8 +76,24 @@ if (studioSyncChannel) {
         break;
       case 'SELECT_PRODUCT':
         if (data.productId) {
+          // Sync catalog from localStorage so per-product videoUrls are up-to-date across tabs
+          try {
+            const savedCatalog = localStorage.getItem('dincox_custom_products_catalog_v2');
+            if (savedCatalog) {
+              const parsed = JSON.parse(savedCatalog);
+              if (Array.isArray(parsed)) {
+                parsed.forEach(p => {
+                  const existing = DINCOX_PRODUCTS.find(item => item.id === p.id);
+                  if (existing) {
+                    Object.assign(existing, p);
+                  }
+                });
+              }
+            }
+          } catch (e) {}
+
           const target = DINCOX_PRODUCTS.find(p => p.id === data.productId);
-          if (target && (!activeProduct || activeProduct.id !== target.id)) {
+          if (target) {
             selectProduct(target, false);
           }
         }
@@ -107,6 +123,12 @@ if (studioSyncChannel) {
           canvasRenderer.setFlashSaleTitle(data.value);
           const el = document.getElementById('flash-sale-title-input');
           if (el) el.value = data.value;
+        } else if (data.key === 'advancedMode') {
+          const isEnabled = !!data.value;
+          document.body.classList.toggle('advanced-mode', isEnabled);
+          const el = document.getElementById('chk-advanced-mode');
+          if (el) el.checked = isEnabled;
+          if (activeProduct) selectProduct(activeProduct, false);
         }
         break;
       case 'UPDATE_SCRIPT_TEXT':
@@ -240,10 +262,10 @@ function selectProduct(product, broadcast = true) {
   activeStageIdx = 0;
 
   // Check Advanced Mode per-product MC video
-  const isAdvanced = document.body.classList.contains('advanced-mode');
-  if (isAdvanced && activeProduct.videoUrl) {
+  const isAdvanced = document.body.classList.contains('advanced-mode') || (localStorage.getItem('dincox_advanced_mode') === 'true');
+  if (isAdvanced && activeProduct && activeProduct.videoUrl) {
     presenterEngine.loadVideoSource(activeProduct.videoUrl);
-  } else if (!isAdvanced || !activeProduct.videoUrl) {
+  } else if (!isAdvanced || !activeProduct || !activeProduct.videoUrl) {
     const savedMcVideo = localStorage.getItem('dincox_custom_mc_video');
     if (savedMcVideo) {
       presenterEngine.loadVideoSource(savedMcVideo);
@@ -788,6 +810,7 @@ function bindEvents() {
       const isChecked = e.target.checked;
       document.body.classList.toggle('advanced-mode', isChecked);
       localStorage.setItem('dincox_advanced_mode', isChecked ? 'true' : 'false');
+      studioSyncChannel?.postMessage({ type: 'TOGGLE_SETTING', key: 'advancedMode', value: isChecked });
       if (activeProduct) {
         selectProduct(activeProduct, false);
       }
@@ -1800,6 +1823,11 @@ function init() {
     initAuthGate();
   }
 
+  const savedAdvancedMode = localStorage.getItem('dincox_advanced_mode') === 'true';
+  if (savedAdvancedMode) {
+    document.body.classList.add('advanced-mode');
+  }
+
   // Restore saved custom MP4 video presenter if previously uploaded
   const savedMcVideo = localStorage.getItem('dincox_custom_mc_video');
   if (savedMcVideo) {
@@ -1813,6 +1841,10 @@ function init() {
   renderTimelineSteps();
   loadCurrentStageText();
   bindEvents();
+
+  if (activeProduct) {
+    selectProduct(activeProduct, false);
+  }
 
   requestAnimationFrame(animate);
 }
