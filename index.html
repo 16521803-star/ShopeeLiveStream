@@ -9,6 +9,70 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="/src/style.css">
+  <script>
+    // Run immediately before any render — set attribute on html for zero-latency OBS mode styling
+    (function() {
+      var isObs = window.location.search.indexOf('obs=true') !== -1 || window.location.search.indexOf('overlay=true') !== -1;
+      if (isObs) {
+        document.documentElement.setAttribute('data-obs-mode', '1');
+      }
+    })();
+  </script>
+  <style>
+    /* Instant CSS for OBS overlay mode — runs before JS bundle or external CSS finishes loading */
+    html[data-obs-mode="1"],
+    html[data-obs-mode="1"] body {
+      background: #000000 !important;
+      margin: 0 !important;
+      padding: 0 !important;
+      overflow: hidden !important;
+      width: 100vw !important;
+      height: 100vh !important;
+    }
+
+    html[data-obs-mode="1"] #auth-lock-overlay,
+    html[data-obs-mode="1"] .app-header,
+    html[data-obs-mode="1"] .control-panel,
+    html[data-obs-mode="1"] .timeline-panel,
+    html[data-obs-mode="1"] .mobile-tab-bar,
+    html[data-obs-mode="1"] .sidebar-drawer-backdrop,
+    html[data-obs-mode="1"] #edit-modal-backdrop,
+    html[data-obs-mode="1"] #quick-reply-modal-backdrop { display: none !important; }
+
+    html[data-obs-mode="1"] #app,
+    html[data-obs-mode="1"] .app-container,
+    html[data-obs-mode="1"] .workspace,
+    html[data-obs-mode="1"] .preview-panel {
+      padding: 0 !important;
+      margin: 0 !important;
+      max-width: none !important;
+      width: 100vw !important;
+      height: 100vh !important;
+      border: none !important;
+      box-shadow: none !important;
+      background: #000000 !important;
+      display: flex !important;
+      justify-content: center !important;
+      align-items: center !important;
+    }
+
+    html[data-obs-mode="1"] .canvas-container {
+      width: 100vw !important;
+      height: 100vh !important;
+      max-width: none !important;
+      max-height: none !important;
+      border: none !important;
+      border-radius: 0 !important;
+      box-shadow: none !important;
+    }
+
+    html[data-obs-mode="1"] #shopee-canvas {
+      width: 100% !important;
+      height: 100% !important;
+      border-radius: 0 !important;
+      object-fit: contain !important;
+    }
+  </style>
 </head>
 <body>
   <div id="app">
@@ -472,8 +536,8 @@
     </div>
   </div>
 
-  <!-- Studio Access Password Gate Overlay -->
-  <div id="auth-lock-overlay" class="auth-overlay">
+  <!-- Studio Access Password Gate Overlay (hidden by default, shown by JS when auth needed) -->
+  <div id="auth-lock-overlay" class="auth-overlay hidden">
     <div class="auth-card">
       <div class="auth-header">
         <div class="auth-logo-badge">DINCOX</div>
