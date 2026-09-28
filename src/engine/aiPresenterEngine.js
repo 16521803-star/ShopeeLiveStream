@@ -85,6 +85,10 @@ export class AIPresenterEngine {
   }
 
   loadVideoSource(urlOrBlob) {
+    // Guard against null/empty/invalid src — would cause browser 404 request
+    if (!urlOrBlob || typeof urlOrBlob !== 'string' || urlOrBlob.trim() === '') return;
+    if (urlOrBlob.startsWith('idb:')) return; // IDB flag string — not a valid src
+
     // Skip reload if already playing the same source — avoids stutter on re-selection
     if (this.currentVideoSrc === urlOrBlob && this.videoEl && !this.videoEl.paused && this.isVideoLoaded) {
       return;
@@ -92,7 +96,7 @@ export class AIPresenterEngine {
 
     // Convert data-URLs to Blob URLs once and cache them in memory
     // Blob URLs decode much faster than re-parsing base64 on every product switch
-    if (typeof urlOrBlob === 'string' && urlOrBlob.startsWith('data:')) {
+    if (urlOrBlob.startsWith('data:')) {
       if (!AIPresenterEngine._blobUrlCache) AIPresenterEngine._blobUrlCache = new Map();
       if (AIPresenterEngine._blobUrlCache.has(urlOrBlob)) {
         const cachedBlobUrl = AIPresenterEngine._blobUrlCache.get(urlOrBlob);
@@ -120,7 +124,10 @@ export class AIPresenterEngine {
   }
 
   _doLoadVideo(src, originalSrc) {
-    // If resolved src is same and video already loaded — just ensure playing, skip full reload
+    // Guard against null/empty src
+    if (!src || typeof src !== 'string' || src.trim() === '') return;
+
+    // If same src already loaded — just ensure playing, no full reload
     if (this.currentVideoSrc === originalSrc && this.videoEl && this.isVideoLoaded) {
       if (this.videoEl.paused) this.videoEl.play().catch(() => {});
       return;
