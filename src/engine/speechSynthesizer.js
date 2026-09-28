@@ -116,6 +116,7 @@ export class SpeechEngine {
     this.synth = typeof window !== 'undefined' ? window.speechSynthesis : null;
     this.voices = [];
     this.isSpeaking = false;
+    this.speechCounter = 0; // Incremental speech ID to prevent async race conditions
     this.activeUtterance = null; // Retain reference to prevent Chrome GC bug
     this.activeAudio = null; // ElevenLabs HTML5 Audio element
     this.onLipSyncCallback = null;
@@ -163,20 +164,15 @@ export class SpeechEngine {
 
       if (!filterVietnameseOnly) return allVoices;
 
-      // Strict Filter: Keep ONLY User Cloned Voices & Explicitly Tagged Vietnamese Voices
       return allVoices.filter(v => {
         const name = (v.name || '').toLowerCase();
         const category = (v.category || '').toLowerCase();
         const labels = JSON.stringify(v.labels || {}).toLowerCase();
         const verifiedLangs = JSON.stringify(v.verified_languages || []).toLowerCase();
 
-        // 1. Keep user's custom cloned / generated voices from Voice Lab
         if (category.includes('cloned') || category.includes('generated') || category.includes('professional')) return true;
-
-        // 2. Keep voices with explicit Vietnamese language/accent tag
         if (name.includes('viet') || name.includes('vn') || labels.includes('vietnam') || verifiedLangs.includes('vi')) return true;
 
-        // Discard standard English premade voices (Roger, Sarah, Laura, Charlie, etc.)
         return false;
       });
     } catch (err) {
@@ -233,24 +229,34 @@ export class SpeechEngine {
   async speak(text, options = {}) {
     this.stop();
 
+    const currentSpeechId = ++this.speechCounter;
+    this.isSpeaking = true;
+
     const { pitch = 1.0, rate = 1.0, gender = 'female', onLipSync, onEnd } = options;
     this.onLipSyncCallback = onLipSync;
     this.onEndCallback = onEnd;
 
     // Option 1: ElevenLabs AI Voice
     if (this.elevenLabsConfig.enabled && this.elevenLabsConfig.apiKey) {
-      const success = await this.speakElevenLabs(text);
+      const success = await this.speakElevenLabs(text, currentSpeechId);
+      if (this.speechCounter !== currentSpeechId || !this.isSpeaking) return;
       if (success) return;
-      console.warn("ElevenLabs TTS failed, falling back to Native WebSpeech.");
+      console.warn("ElevenLabs TTS failed or cancelled, falling back to Native WebSpeech.");
     }
 
+    if (this.speechCounter !== currentSpeechId || !this.isSpeaking) return;
+
     // Option 2: Fallback to Native Browser WebSpeech API
-    this.speakNative(text, pitch, rate, gender);
+    this.speakNative(text, pitch, rate, gender, currentSpeechId);
   }
 
-  async speakElevenLabs(text) {
+  async speakElevenLabs(text, speechId) {
     try {
-      this.isSpeaking = true;
+      // Instantly silence any native browser WebSpeech synthesis
+      if (this.synth) {
+        try { this.synth.cancel(); } catch (e) {}
+      }
+
       const { apiKey, voiceId, modelId } = this.elevenLabsConfig;
       const cacheKey = `${voiceId}_${modelId}_${text.trim()}`;
 
@@ -264,8 +270,10 @@ export class SpeechEngine {
           this.onStatusCallback({ isCache: true, source: 'RAM Memory Cache', costCredits: 0, text });
         }
       } else {
-        // 2. Check Permanent IndexedDB Storage (Persists across laptop shutdown!)
+        // 2. Check Permanent IndexedDB Storage
         const storedBlob = await audioCacheDB.getAudioBlob(cacheKey);
+        if (this.speechCounter !== speechId || !this.isSpeaking) return false;
+
         if (storedBlob) {
           console.log("💾 [IndexedDB Cache Hit] Restored saved ElevenLabs audio from Disk Cache! 0 Credits used.");
           audioUrl = URL.createObjectURL(storedBlob);
@@ -277,7 +285,6 @@ export class SpeechEngine {
           // 3. Fetch from ElevenLabs API (If not cached)
           if (this.sessionDeclinedApiCall) {
             console.log("Bypassing ElevenLabs API call (User previously declined credit prompt). Falling back to native TTS.");
-            this.isSpeaking = false;
             return false;
           }
 
@@ -288,10 +295,11 @@ export class SpeechEngine {
             if (!userAgreed) {
               console.log("User declined ElevenLabs API call for uncached text. Remembering choice for subsequent phrases.");
               this.sessionDeclinedApiCall = true;
-              this.isSpeaking = false;
               return false;
             }
           }
+
+          if (this.speechCounter !== speechId || !this.isSpeaking) return false;
 
           console.log("📡 [API Request] Fetching new speech audio from ElevenLabs...");
           if (this.onStatusCallback) {
@@ -314,6 +322,8 @@ export class SpeechEngine {
             })
           });
 
+          if (this.speechCounter !== speechId || !this.isSpeaking) return false;
+
           if (!response.ok) {
             let errDetail = `HTTP ${response.status}`;
             try {
@@ -330,6 +340,8 @@ export class SpeechEngine {
           }
 
           const audioBlob = await response.blob();
+          if (this.speechCounter !== speechId || !this.isSpeaking) return false;
+
           audioUrl = URL.createObjectURL(audioBlob);
 
           // Save to RAM & Permanent IndexedDB Storage
@@ -338,13 +350,20 @@ export class SpeechEngine {
         }
       }
 
+      if (this.speechCounter !== speechId || !this.isSpeaking) return false;
+
+      // Again, strictly silence native WebSpeech synth before starting HTML5 audio
+      if (this.synth) {
+        try { this.synth.cancel(); } catch (e) {}
+      }
+
       const audio = new Audio(audioUrl);
       this.activeAudio = audio;
 
       const startTime = Date.now();
 
       const updateLipSync = () => {
-        if (!this.isSpeaking || !this.activeAudio) return;
+        if (!this.isSpeaking || this.speechCounter !== speechId || !this.activeAudio) return;
 
         const elapsed = (Date.now() - startTime) / 1000;
         const vol = Math.max(0.15, Math.abs(Math.sin(elapsed * 14) * Math.cos(elapsed * 9) * 0.85 + Math.random() * 0.25));
@@ -358,18 +377,27 @@ export class SpeechEngine {
       };
 
       audio.onended = () => {
-        if (this.isSpeaking) {
+        if (this.isSpeaking && this.speechCounter === speechId) {
+          const callback = this.onEndCallback;
           this.stop();
-          if (this.onEndCallback) this.onEndCallback();
+          if (callback) callback();
         }
       };
 
       audio.onerror = (err) => {
         console.warn("ElevenLabs Audio playback error:", err);
-        this.stop();
+        if (this.speechCounter === speechId) {
+          this.stop();
+        }
       };
 
       await audio.play();
+      if (this.speechCounter !== speechId || !this.isSpeaking) {
+        audio.pause();
+        audio.src = '';
+        return false;
+      }
+
       updateLipSync();
       return true;
     } catch (err) {
@@ -378,7 +406,18 @@ export class SpeechEngine {
     }
   }
 
-  speakNative(text, pitch, rate, gender) {
+  speakNative(text, pitch, rate, gender, speechId) {
+    if (this.speechCounter !== speechId || !this.isSpeaking) return;
+
+    // Ensure no ElevenLabs HTML5 Audio is playing
+    if (this.activeAudio) {
+      try {
+        this.activeAudio.pause();
+        this.activeAudio.src = '';
+      } catch (e) {}
+      this.activeAudio = null;
+    }
+
     let finalPitch = pitch;
     let finalRate = rate;
     if (gender === 'male') {
@@ -389,14 +428,12 @@ export class SpeechEngine {
       finalRate = Math.max(rate, 1.05);
     }
 
-    this.isSpeaking = true;
-
     const startTime = Date.now();
     const estDuration = Math.max(3000, (text.length * 75) / finalRate);
-    const maxSafetyTimeout = estDuration + 3500; // Guaranteed safety ceiling to prevent any freeze
+    const maxSafetyTimeout = estDuration + 3500;
 
     const updateLipSync = () => {
-      if (!this.isSpeaking) return;
+      if (!this.isSpeaking || this.speechCounter !== speechId) return;
 
       const elapsed = Date.now() - startTime;
       const isSynthDone = !this.synth || !this.synth.speaking;
@@ -434,7 +471,7 @@ export class SpeechEngine {
         }
 
         utterance.onend = () => {
-          if (this.isSpeaking) {
+          if (this.isSpeaking && this.speechCounter === speechId) {
             const callback = this.onEndCallback;
             this.stop();
             if (callback) callback();
@@ -448,10 +485,9 @@ export class SpeechEngine {
         this.activeUtterance = utterance;
         this.synth.speak(utterance);
 
-        // Chrome 15-second freeze workaround: Periodically pause & resume
         if (this.resumeInterval) clearInterval(this.resumeInterval);
         this.resumeInterval = setInterval(() => {
-          if (this.isSpeaking && this.synth && this.synth.speaking) {
+          if (this.isSpeaking && this.speechCounter === speechId && this.synth && this.synth.speaking) {
             this.synth.pause();
             this.synth.resume();
           }
@@ -465,6 +501,7 @@ export class SpeechEngine {
   }
 
   stop() {
+    this.speechCounter++; // Invalidate any pending async speech attempts
     this.isSpeaking = false;
     this.simulatedVolume = 0;
     this.activeUtterance = null;
@@ -475,7 +512,10 @@ export class SpeechEngine {
     }
 
     if (this.activeAudio) {
-      this.activeAudio.pause();
+      try {
+        this.activeAudio.pause();
+        this.activeAudio.src = '';
+      } catch (e) {}
       this.activeAudio = null;
     }
 
