@@ -222,7 +222,7 @@ export class ShopeeCanvasRenderer {
     ctx.restore();
   }
 
-  // Authentic Shopee Floating Product Corner Card (Left Central)
+  // Authentic Shopee Floating Product Corner Card (Positioned directly above Flash Sale Banner)
   renderFloatingProductCorner(ctx, timestamp) {
     if (!this.showProductCard || !this.currentProduct) return;
 
@@ -232,8 +232,9 @@ export class ShopeeCanvasRenderer {
     const floatY = Math.sin(timestamp * 0.003) * 6;
     const cardW = 320;
     const cardH = hasImg ? (hasSalePrice ? 395 : 355) : (hasSalePrice ? 95 : 55);
-    const cardX = 40;
-    const cardY = 560;
+    const cardX = 50;
+    const banY = this.height - 480;
+    const cardY = banY - cardH - 20;
 
     // Glassmorphism card backdrop with thin transparent white border
     ctx.fillStyle = 'rgba(255, 255, 255, 0.45)';
