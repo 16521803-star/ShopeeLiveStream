@@ -574,11 +574,18 @@
         </div>
       </div>
 
-      <!-- Quick Reply Chips -->
+      <!-- Quick Reply Chips & Custom Reply -->
       <div class="remote-section">
         <div class="remote-section-title">💬 TRẢ LỜI NHANH (Phím F1-F4)</div>
         <div id="obs-remote-quick-list" class="remote-quick-list">
           <!-- Rendered dynamically via JS -->
+        </div>
+        <!-- Custom Live Reply Input Box -->
+        <div class="remote-custom-reply-box">
+          <input type="text" id="obs-remote-custom-input" class="remote-input-field" placeholder="Nhập câu trả lời tùy chỉnh..." autocomplete="off">
+          <button id="btn-obs-remote-send-custom" class="btn-remote-send" title="Phát câu trả lời này">
+            <i data-lucide="send"></i> Nói
+          </button>
         </div>
       </div>
 

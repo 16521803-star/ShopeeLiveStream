@@ -2144,6 +2144,28 @@ function initObsSideRemote() {
   btnPrev?.addEventListener('click', () => switchProductByOffset(-1));
   btnNext?.addEventListener('click', () => switchProductByOffset(1));
 
+  // Custom Live Reply Handler inside OBS Side Remote Dock
+  const customInput = document.getElementById('obs-remote-custom-input');
+  const btnSendCustom = document.getElementById('btn-obs-remote-send-custom');
+
+  const handleSendCustomReply = () => {
+    if (!customInput) return;
+    const text = customInput.value.trim();
+    if (text) {
+      speakLiveReply(text);
+      customInput.value = '';
+      customInput.blur();
+    }
+  };
+
+  btnSendCustom?.addEventListener('click', handleSendCustomReply);
+  customInput?.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      handleSendCustomReply();
+    }
+  });
+
   // Default: Show side remote panel on OBS tab
   toggleObsSideRemote(true);
 
