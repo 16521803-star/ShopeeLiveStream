@@ -2046,12 +2046,171 @@ function initAuthGate() {
   }
 }
 
+// OBS Side Remote Control Dock & Global Keyboard Shortcuts System
+function renderObsRemoteUI() {
+  const container = document.getElementById('obs-remote-prod-list');
+  if (container) {
+    container.innerHTML = DINCOX_PRODUCTS.map((prod, idx) => {
+      const isActive = activeProduct && activeProduct.id === prod.id;
+      const formattedSale = (prod.salePrice && prod.salePrice > 0) ? (prod.salePrice / 1000) + 'k' : '';
+      return `
+        <div class="remote-prod-item ${isActive ? 'active' : ''}" data-id="${prod.id}">
+          <span style="display: flex; gap: 6px; align-items: center;">
+            <strong style="color: #ff7a45; font-size: 10px;">[${idx + 1}]</strong>
+            <span style="max-width: 170px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${prod.name}</span>
+          </span>
+          <span style="font-weight: 700; color: #10b981;">${formattedSale}</span>
+        </div>
+      `;
+    }).join('');
+
+    container.querySelectorAll('.remote-prod-item').forEach(item => {
+      item.addEventListener('click', () => {
+        const id = item.dataset.id;
+        const found = DINCOX_PRODUCTS.find(p => p.id === id);
+        if (found) {
+          selectProduct(found);
+          renderObsRemoteUI();
+        }
+      });
+    });
+  }
+
+  const quickContainer = document.getElementById('obs-remote-quick-list');
+  if (quickContainer) {
+    const replies = getQuickReplies();
+    quickContainer.innerHTML = replies.slice(0, 4).map((qr, idx) => `
+      <button type="button" class="remote-quick-chip" data-text="${qr.text.replace(/"/g, '&quot;')}">
+        <strong style="color: #34d399; font-size: 10px;">[F${idx + 1}]</strong> ${qr.label}
+      </button>
+    `).join('');
+
+    quickContainer.querySelectorAll('.remote-quick-chip').forEach(chip => {
+      chip.addEventListener('click', () => {
+        const text = chip.dataset.text;
+        speakLiveReply(text);
+      });
+    });
+  }
+
+  const lblPlay = document.getElementById('lbl-obs-play');
+  if (lblPlay) {
+    lblPlay.innerText = isSequencePlaying ? 'Tạm Dừng Kịch Bản' : 'Phát Kịch Bản';
+  }
+}
+
+function toggleObsSideRemote(show) {
+  const remote = document.getElementById('obs-side-remote');
+  const pill = document.getElementById('btn-show-obs-remote-pill');
+  if (!remote) return;
+
+  const isCurrentlyHidden = remote.classList.contains('hidden');
+  const shouldHide = show !== undefined ? !show : !isCurrentlyHidden;
+
+  if (shouldHide) {
+    remote.classList.add('hidden');
+    pill?.classList.remove('hidden');
+  } else {
+    remote.classList.remove('hidden');
+    pill?.classList.add('hidden');
+    renderObsRemoteUI();
+  }
+}
+
+function switchProductByOffset(offset) {
+  if (!DINCOX_PRODUCTS || DINCOX_PRODUCTS.length === 0) return;
+  let currentIdx = DINCOX_PRODUCTS.findIndex(p => p.id === activeProduct?.id);
+  if (currentIdx === -1) currentIdx = 0;
+  let newIdx = currentIdx + offset;
+  if (newIdx < 0) newIdx = DINCOX_PRODUCTS.length - 1;
+  if (newIdx >= DINCOX_PRODUCTS.length) newIdx = 0;
+  selectProduct(DINCOX_PRODUCTS[newIdx]);
+  renderObsRemoteUI();
+}
+
+function initObsSideRemote() {
+  const btnToggle = document.getElementById('btn-toggle-obs-remote');
+  const btnPill = document.getElementById('btn-show-obs-remote-pill');
+  const btnPlay = document.getElementById('btn-obs-play-toggle');
+  const btnPrev = document.getElementById('btn-obs-prev-prod');
+  const btnNext = document.getElementById('btn-obs-next-prod');
+
+  btnToggle?.addEventListener('click', () => toggleObsSideRemote(false));
+  btnPill?.addEventListener('click', () => toggleObsSideRemote(true));
+  btnPlay?.addEventListener('click', () => {
+    playScriptSequence();
+    renderObsRemoteUI();
+  });
+  btnPrev?.addEventListener('click', () => switchProductByOffset(-1));
+  btnNext?.addEventListener('click', () => switchProductByOffset(1));
+
+  // Default: Show side remote panel on OBS tab
+  toggleObsSideRemote(true);
+
+  // Bind Global Keyboard Shortcuts (Space, Arrows, 1-9, F1-F4, H)
+  window.addEventListener('keydown', (e) => {
+    const activeEl = document.activeElement;
+    if (activeEl && (activeEl.tagName === 'INPUT' || activeEl.tagName === 'TEXTAREA' || activeEl.isContentEditable)) {
+      return;
+    }
+
+    const key = e.key;
+
+    if (key === 'h' || key === 'H') {
+      e.preventDefault();
+      toggleObsSideRemote();
+      return;
+    }
+
+    if (key === ' ' || key === 'Spacebar') {
+      e.preventDefault();
+      playScriptSequence();
+      renderObsRemoteUI();
+      return;
+    }
+
+    if (key === 'ArrowDown' || key === 'PageDown') {
+      e.preventDefault();
+      switchProductByOffset(1);
+      return;
+    }
+
+    if (key === 'ArrowUp' || key === 'PageUp') {
+      e.preventDefault();
+      switchProductByOffset(-1);
+      return;
+    }
+
+    if (key >= '1' && key <= '9') {
+      const idx = parseInt(key, 10) - 1;
+      if (DINCOX_PRODUCTS[idx]) {
+        e.preventDefault();
+        selectProduct(DINCOX_PRODUCTS[idx]);
+        renderObsRemoteUI();
+      }
+      return;
+    }
+
+    if (key.startsWith('F') && key.length >= 2) {
+      const num = parseInt(key.slice(1), 10);
+      if (num >= 1 && num <= 4) {
+        const replies = getQuickReplies();
+        if (replies[num - 1]) {
+          e.preventDefault();
+          speakLiveReply(replies[num - 1].text);
+        }
+      }
+    }
+  });
+}
+
 // Initialize Application
 function init() {
   const isObsMode = window.location.search.includes('obs=true') || window.location.search.includes('overlay=true');
   if (isObsMode) {
     document.body.classList.add('obs-mode');
     document.getElementById('auth-lock-overlay')?.classList.add('hidden');
+    initObsSideRemote();
   } else {
     initAuthGate();
   }

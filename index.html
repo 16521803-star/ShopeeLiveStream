@@ -39,6 +39,12 @@
     html[data-obs-mode="1"] #edit-modal-backdrop,
     html[data-obs-mode="1"] #quick-reply-modal-backdrop { display: none !important; }
 
+    /* Show mini side control panel on OBS tab */
+    html[data-obs-mode="1"] #obs-side-remote { display: flex !important; }
+    html[data-obs-mode="1"] #obs-side-remote.hidden { display: none !important; }
+    html[data-obs-mode="1"] #btn-show-obs-remote-pill { display: flex !important; }
+    html[data-obs-mode="1"] #btn-show-obs-remote-pill.hidden { display: none !important; }
+
     html[data-obs-mode="1"] #app,
     html[data-obs-mode="1"] .app-container,
     html[data-obs-mode="1"] .workspace,
@@ -535,6 +541,58 @@
       </div>
     </div>
   </div>
+
+  <!-- OBS Overlay Dedicated Floating Remote Dock -->
+  <div id="obs-side-remote" class="obs-remote-dock hidden">
+    <div class="remote-header">
+      <div class="remote-title">
+        <span class="live-dot"></span>
+        <strong>🖥️ OBS Remote Control</strong>
+      </div>
+      <button id="btn-toggle-obs-remote" class="btn-icon-xs" style="background: transparent; border: none; color: #94a3b8; cursor: pointer;" title="Ẩn Bảng Điều Khiển (Phím 'H')">
+        <i data-lucide="eye-off"></i>
+      </button>
+    </div>
+
+    <div class="remote-body" style="display: flex; flex-direction: column; gap: 10px;">
+      <!-- Playback Control Bar -->
+      <div class="remote-playback-bar">
+        <button id="btn-obs-play-toggle" class="btn-remote-play">
+          <i data-lucide="play"></i> <span id="lbl-obs-play">Phát Kịch Bản</span>
+        </button>
+        <div class="remote-nav-btns">
+          <button id="btn-obs-prev-prod" class="btn-remote-icon" title="Sản phẩm trước [↑]"><i data-lucide="chevron-up"></i></button>
+          <button id="btn-obs-next-prod" class="btn-remote-icon" title="Sản phẩm sau [↓]"><i data-lucide="chevron-down"></i></button>
+        </div>
+      </div>
+
+      <!-- Quick Product Switcher -->
+      <div class="remote-section">
+        <div class="remote-section-title">📦 CHỌN SẢN PHẨM NHANH (Phím 1-9)</div>
+        <div id="obs-remote-prod-list" class="remote-prod-grid">
+          <!-- Rendered dynamically via JS -->
+        </div>
+      </div>
+
+      <!-- Quick Reply Chips -->
+      <div class="remote-section">
+        <div class="remote-section-title">💬 TRẢ LỜI NHANH (Phím F1-F4)</div>
+        <div id="obs-remote-quick-list" class="remote-quick-list">
+          <!-- Rendered dynamically via JS -->
+        </div>
+      </div>
+
+      <!-- Shortcut Hint Footer -->
+      <div class="remote-footer-hint">
+        💡 <strong>Phím tắt:</strong> <code>Space</code>: Phát/Tạm dừng | <code>↑/↓</code>: Đổi SP | <code>1-9</code>: Chọn SP | <code>F1-F4</code>: Trả lời nhanh | <code>H</code>: Ẩn/Hiện Bảng
+      </div>
+    </div>
+  </div>
+
+  <!-- Restore Pill Button when OBS Side Remote is hidden -->
+  <button id="btn-show-obs-remote-pill" class="obs-remote-pill hidden" title="Mở lại Bảng Điều Khiển OBS (Phím H)">
+    ⚡ Controller (Phím H)
+  </button>
 
   <!-- Studio Access Password Gate Overlay (hidden by default, shown by JS when auth needed) -->
   <div id="auth-lock-overlay" class="auth-overlay hidden">
