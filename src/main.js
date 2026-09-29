@@ -17,7 +17,8 @@ import {
   exportAllScriptsJSON,
   importAllScriptsJSON,
   exportAllProductsCatalogJSON,
-  importAllProductsCatalogJSON
+  importAllProductsCatalogJSON,
+  restoreProductsCatalogFromLocalStorage
 } from './data/dincoxCatalog.js';
 import { speechEngine, audioCacheDB } from './engine/speechSynthesizer.js';
 import { AIPresenterEngine } from './engine/aiPresenterEngine.js';
@@ -179,28 +180,16 @@ if (studioSyncChannel) {
           playScriptSequence(false);
         }
         break;
+      case 'RELOAD_CATALOG':
+        restoreProductsCatalogFromLocalStorage();
+        renderProductList();
+        break;
       case 'SELECT_PRODUCT':
         if (data.productId) {
+          // Always restore catalog from localStorage on OBS tab so product list is up to date
+          restoreProductsCatalogFromLocalStorage();
+
           const isAdvancedObs = !!(data.isAdvanced || localStorage.getItem('dincox_advanced_mode') === 'true');
-
-          // Load video from IndexedDB by key — no large data transfer via BroadcastChannel
-          if (isAdvancedObs && data.hasProductVideo) {
-            // Try product-specific video from IndexedDB first, fallback to default
-            loadVideoFromCache(`product_video_${data.productId}`, presenterEngine).then(loaded => {
-              if (!loaded) {
-                loadDefaultMcVideo(presenterEngine).then(ok => {
-                  if (!ok) presenterEngine.setPresenter(activePresenter);
-                });
-              }
-            });
-          } else {
-            // Advanced mode without product video, or simple mode — load default
-            loadDefaultMcVideo(presenterEngine).then(ok => {
-              if (!ok) presenterEngine.setPresenter(activePresenter);
-            });
-          }
-
-          // Sync product data for canvas display
           const target = DINCOX_PRODUCTS.find(p => p.id === data.productId);
           if (target) {
             activeProduct = target;
@@ -211,6 +200,27 @@ if (studioSyncChannel) {
             renderScriptTabs();
             renderTimelineSteps();
             loadCurrentStageText();
+          }
+
+          const videoUrlToUse = (target && target.videoUrl) ? target.videoUrl : data.productVideoUrl;
+
+          if (isAdvancedObs && videoUrlToUse) {
+            if (videoUrlToUse.startsWith('idb:')) {
+              const key = videoUrlToUse.replace('idb:', '');
+              loadVideoFromCache(key, presenterEngine).then(loaded => {
+                if (!loaded) {
+                  loadDefaultMcVideo(presenterEngine).then(ok => {
+                    if (!ok) presenterEngine.setPresenter(activePresenter);
+                  });
+                }
+              });
+            } else {
+              presenterEngine.loadVideoSource(videoUrlToUse);
+            }
+          } else {
+            loadDefaultMcVideo(presenterEngine).then(ok => {
+              if (!ok) presenterEngine.setPresenter(activePresenter);
+            });
           }
         }
         break;
@@ -386,8 +396,18 @@ function selectProduct(product, broadcast = true) {
   // Check Advanced Mode per-product MC video
   const isAdvanced = document.body.classList.contains('advanced-mode') || (localStorage.getItem('dincox_advanced_mode') === 'true');
   if (isAdvanced && activeProduct && activeProduct.videoUrl) {
-    // Product has dedicated MC video stored in-memory as data-URL or IDB
-    presenterEngine.loadVideoSource(activeProduct.videoUrl);
+    if (activeProduct.videoUrl.startsWith('idb:')) {
+      const key = activeProduct.videoUrl.replace('idb:', '');
+      loadVideoFromCache(key, presenterEngine).then(loaded => {
+        if (!loaded) {
+          loadDefaultMcVideo(presenterEngine).then(ok => {
+            if (!ok) presenterEngine.setPresenter(activePresenter);
+          });
+        }
+      });
+    } else {
+      presenterEngine.loadVideoSource(activeProduct.videoUrl);
+    }
   } else {
     // Load default MC video via unified helper (handles both idb: flag and legacy base64)
     loadDefaultMcVideo(presenterEngine).then(ok => {
@@ -403,11 +423,12 @@ function selectProduct(product, broadcast = true) {
 
   if (broadcast && studioSyncChannel) {
     const isAdvanced = document.body.classList.contains('advanced-mode') || (localStorage.getItem('dincox_advanced_mode') === 'true');
-    // Send only lightweight keys — video Blobs are read from IndexedDB by OBS tab (no base64 over BroadcastChannel)
+    // Broadcast product selection and lightweight video reference key
     studioSyncChannel.postMessage({ 
       type: 'SELECT_PRODUCT', 
       productId: product.id,
       hasProductVideo: !!(isAdvanced && product.videoUrl),
+      productVideoUrl: (isAdvanced && product.videoUrl) ? product.videoUrl : null,
       isAdvanced: isAdvanced
     });
   }
@@ -541,17 +562,19 @@ function saveEditModal() {
     features: [feature, 'Công nghệ đế cao su lưu hóa (Vulcanized) chống trượt', 'Bảo hành 12 tháng chính hãng Shopee Mall']
   };
 
-  if (currentEditProductVideoUrl) {
-    updateData.videoUrl = currentEditProductVideoUrl; // keep data-URL in product object for backward compat
-    // Also save Blob to IndexedDB with product-specific key for OBS tab
-    if (currentEditProductVideoBlob) {
-      const prodId = id;
-      currentEditProductVideoBlob.arrayBuffer().then(buffer => {
-        const blob = new Blob([buffer], { type: currentEditProductVideoBlob.type });
-        videoCacheDB.set(`product_video_${prodId}`, blob);
-      });
-      currentEditProductVideoBlob = null;
-    }
+  if (currentEditProductVideoBlob) {
+    const prodId = id;
+    const key = `product_video_${prodId}`;
+    updateData.videoUrl = `idb:${key}`;
+    const blobToSave = currentEditProductVideoBlob;
+    currentEditProductVideoBlob = null;
+    currentEditProductVideoUrl = null;
+
+    videoCacheDB.set(key, blobToSave).then(() => {
+      studioSyncChannel?.postMessage({ type: 'RELOAD_CATALOG' });
+    });
+  } else if (currentEditProductVideoUrl) {
+    updateData.videoUrl = currentEditProductVideoUrl;
     currentEditProductVideoUrl = null;
   }
 
@@ -1457,6 +1480,18 @@ function bindEvents() {
   // Edit Modal Controls
   document.getElementById('btn-close-modal')?.addEventListener('click', closeEditModal);
   document.getElementById('btn-save-edit-prod')?.addEventListener('click', saveEditModal);
+  document.getElementById('edit-prod-video-file')?.addEventListener('change', (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      currentEditProductVideoBlob = file;
+      currentEditProductVideoUrl = `idb:product_video_${document.getElementById('edit-prod-id')?.value}`;
+      const statusEl = document.getElementById('edit-prod-video-status');
+      if (statusEl) {
+        statusEl.innerText = `✅ Đã chọn tệp: ${file.name} (${(file.size / (1024 * 1024)).toFixed(1)}MB). Bấm "Lưu Thay Đổi" để nạp!`;
+        statusEl.style.color = '#ff7a45';
+      }
+    }
+  });
 
   // Direct Shopee RTMP Broadcaster Controls
   const btnStartRtmp = document.getElementById('btn-start-rtmp');
