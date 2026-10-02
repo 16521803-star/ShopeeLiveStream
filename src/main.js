@@ -296,6 +296,10 @@ if (studioSyncChannel) {
           }
         }
         break;
+      case 'RELOAD_QUICK_REPLIES':
+        renderQuickReplyChips();
+        renderObsRemoteUI();
+        break;
     }
   };
 }
@@ -722,6 +726,11 @@ function saveQuickReplies(list) {
     localStorage.setItem('dincox_quick_replies', JSON.stringify(list));
   } catch (err) {
     console.warn("Could not save quick replies to localStorage", err);
+  }
+  renderQuickReplyChips();
+  renderObsRemoteUI();
+  if (studioSyncChannel) {
+    studioSyncChannel.postMessage({ type: 'RELOAD_QUICK_REPLIES' });
   }
 }
 
@@ -2194,11 +2203,14 @@ function renderObsRemoteUI() {
   const quickContainer = document.getElementById('obs-remote-quick-list');
   if (quickContainer) {
     const replies = getQuickReplies();
-    quickContainer.innerHTML = replies.slice(0, 4).map((qr, idx) => `
-      <button type="button" class="remote-quick-chip" data-text="${qr.text.replace(/"/g, '&quot;')}">
-        <strong style="color: #34d399; font-size: 10px;">[F${idx + 1}]</strong> ${qr.label}
-      </button>
-    `).join('');
+    quickContainer.innerHTML = replies.map((qr, idx) => {
+      const badgeText = idx < 12 ? `[F${idx + 1}]` : `[#${idx + 1}]`;
+      return `
+        <button type="button" class="remote-quick-chip" data-text="${qr.text.replace(/"/g, '&quot;')}">
+          <strong style="color: #34d399; font-size: 10px;">${badgeText}</strong> ${qr.label}
+        </button>
+      `;
+    }).join('');
 
     quickContainer.querySelectorAll('.remote-quick-chip').forEach(chip => {
       chip.addEventListener('click', () => {
@@ -2347,7 +2359,7 @@ function initObsSideRemote() {
 
     if (key.startsWith('F') && key.length >= 2) {
       const num = parseInt(key.slice(1), 10);
-      if (num >= 1 && num <= 4) {
+      if (!isNaN(num) && num >= 1) {
         const replies = getQuickReplies();
         if (replies[num - 1]) {
           e.preventDefault();
