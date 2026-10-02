@@ -18,7 +18,9 @@ import {
   importAllScriptsJSON,
   exportAllProductsCatalogJSON,
   importAllProductsCatalogJSON,
-  restoreProductsCatalogFromLocalStorage
+  restoreProductsCatalogFromLocalStorage,
+  DEFAULT_PRESENTER_AVATARS,
+  restoreCustomPresenterAvatars
 } from './data/dincoxCatalog.js';
 import { speechEngine, audioCacheDB } from './engine/speechSynthesizer.js';
 import { AIPresenterEngine } from './engine/aiPresenterEngine.js';
@@ -283,6 +285,17 @@ if (studioSyncChannel) {
           speakLiveReply(data.text, false);
         }
         break;
+      case 'RELOAD_PRESENTERS':
+        restoreCustomPresenterAvatars();
+        renderPresenterList();
+        if (data.presenterId && activePresenter && activePresenter.id === data.presenterId) {
+          const updatedP = PRESENTERS.find(p => p.id === data.presenterId);
+          if (updatedP) {
+            activePresenter = updatedP;
+            presenterEngine.setPresenter(activePresenter);
+          }
+        }
+        break;
     }
   };
 }
@@ -444,15 +457,27 @@ function selectPresenter(presenter, broadcast = true) {
 
 function renderPresenterList() {
   const container = document.getElementById('presenter-selector');
-  container.innerHTML = PRESENTERS.map(p => `
+  if (!container) return;
+  container.innerHTML = PRESENTERS.map(p => {
+    const isCustom = !!localStorage.getItem(`dincox_custom_avatar_${p.id}`);
+    return `
     <div class="presenter-card ${p.id === activePresenter.id ? 'active' : ''}" data-id="${p.id}">
-      <img src="${p.avatar}" alt="${p.name}" class="presenter-avatar">
+      <div class="presenter-avatar-wrapper">
+        <img src="${p.avatar}" alt="${p.name}" class="presenter-avatar">
+        ${isCustom ? `<span class="custom-avatar-badge" title="Ảnh tùy chỉnh">Custom</span>` : ''}
+      </div>
       <div class="presenter-name">${p.name}</div>
+      <div class="presenter-actions">
+        <button class="btn-change-avatar" data-id="${p.id}" title="Đổi ảnh đại diện cho ${p.name}">📷 Đổi ảnh</button>
+        ${isCustom ? `<button class="btn-reset-avatar" data-id="${p.id}" title="Khôi phục ảnh mặc định">🔄 Mặc định</button>` : ''}
+      </div>
     </div>
-  `).join('');
+  `;
+  }).join('');
 
   container.querySelectorAll('.presenter-card').forEach(card => {
-    card.addEventListener('click', () => {
+    card.addEventListener('click', (e) => {
+      if (e.target.classList.contains('btn-change-avatar') || e.target.classList.contains('btn-reset-avatar')) return;
       const id = card.dataset.id;
       const found = PRESENTERS.find(p => p.id === id);
       if (found) {
@@ -460,6 +485,90 @@ function renderPresenterList() {
       }
     });
   });
+
+  container.querySelectorAll('.btn-change-avatar').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const id = btn.dataset.id;
+      triggerPresenterAvatarUpload(id);
+    });
+  });
+
+  container.querySelectorAll('.btn-reset-avatar').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const id = btn.dataset.id;
+      resetPresenterAvatar(id);
+    });
+  });
+}
+
+function triggerPresenterAvatarUpload(presenterId) {
+  const input = document.createElement('input');
+  input.type = 'file';
+  input.accept = 'image/*';
+  input.onchange = (e) => {
+    const file = e.target.files && e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (evt) => {
+      const dataUrl = evt.target.result;
+      saveCustomPresenterAvatar(presenterId, dataUrl);
+    };
+    reader.readAsDataURL(file);
+  };
+  input.click();
+}
+
+function saveCustomPresenterAvatar(presenterId, dataUrl) {
+  try {
+    localStorage.setItem(`dincox_custom_avatar_${presenterId}`, dataUrl);
+  } catch (e) {
+    console.warn("Could not save custom presenter avatar to localStorage:", e);
+  }
+  const presenter = PRESENTERS.find(p => p.id === presenterId);
+  if (presenter) {
+    presenter.avatar = dataUrl;
+    if (activePresenter && activePresenter.id === presenterId) {
+      activePresenter = presenter;
+      presenterEngine.setPresenter(presenter);
+    }
+  }
+  renderPresenterList();
+
+  if (studioSyncChannel) {
+    studioSyncChannel.postMessage({
+      type: 'RELOAD_PRESENTERS',
+      presenterId: presenterId,
+      dataUrl: dataUrl
+    });
+  }
+}
+
+function resetPresenterAvatar(presenterId) {
+  try {
+    localStorage.removeItem(`dincox_custom_avatar_${presenterId}`);
+  } catch (e) {
+    console.warn("Could not remove custom presenter avatar from localStorage:", e);
+  }
+  const presenter = PRESENTERS.find(p => p.id === presenterId);
+  const defaultAvatar = DEFAULT_PRESENTER_AVATARS[presenterId];
+  if (presenter && defaultAvatar) {
+    presenter.avatar = defaultAvatar;
+    if (activePresenter && activePresenter.id === presenterId) {
+      activePresenter = presenter;
+      presenterEngine.setPresenter(presenter);
+    }
+  }
+  renderPresenterList();
+
+  if (studioSyncChannel) {
+    studioSyncChannel.postMessage({
+      type: 'RELOAD_PRESENTERS',
+      presenterId: presenterId,
+      dataUrl: defaultAvatar
+    });
+  }
 }
 
 function renderScriptTabs() {
@@ -2262,6 +2371,8 @@ async function preloadProductVideos() {
 
 // Initialize Application
 function init() {
+  restoreCustomPresenterAvatars();
+
   const isObsMode = window.location.search.includes('obs=true') || window.location.search.includes('overlay=true');
   if (isObsMode) {
     document.body.classList.add('obs-mode');

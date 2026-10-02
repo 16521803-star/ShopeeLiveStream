@@ -95,6 +95,26 @@ export let DINCOX_PRODUCTS = [
   }
 ];
 
+export const DEFAULT_PRESENTER_AVATARS = {
+  female_an: './assets/presenter_female.png',
+  male_duc: './assets/presenter_male.png'
+};
+
+export function restoreCustomPresenterAvatars() {
+  PRESENTERS.forEach(p => {
+    try {
+      const saved = localStorage.getItem(`dincox_custom_avatar_${p.id}`);
+      if (saved) {
+        p.avatar = saved;
+      } else if (DEFAULT_PRESENTER_AVATARS[p.id]) {
+        p.avatar = DEFAULT_PRESENTER_AVATARS[p.id];
+      }
+    } catch (e) {
+      console.warn("Could not restore custom presenter avatar:", e);
+    }
+  });
+}
+
 export const PRESENTERS = [
   {
     id: 'female_an',
