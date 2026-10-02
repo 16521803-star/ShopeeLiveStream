@@ -204,7 +204,7 @@ if (studioSyncChannel) {
 
           const videoUrlToUse = (target && target.videoUrl) ? target.videoUrl : data.productVideoUrl;
 
-          if (isAdvancedObs && videoUrlToUse) {
+          if (videoUrlToUse) {
             if (videoUrlToUse.startsWith('idb:')) {
               const key = videoUrlToUse.replace('idb:', '');
               loadVideoFromCache(key, presenterEngine).then(loaded => {
@@ -329,7 +329,7 @@ function renderProductList() {
         ? `<img src="${prod.image}" alt="${prod.name}" class="product-thumb">` 
         : `<div class="product-thumb no-img-thumb" style="display:flex; align-items:center; justify-content:center; background:rgba(255,255,255,0.08); border-radius:8px; font-size:22px;" title="Sản phẩm không hình ảnh">👟</div>`}
       <div class="product-info flex-1">
-        <h3>${prod.name}</h3>
+        <h3>${prod.name} ${prod.videoUrl ? `<span class="badge-video-tag" title="Sản phẩm đã gán Video MC MP4 riêng (Lưu vĩnh viễn trong máy)">🎥 Video MC</span>` : ''}</h3>
         <div class="product-prices">
           ${hasSale ? `<span class="sale-price">${new Intl.NumberFormat('vi-VN').format(prod.salePrice)}đ</span>` : ''}
           ${hasOrig ? `<span class="orig-price">${new Intl.NumberFormat('vi-VN').format(prod.originalPrice)}đ</span>` : ''}
@@ -393,9 +393,8 @@ function selectProduct(product, broadcast = true) {
   currentScriptStages = generateScriptForProduct(activeProduct);
   activeStageIdx = 0;
 
-  // Check Advanced Mode per-product MC video
-  const isAdvanced = document.body.classList.contains('advanced-mode') || (localStorage.getItem('dincox_advanced_mode') === 'true');
-  if (isAdvanced && activeProduct && activeProduct.videoUrl) {
+  // Unconditional Product Video Load: If product has a custom MC video assigned, load and play it!
+  if (activeProduct && activeProduct.videoUrl) {
     if (activeProduct.videoUrl.startsWith('idb:')) {
       const key = activeProduct.videoUrl.replace('idb:', '');
       loadVideoFromCache(key, presenterEngine).then(loaded => {
@@ -409,7 +408,7 @@ function selectProduct(product, broadcast = true) {
       presenterEngine.loadVideoSource(activeProduct.videoUrl);
     }
   } else {
-    // Load default MC video via unified helper (handles both idb: flag and legacy base64)
+    // Fallback to default MC video via unified helper
     loadDefaultMcVideo(presenterEngine).then(ok => {
       if (!ok) presenterEngine.setPresenter(activePresenter);
     });
@@ -422,14 +421,13 @@ function selectProduct(product, broadcast = true) {
   loadCurrentStageText();
 
   if (broadcast && studioSyncChannel) {
-    const isAdvanced = document.body.classList.contains('advanced-mode') || (localStorage.getItem('dincox_advanced_mode') === 'true');
     // Broadcast product selection and lightweight video reference key
     studioSyncChannel.postMessage({ 
       type: 'SELECT_PRODUCT', 
       productId: product.id,
-      hasProductVideo: !!(isAdvanced && product.videoUrl),
-      productVideoUrl: (isAdvanced && product.videoUrl) ? product.videoUrl : null,
-      isAdvanced: isAdvanced
+      hasProductVideo: !!product.videoUrl,
+      productVideoUrl: product.videoUrl || null,
+      isAdvanced: true
     });
   }
 }
@@ -2057,7 +2055,8 @@ function renderObsRemoteUI() {
         <div class="remote-prod-item ${isActive ? 'active' : ''}" data-id="${prod.id}" data-idx="${idx}">
           <span style="display: flex; gap: 6px; align-items: center;">
             <strong style="color: #ff7a45; font-size: 10px;">[${idx + 1}]</strong>
-            <span style="max-width: 170px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${prod.name}</span>
+            <span style="max-width: 140px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${prod.name}</span>
+            ${prod.videoUrl ? `<span style="font-size: 9px; background: rgba(16, 185, 129, 0.2); color: #34d399; padding: 1px 4px; border-radius: 4px; border: 1px solid rgba(16, 185, 129, 0.4);" title="Đã có Video MP4 riêng">🎥 MC</span>` : ''}
           </span>
           <span style="font-weight: 700; color: #10b981;">${formattedSale}</span>
         </div>
@@ -2250,6 +2249,17 @@ function initObsSideRemote() {
   });
 }
 
+// Warm up and cache Blob URLs for all per-product videos stored in IndexedDB
+async function preloadProductVideos() {
+  if (!DINCOX_PRODUCTS || DINCOX_PRODUCTS.length === 0) return;
+  for (const prod of DINCOX_PRODUCTS) {
+    if (prod.videoUrl && prod.videoUrl.startsWith('idb:')) {
+      const key = prod.videoUrl.replace('idb:', '');
+      getBlobUrlFromCache(key).catch(() => {});
+    }
+  }
+}
+
 // Initialize Application
 function init() {
   const isObsMode = window.location.search.includes('obs=true') || window.location.search.includes('overlay=true');
@@ -2267,8 +2277,8 @@ function init() {
   }
 
   // Load default MC video using unified helper — handles idb: flag and legacy base64
-  // selectProduct below will also call this, but calling here ensures video preloads ASAP on OBS tab
   loadDefaultMcVideo(presenterEngine);
+  preloadProductVideos();
 
   createIcons({ icons });
   renderProductList();
