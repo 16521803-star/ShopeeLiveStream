@@ -2054,7 +2054,7 @@ function renderObsRemoteUI() {
       const isActive = activeProduct && activeProduct.id === prod.id;
       const formattedSale = (prod.salePrice && prod.salePrice > 0) ? (prod.salePrice / 1000) + 'k' : '';
       return `
-        <div class="remote-prod-item ${isActive ? 'active' : ''}" data-id="${prod.id}">
+        <div class="remote-prod-item ${isActive ? 'active' : ''}" data-id="${prod.id}" data-idx="${idx}">
           <span style="display: flex; gap: 6px; align-items: center;">
             <strong style="color: #ff7a45; font-size: 10px;">[${idx + 1}]</strong>
             <span style="max-width: 170px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${prod.name}</span>
@@ -2066,14 +2066,21 @@ function renderObsRemoteUI() {
 
     container.querySelectorAll('.remote-prod-item').forEach(item => {
       item.addEventListener('click', () => {
-        const id = item.dataset.id;
-        const found = DINCOX_PRODUCTS.find(p => p.id === id);
-        if (found) {
-          selectProduct(found);
+        const idx = parseInt(item.dataset.idx, 10);
+        if (!isNaN(idx) && DINCOX_PRODUCTS[idx]) {
+          selectProduct(DINCOX_PRODUCTS[idx]);
           renderObsRemoteUI();
         }
       });
     });
+
+    // Auto-scroll to active product element so 10+ items are kept visible
+    setTimeout(() => {
+      const activeItem = container.querySelector('.remote-prod-item.active');
+      if (activeItem) {
+        activeItem.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+      }
+    }, 50);
   }
 
   const quickContainer = document.getElementById('obs-remote-quick-list');
@@ -2169,7 +2176,27 @@ function initObsSideRemote() {
   // Default: Show side remote panel on OBS tab
   toggleObsSideRemote(true);
 
-  // Bind Global Keyboard Shortcuts (Space, Arrows, 1-9, F1-F4, H)
+  // Multi-digit number keypress buffer (e.g. typing "10" or "14" within 450ms)
+  let digitBuffer = '';
+  let digitTimer = null;
+
+  const handleDigitInput = (digitChar) => {
+    digitBuffer += digitChar;
+    if (digitTimer) clearTimeout(digitTimer);
+    digitTimer = setTimeout(() => {
+      const num = parseInt(digitBuffer, 10);
+      digitBuffer = '';
+      if (!isNaN(num) && num >= 1 && num <= DINCOX_PRODUCTS.length) {
+        const targetProd = DINCOX_PRODUCTS[num - 1];
+        if (targetProd) {
+          selectProduct(targetProd);
+          renderObsRemoteUI();
+        }
+      }
+    }, 450);
+  };
+
+  // Bind Global Keyboard Shortcuts (Space, Arrows, 0-9, F1-F4, H)
   window.addEventListener('keydown', (e) => {
     const activeEl = document.activeElement;
     if (activeEl && (activeEl.tagName === 'INPUT' || activeEl.tagName === 'TEXTAREA' || activeEl.isContentEditable)) {
@@ -2203,13 +2230,10 @@ function initObsSideRemote() {
       return;
     }
 
-    if (key >= '1' && key <= '9') {
-      const idx = parseInt(key, 10) - 1;
-      if (DINCOX_PRODUCTS[idx]) {
-        e.preventDefault();
-        selectProduct(DINCOX_PRODUCTS[idx]);
-        renderObsRemoteUI();
-      }
+    // Number keys 0-9 (Supports typing 1-digit or 2-digit product numbers like 1, 10, 14)
+    if (key >= '0' && key <= '9') {
+      e.preventDefault();
+      handleDigitInput(key);
       return;
     }
 
