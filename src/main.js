@@ -29,6 +29,7 @@ import { AIPresenterEngine } from './engine/aiPresenterEngine.js';
 import { ShopeeCanvasRenderer } from './engine/canvasRenderer.js';
 import { VideoExporter } from './engine/videoExporter.js';
 import { ShopeeRtmpStreamer } from './engine/shopeeRtmpStreamer.js';
+import { verifyBrandAccess, validateStoredSession } from './data/brandAccessConfig.js';
 
 // Application State
 let activeProduct = (DINCOX_PRODUCTS && DINCOX_PRODUCTS.length > 0) ? DINCOX_PRODUCTS[0] : null;
@@ -2142,7 +2143,6 @@ function bindEvents() {
 
 // Studio Password Protection Gate Logic
 function initAuthGate() {
-  const STUDIO_PASSWORD = 'beanh1510';
   const authOverlay = document.getElementById('auth-lock-overlay');
   const authForm = document.getElementById('auth-form');
   const authBranchInput = document.getElementById('auth-branch-input');
@@ -2159,34 +2159,61 @@ function initAuthGate() {
   const currentSavedBranch = localStorage.getItem('dincox_studio_branch') || 'DinCox';
   applyStudioBrand(currentSavedBranch);
 
-  const isAuth = localStorage.getItem('dincox_studio_authenticated') === 'true';
+  // Validate session cryptographically
+  validateStoredSession().then(isValid => {
+    if (!isValid) {
+      authOverlay.classList.remove('hidden');
+      if (authBranchInput) authBranchInput.value = currentSavedBranch;
+      setTimeout(() => {
+        if (authPasswordInput) authPasswordInput.focus();
+      }, 300);
+    } else {
+      authOverlay.classList.add('hidden');
+    }
+  });
 
-  if (!isAuth) {
-    authOverlay.classList.remove('hidden');
-    if (authBranchInput) authBranchInput.value = currentSavedBranch;
-    setTimeout(() => {
-      if (authPasswordInput) authPasswordInput.focus();
-    }, 300);
-  } else {
-    authOverlay.classList.add('hidden');
-  }
+  const checkAndAuthenticate = async () => {
+    const branchVal = authBranchInput ? authBranchInput.value.trim() : '';
+    const passVal = authPasswordInput ? authPasswordInput.value : '';
 
-  const checkAndAuthenticate = () => {
-    const val = authPasswordInput ? authPasswordInput.value.trim() : '';
-    if (val.toLowerCase() === STUDIO_PASSWORD.toLowerCase()) {
-      localStorage.setItem('dincox_studio_authenticated', 'true');
-      const branchVal = authBranchInput ? authBranchInput.value.trim() : '';
-      const finalBranch = branchVal || localStorage.getItem('dincox_studio_branch') || 'DinCox';
-      localStorage.setItem('dincox_studio_branch', finalBranch);
-      applyStudioBrand(finalBranch);
-      if (studioSyncChannel) {
-        studioSyncChannel.postMessage({ type: 'UPDATE_BRANCH', branch: finalBranch });
+    if (!passVal) {
+      if (authErrorMsg) {
+        authErrorMsg.textContent = "⚠️ Vui lòng nhập mật khẩu truy cập!";
+        authErrorMsg.classList.remove('hidden');
       }
+      if (authPasswordInput) authPasswordInput.focus();
+      return;
+    }
+
+    const result = await verifyBrandAccess(branchVal, passVal);
+    if (result.success) {
+      localStorage.setItem('dincox_studio_authenticated', 'true');
+      localStorage.setItem('dincox_studio_branch', result.brand);
+      if (result.sessionToken) {
+        localStorage.setItem('dincox_studio_auth_token', result.sessionToken);
+      }
+      applyStudioBrand(result.brand);
+
+      // Restore brand-isolated catalog & scripts
+      restoreProductsCatalogFromLocalStorage();
+      renderProductList();
+      if (DINCOX_PRODUCTS && DINCOX_PRODUCTS.length > 0) {
+        selectProduct(DINCOX_PRODUCTS[0], false);
+      }
+
+      if (studioSyncChannel) {
+        studioSyncChannel.postMessage({ type: 'UPDATE_BRANCH', branch: result.brand });
+        studioSyncChannel.postMessage({ type: 'RELOAD_CATALOG' });
+      }
+
       authOverlay.classList.add('hidden');
       if (authErrorMsg) authErrorMsg.classList.add('hidden');
     } else {
-      if (authErrorMsg) authErrorMsg.classList.remove('hidden');
-      alert("⚠️ Mật khẩu không chính xác! Vui lòng kiểm tra lại.");
+      if (authErrorMsg) {
+        authErrorMsg.textContent = result.message || "⚠️ Mật khẩu hoặc Tên Thương Hiệu không chính xác!";
+        authErrorMsg.classList.remove('hidden');
+      }
+      alert(result.message || "⚠️ Mật khẩu không chính xác! Vui lòng kiểm tra lại.");
       if (authPasswordInput) {
         authPasswordInput.value = '';
         authPasswordInput.focus();
@@ -2195,19 +2222,16 @@ function initAuthGate() {
   };
 
   const handleQuickBranchChange = () => {
-    const current = localStorage.getItem('dincox_studio_branch') || 'DinCox';
-    const nextBranch = prompt("🏢 Nhập Tên Thương Hiệu / Chi Nhánh mới cho Studio:", current);
-    if (nextBranch !== null && nextBranch.trim() !== '') {
-      const trimmed = nextBranch.trim();
-      localStorage.setItem('dincox_studio_branch', trimmed);
-      applyStudioBrand(trimmed);
-      if (authBranchInput) authBranchInput.value = trimmed;
-      if (studioSyncChannel) {
-        studioSyncChannel.postMessage({ type: 'UPDATE_BRANCH', branch: trimmed });
+    if (confirm("🔒 Bạn có muốn chuyển sang Thương Hiệu (Brand) khác? (Hệ thống sẽ mở khóa để nhập tên và mật khẩu của Brand mới)")) {
+      localStorage.removeItem('dincox_studio_authenticated');
+      localStorage.removeItem('dincox_studio_auth_token');
+      authOverlay.classList.remove('hidden');
+      if (authBranchInput) {
+        authBranchInput.focus();
+        authBranchInput.select();
       }
-      if (activeProduct) {
-        currentScriptStages = generateScriptForProduct(activeProduct);
-        loadCurrentStageText();
+      if (authPasswordInput) {
+        authPasswordInput.value = '';
       }
     }
   };
@@ -2274,6 +2298,7 @@ function initAuthGate() {
     btnLockStudio.addEventListener('click', () => {
       if (confirm("🔒 Bạn có muốn khóa Studio lại? (Cần nhập lại mật khẩu truy cập để mở lại Studio)")) {
         localStorage.removeItem('dincox_studio_authenticated');
+        localStorage.removeItem('dincox_studio_auth_token');
         if (authBranchInput) {
           authBranchInput.value = localStorage.getItem('dincox_studio_branch') || 'DinCox';
         }

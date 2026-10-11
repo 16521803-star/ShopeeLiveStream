@@ -1025,12 +1025,22 @@ export function parseBatchProductsList(rawText) {
 }
 
 // LocalStorage Custom Script & Product Catalog Persistence
-const SCRIPTS_STORAGE_KEY = 'dincox_custom_scripts_v1';
-const CATALOG_STORAGE_KEY = 'dincox_custom_products_catalog_v2';
+export function getCatalogStorageKey() {
+  const brand = getStudioBrandName().toLowerCase();
+  if (brand === 'dincox') return 'dincox_custom_products_catalog_v2';
+  return `studio_custom_products_catalog_${brand}`;
+}
+
+export function getScriptsStorageKey() {
+  const brand = getStudioBrandName().toLowerCase();
+  if (brand === 'dincox') return 'dincox_custom_scripts_v1';
+  return `studio_custom_scripts_${brand}`;
+}
 
 export function saveProductsCatalogToLocalStorage() {
   try {
-    localStorage.setItem(CATALOG_STORAGE_KEY, JSON.stringify(DINCOX_PRODUCTS));
+    const key = getCatalogStorageKey();
+    localStorage.setItem(key, JSON.stringify(DINCOX_PRODUCTS));
   } catch (e) {
     console.warn("Could not save products catalog to localStorage:", e);
   }
@@ -1038,7 +1048,12 @@ export function saveProductsCatalogToLocalStorage() {
 
 export function restoreProductsCatalogFromLocalStorage() {
   try {
-    const jsonStr = localStorage.getItem(CATALOG_STORAGE_KEY);
+    const key = getCatalogStorageKey();
+    let jsonStr = localStorage.getItem(key);
+    // Fallback to default catalog if this brand has no custom saved products yet
+    if (!jsonStr && key !== 'dincox_custom_products_catalog_v2') {
+      jsonStr = localStorage.getItem('dincox_custom_products_catalog_v2');
+    }
     if (jsonStr) {
       const parsed = JSON.parse(jsonStr);
       if (Array.isArray(parsed) && parsed.length > 0) {
@@ -1133,7 +1148,11 @@ export function importAllProductsCatalogJSON(jsonStr) {
 
 function getAllCustomScriptsMap() {
   try {
-    const raw = localStorage.getItem(SCRIPTS_STORAGE_KEY);
+    const key = getScriptsStorageKey();
+    let raw = localStorage.getItem(key);
+    if (!raw && key !== 'dincox_custom_scripts_v1') {
+      raw = localStorage.getItem('dincox_custom_scripts_v1');
+    }
     return raw ? JSON.parse(raw) : {};
   } catch (e) {
     console.error("Failed to parse custom scripts from storage:", e);
@@ -1145,7 +1164,8 @@ export function saveProductScript(productId, scriptStages) {
   const map = getAllCustomScriptsMap();
   map[productId] = scriptStages;
   try {
-    localStorage.setItem(SCRIPTS_STORAGE_KEY, JSON.stringify(map));
+    const key = getScriptsStorageKey();
+    localStorage.setItem(key, JSON.stringify(map));
   } catch (e) {
     console.error("Failed to save script to localStorage:", e);
   }
@@ -1155,7 +1175,8 @@ export function resetProductScript(productId) {
   const map = getAllCustomScriptsMap();
   delete map[productId];
   try {
-    localStorage.setItem(SCRIPTS_STORAGE_KEY, JSON.stringify(map));
+    const key = getScriptsStorageKey();
+    localStorage.setItem(key, JSON.stringify(map));
   } catch (e) {
     console.error("Failed to reset script in localStorage:", e);
   }
