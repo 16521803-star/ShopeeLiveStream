@@ -20,7 +20,9 @@ import {
   importAllProductsCatalogJSON,
   restoreProductsCatalogFromLocalStorage,
   DEFAULT_PRESENTER_AVATARS,
-  restoreCustomPresenterAvatars
+  restoreCustomPresenterAvatars,
+  getStudioBrandName,
+  setStudioBrandName
 } from './data/dincoxCatalog.js';
 import { speechEngine, audioCacheDB } from './engine/speechSynthesizer.js';
 import { AIPresenterEngine } from './engine/aiPresenterEngine.js';
@@ -165,6 +167,66 @@ if (activeProduct) {
   canvasRenderer.setProduct(activeProduct);
 }
 
+// Multi-Brand / Branch Dynamic Branding Helper
+export function applyStudioBrand(brand) {
+  const brandName = (brand && brand.trim()) ? brand.trim() : 'DinCox';
+  setStudioBrandName(brandName);
+
+  const isObs = window.location.search.includes('obs=true') || window.location.search.includes('overlay=true');
+
+  // 1. Update Document Title
+  document.title = `${brandName}${isObs ? ' (OBS Overlay)' : ''} - Shopee Live Studio & AI Streamer Generator`;
+
+  // 2. Update Header Brand Badge
+  const brandBadge = document.getElementById('app-brand-badge');
+  if (brandBadge) {
+    brandBadge.textContent = brandName.toUpperCase();
+  }
+
+  // 3. Update Sub-tag
+  const brandSubtag = document.getElementById('app-brand-subtag');
+  if (brandSubtag) {
+    if (brandName.toLowerCase() === 'dincox') {
+      brandSubtag.textContent = 'Giày Chuẩn EU - Giá Ưu Việt';
+    } else {
+      brandSubtag.textContent = `${brandName} • Official Live Stream`;
+    }
+  }
+
+  // 4. Update Auth Modal Elements
+  const authLogoBadge = document.getElementById('auth-logo-badge');
+  if (authLogoBadge) {
+    authLogoBadge.textContent = brandName.toUpperCase();
+  }
+  const authGateTitle = document.getElementById('auth-gate-title');
+  if (authGateTitle) {
+    authGateTitle.textContent = `🔒 ${brandName} Live Studio Gate`;
+  }
+  const authFooterText = document.getElementById('auth-footer-text');
+  if (authFooterText) {
+    if (brandName.toLowerCase() === 'dincox') {
+      authFooterText.textContent = 'Giày Chuẩn EU - Giá Ưu Việt © DinCox Shoes';
+    } else {
+      authFooterText.textContent = `Shopee Live Stream & AI Presenter © ${brandName}`;
+    }
+  }
+
+  // 5. Update catalog section & loop labels
+  const brandCatalogTitle = document.getElementById('brand-catalog-title');
+  if (brandCatalogTitle) {
+    brandCatalogTitle.textContent = brandName;
+  }
+  const brandLoopTitle = document.getElementById('brand-loop-title');
+  if (brandLoopTitle) {
+    brandLoopTitle.textContent = brandName;
+  }
+
+  // 6. Update canvas renderer
+  if (canvasRenderer && typeof canvasRenderer.setBranchName === 'function') {
+    canvasRenderer.setBranchName(brandName);
+  }
+}
+
 // Listen for Remote Control Commands from Main Studio Tab
 if (studioSyncChannel) {
   studioSyncChannel.onmessage = (event) => {
@@ -172,6 +234,11 @@ if (studioSyncChannel) {
     if (!data || !data.type) return;
 
     switch (data.type) {
+      case 'UPDATE_BRANCH':
+        if (data.branch) {
+          applyStudioBrand(data.branch);
+        }
+        break;
       case 'PLAY_SEQUENCE':
         if (!isSequencePlaying) {
           playScriptSequence(false);
@@ -2078,19 +2145,28 @@ function initAuthGate() {
   const STUDIO_PASSWORD = 'beanh1510';
   const authOverlay = document.getElementById('auth-lock-overlay');
   const authForm = document.getElementById('auth-form');
+  const authBranchInput = document.getElementById('auth-branch-input');
   const authPasswordInput = document.getElementById('auth-password-input');
   const authErrorMsg = document.getElementById('auth-error-msg');
   const btnToggleAuthPwd = document.getElementById('btn-toggle-auth-pwd');
   const btnLockStudio = document.getElementById('btn-lock-studio');
   const btnSubmitAuth = document.getElementById('btn-submit-auth');
+  const btnQuickEditBranch = document.getElementById('btn-quick-edit-branch');
+  const appBrandBadge = document.getElementById('app-brand-badge');
 
   if (!authOverlay) return;
+
+  const currentSavedBranch = localStorage.getItem('dincox_studio_branch') || 'DinCox';
+  applyStudioBrand(currentSavedBranch);
 
   const isAuth = localStorage.getItem('dincox_studio_authenticated') === 'true';
 
   if (!isAuth) {
     authOverlay.classList.remove('hidden');
-    setTimeout(() => authPasswordInput && authPasswordInput.focus(), 300);
+    if (authBranchInput) authBranchInput.value = currentSavedBranch;
+    setTimeout(() => {
+      if (authPasswordInput) authPasswordInput.focus();
+    }, 300);
   } else {
     authOverlay.classList.add('hidden');
   }
@@ -2099,6 +2175,13 @@ function initAuthGate() {
     const val = authPasswordInput ? authPasswordInput.value.trim() : '';
     if (val.toLowerCase() === STUDIO_PASSWORD.toLowerCase()) {
       localStorage.setItem('dincox_studio_authenticated', 'true');
+      const branchVal = authBranchInput ? authBranchInput.value.trim() : '';
+      const finalBranch = branchVal || localStorage.getItem('dincox_studio_branch') || 'DinCox';
+      localStorage.setItem('dincox_studio_branch', finalBranch);
+      applyStudioBrand(finalBranch);
+      if (studioSyncChannel) {
+        studioSyncChannel.postMessage({ type: 'UPDATE_BRANCH', branch: finalBranch });
+      }
       authOverlay.classList.add('hidden');
       if (authErrorMsg) authErrorMsg.classList.add('hidden');
     } else {
@@ -2110,6 +2193,35 @@ function initAuthGate() {
       }
     }
   };
+
+  const handleQuickBranchChange = () => {
+    const current = localStorage.getItem('dincox_studio_branch') || 'DinCox';
+    const nextBranch = prompt("🏢 Nhập Tên Thương Hiệu / Chi Nhánh mới cho Studio:", current);
+    if (nextBranch !== null && nextBranch.trim() !== '') {
+      const trimmed = nextBranch.trim();
+      localStorage.setItem('dincox_studio_branch', trimmed);
+      applyStudioBrand(trimmed);
+      if (authBranchInput) authBranchInput.value = trimmed;
+      if (studioSyncChannel) {
+        studioSyncChannel.postMessage({ type: 'UPDATE_BRANCH', branch: trimmed });
+      }
+      if (activeProduct) {
+        currentScriptStages = generateScriptForProduct(activeProduct);
+        loadCurrentStageText();
+      }
+    }
+  };
+
+  if (btnQuickEditBranch && !btnQuickEditBranch._hasBranchListener) {
+    btnQuickEditBranch._hasBranchListener = true;
+    btnQuickEditBranch.addEventListener('click', handleQuickBranchChange);
+  }
+
+  if (appBrandBadge && !appBrandBadge._hasBranchListener) {
+    appBrandBadge._hasBranchListener = true;
+    appBrandBadge.style.cursor = 'pointer';
+    appBrandBadge.addEventListener('click', handleQuickBranchChange);
+  }
 
   if (btnSubmitAuth && !btnSubmitAuth._hasAuthListener) {
     btnSubmitAuth._hasAuthListener = true;
@@ -2124,6 +2236,16 @@ function initAuthGate() {
     authForm.addEventListener('submit', (e) => {
       e.preventDefault();
       checkAndAuthenticate();
+    });
+  }
+
+  if (authBranchInput && !authBranchInput._hasBranchListener) {
+    authBranchInput._hasBranchListener = true;
+    authBranchInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        if (authPasswordInput) authPasswordInput.focus();
+      }
     });
   }
 
@@ -2152,6 +2274,9 @@ function initAuthGate() {
     btnLockStudio.addEventListener('click', () => {
       if (confirm("🔒 Bạn có muốn khóa Studio lại? (Cần nhập lại mật khẩu truy cập để mở lại Studio)")) {
         localStorage.removeItem('dincox_studio_authenticated');
+        if (authBranchInput) {
+          authBranchInput.value = localStorage.getItem('dincox_studio_branch') || 'DinCox';
+        }
         authOverlay.classList.remove('hidden');
         if (authPasswordInput) {
           authPasswordInput.value = '';
@@ -2384,6 +2509,9 @@ async function preloadProductVideos() {
 // Initialize Application
 function init() {
   restoreCustomPresenterAvatars();
+
+  const savedBranch = localStorage.getItem('dincox_studio_branch') || 'DinCox';
+  applyStudioBrand(savedBranch);
 
   const isObsMode = window.location.search.includes('obs=true') || window.location.search.includes('overlay=true');
   if (isObsMode) {

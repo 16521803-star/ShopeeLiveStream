@@ -16,6 +16,10 @@
       if (isObs) {
         document.documentElement.setAttribute('data-obs-mode', '1');
       }
+      try {
+        var branch = localStorage.getItem('dincox_studio_branch') || 'DinCox';
+        document.title = branch + (isObs ? ' (OBS Overlay)' : '') + ' - Shopee Live Studio & AI Streamer Generator';
+      } catch (e) {}
     })();
   </script>
   <style>
@@ -85,11 +89,14 @@
     <!-- Top Navigation Header -->
     <header class="app-header">
       <div class="header-brand">
-        <div class="brand-logo-badge">DINCOX</div>
+        <div class="brand-logo-badge" id="app-brand-badge" title="Bấm để đổi tên Thương Hiệu / Chi Nhánh">DINCOX</div>
         <div class="brand-titles">
-          <h1>Shopee Live Studio & AI Video Generator</h1>
-          <span class="sub-tag">Giày Chuẩn EU - Giá Ưu Việt</span>
+          <h1 id="app-main-title">Shopee Live Studio & AI Video Generator</h1>
+          <span class="sub-tag" id="app-brand-subtag">Giày Chuẩn EU - Giá Ưu Việt</span>
         </div>
+        <button id="btn-quick-edit-branch" class="btn btn-xs btn-ghost" style="padding: 4px 8px; font-size: 11px; border: 1px dashed rgba(255,255,255,0.3); border-radius: 6px; color: #cbd5e1; display: inline-flex; align-items: center; gap: 4px; cursor: pointer;" title="Đổi Tên Thương Hiệu / Chi Nhánh">
+          <i data-lucide="store" style="width: 13px; height: 13px;"></i> Đổi Branch
+        </button>
       </div>
       <div class="header-actions">
         <span class="status-pill"><span class="pulse-dot"></span> Studio Ready</span>
@@ -127,7 +134,7 @@
       <section class="panel control-panel mobile-hidden">
         <div class="panel-section">
           <div class="section-header-flex">
-            <h2><i data-lucide="package"></i> 1. Nguồn Sản Phẩm DinCox</h2>
+            <h2><i data-lucide="package"></i> 1. Nguồn Sản Phẩm <span id="brand-catalog-title">DinCox</span></h2>
             <div class="import-btn-group">
               <button id="btn-export-prod-json" class="btn btn-xs btn-outline" title="Xuất toàn bộ danh sách sản phẩm & kịch bản ra tệp JSON">
                 <i data-lucide="download"></i> 📤 Xuất JSON SP
@@ -312,7 +319,7 @@
           <div class="loop-mode-toggle" style="display: flex; gap: 16px; align-items: center; flex-wrap: wrap; justify-content: center;">
             <label class="toggle-label">
               <input type="checkbox" id="chk-loop-all-products" checked>
-              <span>🔄 Tự động lặp qua tất cả sản phẩm DinCox</span>
+              <span>🔄 Tự động lặp qua tất cả sản phẩm <span id="brand-loop-title">DinCox</span></span>
             </label>
             <label class="toggle-label">
               <input type="checkbox" id="chk-show-product-card" checked>
@@ -605,14 +612,26 @@
   <div id="auth-lock-overlay" class="auth-overlay hidden">
     <div class="auth-card">
       <div class="auth-header">
-        <div class="auth-logo-badge">DINCOX</div>
-        <h2>🔒 DinCox Live Studio Gate</h2>
-        <p class="auth-subtitle">Nhập mật khẩu truy cập để mở khóa hệ thống Shopee Live Studio & AI Presenter Generator</p>
+        <div class="auth-logo-badge" id="auth-logo-badge">DINCOX</div>
+        <h2 id="auth-gate-title">🔒 DinCox Live Studio Gate</h2>
+        <p class="auth-subtitle">Nhập thông tin chi nhánh / thương hiệu & mật khẩu truy cập để mở khóa Shopee Live Studio</p>
       </div>
 
       <form id="auth-form" class="auth-form" onsubmit="return false;">
-        <div class="form-group">
-          <label for="auth-password-input">Mật Khẩu Truy Cập Studio</label>
+        <div class="form-group" style="text-align: left; margin-bottom: 12px;">
+          <label for="auth-branch-input" style="display: flex; align-items: center; gap: 6px; font-weight: 600; font-size: 13px; color: #e2e8f0; margin-bottom: 6px;">
+            <i data-lucide="store" style="width: 15px; height: 15px; color: #ff7a45;"></i> Tên Thương Hiệu / Chi Nhánh (Brand / Branch)
+          </label>
+          <div class="input-wrapper">
+            <input type="text" id="auth-branch-input" class="input-field" placeholder="VD: DinCox, Adidas, Shop ABC, Chi nhánh 1..." autocomplete="organization" spellcheck="false" value="DinCox">
+          </div>
+          <small style="color: #94a3b8; font-size: 11px; margin-top: 4px; display: block;">Hệ thống sẽ đồng bộ tiêu đề, giao diện và kịch bản live theo thương hiệu này.</small>
+        </div>
+
+        <div class="form-group" style="text-align: left; margin-bottom: 12px;">
+          <label for="auth-password-input" style="display: flex; align-items: center; gap: 6px; font-weight: 600; font-size: 13px; color: #e2e8f0; margin-bottom: 6px;">
+            <i data-lucide="key-round" style="width: 15px; height: 15px; color: #ff7a45;"></i> Mật Khẩu Truy Cập Studio
+          </label>
           <div class="password-input-wrapper">
             <input type="password" id="auth-password-input" class="input-field" placeholder="Nhập mật khẩu truy cập..." required autocomplete="current-password" autocapitalize="none" autocorrect="off" spellcheck="false">
             <button type="button" id="btn-toggle-auth-pwd" class="btn-eye" title="Hiện/Ẩn mật khẩu">
@@ -631,7 +650,7 @@
       </form>
 
       <div class="auth-footer">
-        <span>Giày Chuẩn EU - Giá Ưu Việt © DinCox Shoes</span>
+        <span id="auth-footer-text">Giày Chuẩn EU - Giá Ưu Việt © DinCox Shoes</span>
       </div>
     </div>
   </div>

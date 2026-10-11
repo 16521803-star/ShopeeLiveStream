@@ -62,16 +62,24 @@ export class ShopeeCanvasRenderer {
     // Floating product card toggle state (default: true)
     this.showProductCard = true;
 
+    this.branchName = 'DinCox';
     // Shopee Live simulated chat feed
     this.chatFeed = [
-      { user: 'ThuTrang_99', text: 'Mẫu DC47 lót đi êm không ạ?' },
-      { user: 'MinhQuang_Sneaker', text: 'Shop cho xem đế cao su với ạ!' },
+      { user: 'ThuTrang_99', text: 'Mẫu sản phẩm này dùng thích lắm ạ!' },
+      { user: 'MinhQuang_Sneaker', text: 'Shop cho xem cận cảnh chất liệu với ạ!' },
       { user: 'HoangLong_Shopee', text: 'Đã áp mã voucher 50K chốt đơn thành công!' },
       { user: 'YenNhi_02', text: 'Có được freeship hông shop?' },
-      { user: 'DucAnh_39', text: 'Giày chuẩn EU chất quá DinCox ơi ❤️' }
+      { user: 'DucAnh_39', text: 'Hàng chuẩn xịn chất lượng quá shop ơi ❤️' }
     ];
 
     this.initHearts();
+  }
+
+  setBranchName(name) {
+    this.branchName = name || 'DinCox';
+    if (this.chatFeed && this.chatFeed.length > 4) {
+      this.chatFeed[4] = { user: 'DucAnh_39', text: `Hàng chuẩn xịn chất lượng quá ${this.branchName} ơi ❤️` };
+    }
   }
 
   setShowFlashSaleBanner(show) {

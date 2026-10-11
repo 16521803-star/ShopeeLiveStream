@@ -1211,12 +1211,28 @@ export function moveProductInCatalog(id, direction) {
   return true;
 }
 
+export function getStudioBrandName() {
+  try {
+    return localStorage.getItem('dincox_studio_branch') || 'DinCox';
+  } catch (e) {
+    return 'DinCox';
+  }
+}
+
+export function setStudioBrandName(brand) {
+  try {
+    if (brand && brand.trim()) {
+      localStorage.setItem('dincox_studio_branch', brand.trim());
+    }
+  } catch (e) {}
+}
+
 export const TRANSITION_PHRASES = [
-  (prev, next) => `Vừa rồi là mẫu ${prev ? prev.name : 'giày'} cực kỳ hot! Và ngay bây giờ, hãy cùng shop chuyển sang mẫu tiếp theo không thể bỏ qua: ${next.name}!`,
-  (prev, next) => `Mọi người đã chốt size mẫu vừa rồi chưa ạ? Ngay sau đây em xin lên sóng mẫu ${next.name} đang được săn đón ráo riết trên gian hàng DinCox!`,
-  (prev, next) => `Tiếp nối phiên live hôm nay, shop mang đến cho cả nhà một thiết kế siêu êm ái và ưu đãi cực hời: ${next.name}!`,
-  (prev, next) => `Dạ tiếp theo đây, các tín đồ nhà DinCox nhất định không thể rời mắt khỏi siêu phẩm ${next.name} này nhé!`,
-  (prev, next) => `Cả nhà mình cùng chuyển qua mẫu mới tiếp theo nha! Ngay trên màn hình lúc này là ${next.name} chuẩn EU!`
+  (prev, next) => `Vừa rồi là mẫu ${prev ? prev.name : 'sản phẩm'} cực kỳ hot! Và ngay bây giờ, hãy cùng shop chuyển sang mẫu tiếp theo không thể bỏ qua: ${next.name}!`,
+  (prev, next) => `Mọi người đã chốt đơn mẫu vừa rồi chưa ạ? Ngay sau đây em xin lên sóng mẫu ${next.name} đang được săn đón ráo riết trên gian hàng ${getStudioBrandName()}!`,
+  (prev, next) => `Tiếp nối phiên live hôm nay, shop mang đến cho cả nhà một thiết kế siêu đẹp và ưu đãi cực hời: ${next.name}!`,
+  (prev, next) => `Dạ tiếp theo đây, các tín đồ nhà ${getStudioBrandName()} nhất định không thể rời mắt khỏi siêu phẩm ${next.name} này nhé!`,
+  (prev, next) => `Cả nhà mình cùng chuyển qua mẫu mới tiếp theo nha! Ngay trên màn hình lúc này là ${next.name} chính hãng!`
 ];
 
 export function getRandomTransitionPhrase(prevProd, nextProd) {
@@ -1225,10 +1241,11 @@ export function getRandomTransitionPhrase(prevProd, nextProd) {
 }
 
 export function generateScriptForProduct(product) {
+  const brandName = getStudioBrandName();
   if (!product) {
     return [
-      { stage: 'Intro', text: 'Xin chào tất cả mọi người đang theo dõi phiên Shopee Live chính hãng của DinCox!', duration: 5 },
-      { stage: 'Highlights', text: 'Sản phẩm nổi bật với định hướng Giày Chuẩn EU - Giá Ưu Việt. Lót Memory Foam siêu êm.', duration: 7 },
+      { stage: 'Intro', text: `Xin chào tất cả mọi người đang theo dõi phiên Shopee Live chính hãng của ${brandName}!`, duration: 5 },
+      { stage: 'Highlights', text: 'Sản phẩm nổi bật với chất lượng cao cấp, thiết kế thời trang hiện đại.', duration: 7 },
       { stage: 'Deal & Voucher', text: 'Duy nhất trong phiên Live hôm nay, giá gốc ưu đãi lớn!', duration: 8 },
       { stage: 'Call to Action', text: 'Số lượng có hạn! Mọi người bấm ngay vào giỏ hàng góc trái bên dưới để săn size chuẩn nhé!', duration: 6 }
     ];
@@ -1243,27 +1260,27 @@ export function generateScriptForProduct(product) {
   // Default script generator
   const formattedSalePrice = new Intl.NumberFormat('vi-VN').format(product.salePrice) + 'đ';
   const formattedOrigPrice = new Intl.NumberFormat('vi-VN').format(product.originalPrice) + 'đ';
-  const mainFeature = product.features && product.features[0] ? product.features[0] : 'Lót Memory Foam siêu êm';
+  const mainFeature = product.features && product.features[0] ? product.features[0] : 'Chất lượng cao cấp, siêu êm và bền đẹp';
 
   return [
     {
       stage: 'Intro',
-      text: `Xin chào tất cả mọi người đang theo dõi phiên Shopee Live chính hãng của DinCox! Hôm nay shop xin giới thiệu mẫu ${product.name}!`,
+      text: `Xin chào tất cả mọi người đang theo dõi phiên Shopee Live chính hãng của ${brandName}! Hôm nay shop xin giới thiệu mẫu ${product.name}!`,
       duration: 5
     },
     {
       stage: 'Highlights',
-      text: `Sản phẩm nổi bật với định hướng Giày Chuẩn EU - Giá Ưu Việt. ${mainFeature}.`,
+      text: `Sản phẩm nổi bật với cam kết chất lượng chuẩn chính hãng. ${mainFeature}.`,
       duration: 7
     },
     {
       stage: 'Deal & Voucher',
-      text: `Duy nhất trong phiên Live hôm nay, giá gốc ${formattedOrigPrice} giảm trực tiếp ${product.discountPercent || 35}% chỉ còn ${formattedSalePrice}! Áp thêm voucher ${product.voucherCode || 'DINCOX50K'} giảm ngay ${product.voucherValue || '50.000đ'}!`,
+      text: `Duy nhất trong phiên Live hôm nay, giá gốc ${formattedOrigPrice} giảm trực tiếp ${product.discountPercent || 35}% chỉ còn ${formattedSalePrice}! Áp thêm voucher ${product.voucherCode || 'LIVE50K'} giảm ngay ${product.voucherValue || '50.000đ'}!`,
       duration: 8
     },
     {
       stage: 'Call to Action',
-      text: `Số lượng quà tặng và kho hàng sale chỉ còn vài đôi! Mọi người bấm ngay vào giỏ hàng góc trái bên dưới để săn size chuẩn và nhận ưu đãi nhé!`,
+      text: `Số lượng quà tặng và kho hàng sale chỉ còn rất ít! Mọi người bấm ngay vào giỏ hàng góc trái bên dưới để săn size chuẩn và nhận ưu đãi nhé!`,
       duration: 6
     }
   ];
