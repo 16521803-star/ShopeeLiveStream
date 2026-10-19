@@ -13,9 +13,9 @@ export async function sha256(plainText) {
   return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
 }
 
-// Master Admin Password Hash (Password: "beanh1510")
+// Master Admin Password Hash (Password: "beanh2211")
 // Master password can unlock any brand name at any time.
-export const MASTER_PASSWORD_HASH = 'a518306ed5529f68af96b34ec3bc784301413dedcd8c33e632c96155a1f88d4c';
+export const MASTER_PASSWORD_HASH = 'fb4b9d161b614c8f4210dbcc4e1c9c0ed00a0150382cbab0056d0168cf63b0aa';
 
 /**
  * Danh sách các Thương Hiệu (Brands) được cấp phép sử dụng Studio.
@@ -24,10 +24,10 @@ export const MASTER_PASSWORD_HASH = 'a518306ed5529f68af96b34ec3bc784301413dedcd8
  * 2. Thêm 1 dòng vào danh sách bên dưới rồi commit & push.
  */
 export const AUTHORIZED_BRANDS = {
-  // Brand 1: DinCox Shoes (Mặc định) - Mật khẩu: beanh1510
+  // Brand 1: DinCox Shoes (Mặc định) - Mật khẩu: beanh2211
   "dincox": {
     name: "DinCox",
-    hash: "a518306ed5529f68af96b34ec3bc784301413dedcd8c33e632c96155a1f88d4c",
+    hash: "fb4b9d161b614c8f4210dbcc4e1c9c0ed00a0150382cbab0056d0168cf63b0aa",
     subtitle: "Giày Chuẩn EU - Giá Ưu Việt"
   },
 
