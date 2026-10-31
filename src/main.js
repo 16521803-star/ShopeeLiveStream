@@ -2187,11 +2187,14 @@ function initAuthGate() {
 
     const result = await verifyBrandAccess(branchVal, passVal);
     if (result.success) {
-      localStorage.setItem('dincox_studio_authenticated', 'true');
+      sessionStorage.setItem('dincox_studio_authenticated', 'true');
       localStorage.setItem('dincox_studio_branch', result.brand);
       if (result.sessionToken) {
-        localStorage.setItem('dincox_studio_auth_token', result.sessionToken);
+        sessionStorage.setItem('dincox_studio_auth_token', result.sessionToken);
       }
+      // Dọn sạch khỏi localStorage để phiên làm việc chỉ duy trì trong sessionStorage
+      localStorage.removeItem('dincox_studio_authenticated');
+      localStorage.removeItem('dincox_studio_auth_token');
       applyStudioBrand(result.brand);
 
       // Restore brand-isolated catalog & scripts
@@ -2223,6 +2226,8 @@ function initAuthGate() {
 
   const handleQuickBranchChange = () => {
     if (confirm("🔒 Bạn có muốn chuyển sang Thương Hiệu (Brand) khác? (Hệ thống sẽ mở khóa để nhập tên và mật khẩu của Brand mới)")) {
+      sessionStorage.removeItem('dincox_studio_authenticated');
+      sessionStorage.removeItem('dincox_studio_auth_token');
       localStorage.removeItem('dincox_studio_authenticated');
       localStorage.removeItem('dincox_studio_auth_token');
       authOverlay.classList.remove('hidden');
@@ -2297,6 +2302,8 @@ function initAuthGate() {
     btnLockStudio._hasAuthListener = true;
     btnLockStudio.addEventListener('click', () => {
       if (confirm("🔒 Bạn có muốn khóa Studio lại? (Cần nhập lại mật khẩu truy cập để mở lại Studio)")) {
+        sessionStorage.removeItem('dincox_studio_authenticated');
+        sessionStorage.removeItem('dincox_studio_auth_token');
         localStorage.removeItem('dincox_studio_authenticated');
         localStorage.removeItem('dincox_studio_auth_token');
         if (authBranchInput) {

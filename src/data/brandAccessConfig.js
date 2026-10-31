@@ -97,15 +97,22 @@ export async function verifyBrandAccess(brandName, password) {
 }
 
 /**
- * Kiểm tra xem phiên đăng nhập hiện tại có hợp lệ không
+ * Kiểm tra xem phiên đăng nhập hiện tại có hợp lệ không.
+ * Sử dụng sessionStorage để bắt buộc nhập lại mật khẩu cho mỗi phiên tắt/bật lại trình duyệt.
  */
 export async function validateStoredSession() {
   try {
-    const storedToken = localStorage.getItem('dincox_studio_auth_token');
-    const storedBrand = localStorage.getItem('dincox_studio_branch') || 'DinCox';
-    const legacyAuth = localStorage.getItem('dincox_studio_authenticated');
+    // Dọn dẹp token cũ trong localStorage nếu có (chuyển đổi từ persistent sang session-only)
+    if (localStorage.getItem('dincox_studio_auth_token') || localStorage.getItem('dincox_studio_authenticated')) {
+      localStorage.removeItem('dincox_studio_auth_token');
+      localStorage.removeItem('dincox_studio_authenticated');
+    }
 
-    if (!storedToken && legacyAuth !== 'true') {
+    const storedToken = sessionStorage.getItem('dincox_studio_auth_token');
+    const storedBrand = localStorage.getItem('dincox_studio_branch') || 'DinCox';
+    const sessionAuth = sessionStorage.getItem('dincox_studio_authenticated');
+
+    if (!storedToken && sessionAuth !== 'true') {
       return false;
     }
 
@@ -122,8 +129,7 @@ export async function validateStoredSession() {
       }
     }
 
-    // Backward-compatibility: Nếu trước đó đã lưu cờ 'true' với master password
-    if (legacyAuth === 'true') {
+    if (sessionAuth === 'true') {
       return true;
     }
 
