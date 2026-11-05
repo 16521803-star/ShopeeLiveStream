@@ -211,19 +211,46 @@ export class SpeechEngine {
       this.voices = this.synth.getVoices();
     }
 
-    const viVoices = this.voices.filter(v => v.lang.toLowerCase().includes('vi'));
+    if (!this.voices || !this.voices.length) return null;
+
+    const viVoices = this.voices.filter(v => {
+      const l = (v.lang || '').toLowerCase();
+      const n = (v.name || '').toLowerCase();
+      return l.startsWith('vi') || l.includes('-vi') || l.includes('_vi') || n.includes('vietnam') || n.includes('tiếng việt') || n.includes('hoaimy') || n.includes('namminh');
+    });
+
     if (viVoices.length > 0) {
       if (gender === 'male') {
-        const maleVi = viVoices.find(v => v.name.toLowerCase().includes('male') || v.name.toLowerCase().includes('nam') || v.name.toLowerCase().includes('hoai'));
+        const maleVi = viVoices.find(v => {
+          const n = v.name.toLowerCase();
+          return n.includes('male') || n.includes('nam') || n.includes('hoai') || n.includes('namminh');
+        });
         if (maleVi) return maleVi;
       } else {
-        const femaleVi = viVoices.find(v => v.name.toLowerCase().includes('female') || v.name.toLowerCase().includes('nu') || v.name.toLowerCase().includes('an'));
+        const femaleVi = viVoices.find(v => {
+          const n = v.name.toLowerCase();
+          return n.includes('female') || n.includes('nu') || n.includes('an') || n.includes('hoaimy');
+        });
         if (femaleVi) return femaleVi;
       }
       return viVoices[0];
     }
 
-    return this.voices[0] || null;
+    // Trình duyệt không có giọng Tiếng Việt nào
+    if (!this._warnedNoVietnameseVoice) {
+      this._warnedNoVietnameseVoice = true;
+      console.warn("⚠️ Trình duyệt chưa có giọng đọc Tiếng Việt! Khuyên dùng: mở bằng Microsoft Edge (có sẵn giọng Hoài My & Nam Minh tiếng Việt mượt mà) hoặc cài gói Vietnamese Speech trong Windows Settings.");
+      // Thông báo nhẹ 1 lần cho người dùng trên Chrome để họ biết cách xử lý
+      setTimeout(() => {
+        const isChrome = navigator.userAgent.includes('Chrome') && !navigator.userAgent.includes('Edg');
+        if (isChrome && !sessionStorage.getItem('dincox_dismiss_chrome_voice_tip')) {
+          sessionStorage.setItem('dincox_dismiss_chrome_voice_tip', 'true');
+          alert("💡 LƯU Ý VỀ GIỌNG ĐỌC TRÊN CHROME:\n\nGoogle Chrome trên máy bạn hiện chưa có Gói giọng đọc Tiếng Việt (chỉ có giọng tiếng Anh của Windows nên nghe bị lơ lớ).\n\n👉 GIẢI PHÁP TỐT NHẤT:\n1. Mở web bằng Microsoft Edge (có sẵn giọng MC Hoài My / Nam Minh tiếng Việt cực hay và mượt mà hoàn toàn miễn phí).\n2. Hoặc vào Windows Settings ➔ Time & Language ➔ Speech ➔ Add voices ➔ Thêm 'Vietnamese'.");
+        }
+      }, 500);
+    }
+
+    return null;
   }
 
   async speak(text, options = {}) {
