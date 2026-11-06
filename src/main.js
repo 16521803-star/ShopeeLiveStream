@@ -163,6 +163,11 @@ const presenterEngine = new AIPresenterEngine(activePresenter);
 const videoExporter = new VideoExporter(canvas);
 const rtmpStreamer = new ShopeeRtmpStreamer(canvas);
 
+const nativeStreamVideo = document.getElementById('native-stream-video');
+if (nativeStreamVideo) {
+  presenterEngine.attachNativeVideo(nativeStreamVideo);
+}
+
 canvasRenderer.setPresenterEngine(presenterEngine);
 if (activeProduct) {
   canvasRenderer.setProduct(activeProduct);
@@ -1105,7 +1110,8 @@ async function toggleVideoRecording() {
   const downloadBtn = document.getElementById('btn-download-video');
 
   if (!videoExporter.isRecording) {
-    // Start Recording
+    // Start Recording (force Canvas blit so canvas.captureStream records video layer)
+    canvasRenderer.forceCanvasBlit = true;
     videoExporter.startRecording();
     btn.innerHTML = `<i data-lucide="square"></i> Dừng Quay & Xuất Video`;
     btn.classList.replace('btn-danger', 'btn-secondary');
@@ -1125,9 +1131,10 @@ async function toggleVideoRecording() {
       playScriptSequence();
     }
   } else {
-    // Stop Recording
+    // Stop Recording (restore zero-copy native video overlay)
     clearInterval(recordTimerInterval);
     recordedBlob = await videoExporter.stopRecording();
+    canvasRenderer.forceCanvasBlit = false;
     btn.innerHTML = `<i data-lucide="disc"></i> Quay & Xuất Video`;
     btn.classList.replace('btn-secondary', 'btn-danger');
     progressBox.classList.add('hidden');
@@ -1786,6 +1793,7 @@ function bindEvents() {
       localStorage.setItem('dincox_shopee_stream_key', key);
 
       rtmpStreamer.setCredentials(url, key);
+      canvasRenderer.forceCanvasBlit = true;
       const success = rtmpStreamer.startStream((status, msg) => {
         statusBadge.className = 'rtmp-status-badge';
         if (status === 'LIVE') {
@@ -1794,9 +1802,11 @@ function bindEvents() {
           btnStartRtmp.classList.add('hidden');
           btnStopRtmp.classList.remove('hidden');
         } else if (status === 'ERROR') {
+          canvasRenderer.forceCanvasBlit = false;
           statusBadge.classList.add('status-error');
           statusBadge.innerText = '⚠️ ' + msg;
         } else {
+          canvasRenderer.forceCanvasBlit = false;
           statusBadge.classList.add('status-idle');
           statusBadge.innerText = '● ' + msg;
           btnStartRtmp.classList.remove('hidden');
@@ -1806,10 +1816,13 @@ function bindEvents() {
 
       if (success && !isSequencePlaying) {
         playScriptSequence();
+      } else if (!success) {
+        canvasRenderer.forceCanvasBlit = false;
       }
     });
 
     btnStopRtmp.addEventListener('click', () => {
+      canvasRenderer.forceCanvasBlit = false;
       rtmpStreamer.stopStream();
       btnStartRtmp.classList.remove('hidden');
       btnStopRtmp.classList.add('hidden');

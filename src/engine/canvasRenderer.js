@@ -48,6 +48,7 @@ export class ShopeeCanvasRenderer {
     // Performance & Resolution Scaling Engine (Standard: 1080p, Eco: 720p)
     this.performanceMode = 'standard';
     this.scaleFactor = 1.0;
+    this.forceCanvasBlit = false;
     this._cachedSubtitleLines = [];
 
     this.currentProduct = null;
@@ -251,7 +252,16 @@ export class ShopeeCanvasRenderer {
 
     // 1. FULL-SCREEN BACKGROUND STREAMER (MC AI or Real MP4 Video fills 100% canvas background!)
     if (this.presenterEngine) {
-      this.presenterEngine.render(ctx, 0, 0, this.width, this.height);
+      if (!this.presenterEngine.useRealVideo) {
+        // Dark studio fallback gradient for 2D avatar mode
+        const bgGradient = ctx.createLinearGradient(0, 0, 0, this.height);
+        bgGradient.addColorStop(0, '#060d19');
+        bgGradient.addColorStop(0.5, '#0b1b36');
+        bgGradient.addColorStop(1, '#050912');
+        ctx.fillStyle = bgGradient;
+        ctx.fillRect(0, 0, this.width, this.height);
+      }
+      this.presenterEngine.render(ctx, 0, 0, this.width, this.height, this.forceCanvasBlit);
     } else {
       // Dark studio fallback gradient
       const bgGradient = ctx.createLinearGradient(0, 0, 0, this.height);
