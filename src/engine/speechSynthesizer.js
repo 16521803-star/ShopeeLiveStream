@@ -221,15 +221,21 @@ export class SpeechEngine {
 
     if (viVoices.length > 0) {
       if (gender === 'male') {
+        // Ưu tiên tìm giọng Nam: NamMinh, "nam" đứng độc lập (loại trừ 'vietnam'), male
         const maleVi = viVoices.find(v => {
           const n = v.name.toLowerCase();
-          return n.includes('male') || n.includes('nam') || n.includes('hoai') || n.includes('namminh');
+          const cleanName = n.replace(/vietnam|vietnamese|tiếng việt/g, '');
+          return n.includes('namminh') || n.includes('nam minh') || 
+                 n.includes('male') || /\bnam\b/i.test(cleanName);
         });
         if (maleVi) return maleVi;
       } else {
+        // Ưu tiên tìm giọng Nữ: HoaiMy, Microsoft An, nu, female
         const femaleVi = viVoices.find(v => {
           const n = v.name.toLowerCase();
-          return n.includes('female') || n.includes('nu') || n.includes('an') || n.includes('hoaimy');
+          return n.includes('hoaimy') || n.includes('hoài my') || 
+                 n.includes('female') || n.includes('nu') || n.includes('nữ') || 
+                 n.includes('microsoft an') || /\ban\b/i.test(n);
         });
         if (femaleVi) return femaleVi;
       }
@@ -248,6 +254,22 @@ export class SpeechEngine {
           alert("💡 LƯU Ý VỀ GIỌNG ĐỌC TRÊN CHROME:\n\nGoogle Chrome trên máy bạn hiện chưa có Gói giọng đọc Tiếng Việt (chỉ có giọng tiếng Anh của Windows nên nghe bị lơ lớ).\n\n👉 GIẢI PHÁP TỐT NHẤT:\n1. Mở web bằng Microsoft Edge (có sẵn giọng MC Hoài My / Nam Minh tiếng Việt cực hay và mượt mà hoàn toàn miễn phí).\n2. Hoặc vào Windows Settings ➔ Time & Language ➔ Speech ➔ Add voices ➔ Thêm 'Vietnamese'.");
         }
       }, 500);
+    }
+
+    // Fallback thông minh: Nếu máy không có giọng Tiếng Việt, cố gắng chọn giọng hệ thống khớp đúng giới tính
+    // (tránh tình trạng máy thì ra David giọng nam, máy lại ra Zira giọng nữ)
+    if (gender === 'male') {
+      const fallbackMale = this.voices.find(v => {
+        const n = v.name.toLowerCase();
+        return n.includes('david') || n.includes('mark') || n.includes('male') || n.includes('alex') || n.includes('george');
+      });
+      if (fallbackMale) return fallbackMale;
+    } else {
+      const fallbackFemale = this.voices.find(v => {
+        const n = v.name.toLowerCase();
+        return n.includes('zira') || n.includes('female') || n.includes('samantha') || n.includes('eva') || n.includes('susan') || n.includes('catherine');
+      });
+      if (fallbackFemale) return fallbackFemale;
     }
 
     return null;
