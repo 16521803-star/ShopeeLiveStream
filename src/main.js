@@ -195,6 +195,8 @@ export function applyStudioBrand(brand) {
   if (brandSubtag) {
     if (brandName.toLowerCase() === 'dincox') {
       brandSubtag.textContent = 'Giày Chuẩn EU - Giá Ưu Việt';
+    } else if (brandName.toLowerCase() === 'dincox2') {
+      brandSubtag.textContent = 'Live AI của Dincox';
     } else {
       brandSubtag.textContent = `${brandName} • Official Live Stream`;
     }
@@ -231,6 +233,9 @@ export function applyStudioBrand(brand) {
   // 6. Update canvas renderer
   if (canvasRenderer && typeof canvasRenderer.setBranchName === 'function') {
     canvasRenderer.setBranchName(brandName);
+    if (typeof canvasRenderer.setBrandWatermark === 'function') {
+      canvasRenderer.setBrandWatermark(brandName.toLowerCase() === 'dincox2' ? 'Live AI của Dincox' : '');
+    }
   }
 }
 

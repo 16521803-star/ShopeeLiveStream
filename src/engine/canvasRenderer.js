@@ -72,6 +72,7 @@ export class ShopeeCanvasRenderer {
     this.showProductCard = true;
 
     this.branchName = 'DinCox';
+    this.brandWatermark = '';
     // Shopee Live simulated chat feed
     this.chatFeed = [
       { user: 'ThuTrang_99', text: 'Mẫu sản phẩm này dùng thích lắm ạ!' },
@@ -86,9 +87,18 @@ export class ShopeeCanvasRenderer {
 
   setBranchName(name) {
     this.branchName = name || 'DinCox';
+    if (this.branchName.toLowerCase() === 'dincox2') {
+      this.brandWatermark = 'Live AI của Dincox';
+    } else if (this.branchName.toLowerCase() === 'dincox') {
+      this.brandWatermark = '';
+    }
     if (this.chatFeed && this.chatFeed.length > 4) {
       this.chatFeed[4] = { user: 'DucAnh_39', text: `Hàng chuẩn xịn chất lượng quá ${this.branchName} ơi ❤️` };
     }
+  }
+
+  setBrandWatermark(text) {
+    this.brandWatermark = text || '';
   }
 
   setShowFlashSaleBanner(show) {
@@ -275,6 +285,11 @@ export class ShopeeCanvasRenderer {
     // 2. Render Shopee AI Disclosure Watermark (Top Left - Shopee Compliance)
     this.renderAiComplianceWatermark(ctx);
 
+    // 2b. Render Brand Specific Live Watermark Badge (e.g. "Live AI của Dincox")
+    if (this.brandWatermark) {
+      this.renderBrandWatermarkBadge(ctx);
+    }
+
     // 3. Render Floating Shoe Product Corner Badge Card (Upper Right)
     this.renderFloatingProductCorner(ctx, timestamp);
 
@@ -316,6 +331,43 @@ export class ShopeeCanvasRenderer {
     ctx.fillStyle = '#FFFFFF';
     ctx.font = 'bold 20px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
     ctx.fillText('🤖 Trợ lý AI Streamer • Shopee Compliant', x + 42, y + 32);
+
+    ctx.restore();
+  }
+
+  // Brand Specific Watermark Badge (e.g. "Live AI của Dincox" for Dincox2)
+  renderBrandWatermarkBadge(ctx) {
+    if (!this.brandWatermark) return;
+    ctx.save();
+    const text = this.brandWatermark;
+    ctx.font = 'bold 20px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
+    const textWidth = ctx.measureText(text).width;
+    const w = textWidth + 56;
+    const h = 48;
+    const x = 40;
+    const y = 196;
+
+    // Translucent dark pill with DinCox brand gold border
+    const grad = ctx.createLinearGradient(x, y, x + w, y);
+    grad.addColorStop(0, 'rgba(15, 23, 42, 0.90)');
+    grad.addColorStop(1, 'rgba(229, 169, 60, 0.32)');
+    ctx.fillStyle = grad;
+    ctx.strokeStyle = 'rgba(229, 169, 60, 0.85)';
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    ctx.roundRect(x, y, w, h, 24);
+    ctx.fill();
+    ctx.stroke();
+
+    // DinCox glowing gold indicator dot
+    ctx.fillStyle = '#E5A93C';
+    ctx.beginPath();
+    ctx.arc(x + 22, y + 24, 6, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Text: "Live AI của Dincox"
+    ctx.fillStyle = '#FFFFFF';
+    ctx.fillText(text, x + 38, y + 31);
 
     ctx.restore();
   }

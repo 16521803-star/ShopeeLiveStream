@@ -31,7 +31,16 @@ export const AUTHORIZED_BRANDS = {
     subtitle: "Giày Chuẩn EU - Giá Ưu Việt"
   },
 
-  // Brand 2: Demo Partner Brand (Mẫu thử nghiệm) - Mật khẩu: demo@2026
+  // Brand 2: Dincox2 (Brand phụ DinCox) - Mật khẩu: Nhatanhlee1510
+  "dincox2": {
+    name: "Dincox2",
+    // SHA-256 of "Nhatanhlee1510"
+    hash: "40266b22c44486716e2b8beea2fab6d4fc58d95adbea035c3c23d4545ccd50c9",
+    subtitle: "Live AI của Dincox",
+    watermarkText: "Live AI của Dincox"
+  },
+
+  // Brand 3: Demo Partner Brand (Mẫu thử nghiệm) - Mật khẩu: demo@2026
   "demo": {
     name: "Demo Partner",
     // SHA-256 of "demo@2026"
@@ -63,7 +72,7 @@ export async function verifyBrandAccess(brandName, password) {
       brand: finalBrand, 
       sessionToken, 
       isAdmin: true,
-      subtitle: finalBrand.toLowerCase() === 'dincox' ? 'Giày Chuẩn EU - Giá Ưu Việt' : `${finalBrand} • Official Live Stream`
+      subtitle: finalBrand.toLowerCase() === 'dincox' ? 'Giày Chuẩn EU - Giá Ưu Việt' : (finalBrand.toLowerCase() === 'dincox2' ? 'Live AI của Dincox' : `${finalBrand} • Official Live Stream`)
     };
   }
 
