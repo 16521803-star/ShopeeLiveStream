@@ -368,15 +368,74 @@ if (studioSyncChannel) {
         renderQuickReplyChips();
         renderObsRemoteUI();
         break;
+      case 'UPDATE_PERFORMANCE_MODE':
+        if (data.mode) {
+          applyPerformanceMode(data.mode, false);
+        }
+        break;
     }
   };
 }
 
-// Animation Loop
-let lastTime = 0;
+// Global Performance & CPU Optimizer Mode Handler
+function applyPerformanceMode(mode, broadcast = true) {
+  const isEco = mode === 'eco';
+  const finalMode = isEco ? 'eco' : 'standard';
+  try {
+    localStorage.setItem('dincox_performance_mode', finalMode);
+  } catch (e) {}
+
+  // Toggle CSS class on body (disables heavy backdrop blur & intensive shadows on low-spec PCs)
+  document.body.classList.toggle('eco-mode', isEco);
+
+  // Update canvas resolution in renderer (Standard: 1080p, Eco: 720p)
+  canvasRenderer.setPerformanceMode(finalMode);
+
+  // Update Preview Panel checkbox
+  const chkEco = document.getElementById('chk-eco-mode');
+  if (chkEco) chkEco.checked = isEco;
+
+  // Update Login Modal select
+  const selectAuthPerf = document.getElementById('auth-perf-mode-select');
+  if (selectAuthPerf) selectAuthPerf.value = finalMode;
+
+  // Update Resolution text in canvas header
+  const resText = document.getElementById('canvas-resolution');
+  if (resText) {
+    resText.innerText = isEco ? '720 x 1280 (Eco 30FPS)' : '1080 x 1920 (30FPS)';
+  }
+
+  // Update Header Quick Button text & styling
+  const btnPerfToggle = document.getElementById('btn-toggle-perf-mode');
+  const badgeText = document.getElementById('app-perf-badge-text');
+  if (badgeText) {
+    badgeText.innerHTML = isEco ? '🌱 Eco Mode (720p 30fps)' : '⚡ Standard (1080p)';
+  }
+  if (btnPerfToggle) {
+    btnPerfToggle.style.borderColor = isEco ? '#10b981' : 'rgba(255,255,255,0.2)';
+    btnPerfToggle.style.color = isEco ? '#34d399' : '#cbd5e1';
+    btnPerfToggle.style.background = isEco ? 'rgba(16, 185, 129, 0.15)' : 'transparent';
+  }
+
+  // Broadcast to other tabs (OBS overlay tab)
+  if (broadcast && studioSyncChannel) {
+    studioSyncChannel.postMessage({ type: 'UPDATE_PERFORMANCE_MODE', mode: finalMode });
+  }
+}
+
+// Animation Loop (Standardized 30 FPS Live Broadcast to reduce CPU workload by 50%+)
+let lastRenderTime = 0;
+const TARGET_FPS = 30; // 30 FPS Shopee Live standard broadcasting rate
+const FRAME_INTERVAL = 1000 / TARGET_FPS;
+
 function animate(time) {
-  const delta = (time - lastTime) / 1000;
-  lastTime = time;
+  requestAnimationFrame(animate);
+
+  const elapsed = time - lastRenderTime;
+  if (elapsed < FRAME_INTERVAL) return;
+  lastRenderTime = time - (elapsed % FRAME_INTERVAL);
+
+  const delta = (elapsed || 33.3) / 1000;
 
   try {
     presenterEngine.update(speechEngine.simulatedVolume);
@@ -385,8 +444,6 @@ function animate(time) {
   } catch (err) {
     console.error("Canvas render loop error:", err);
   }
-
-  requestAnimationFrame(animate);
 }
 
 // UI Renderers
@@ -1156,6 +1213,32 @@ function bindEvents() {
       if (activeProduct) {
         selectProduct(activeProduct, false);
       }
+    });
+  }
+
+  // Eco / CPU Performance Optimizer Toggle Handler (720p 30fps for GPU-less / low-spec PCs)
+  const chkEcoMode = document.getElementById('chk-eco-mode');
+  if (chkEcoMode) {
+    chkEcoMode.addEventListener('change', (e) => {
+      applyPerformanceMode(e.target.checked ? 'eco' : 'standard');
+    });
+  }
+
+  // Quick performance toggle on top header
+  const btnTogglePerfMode = document.getElementById('btn-toggle-perf-mode');
+  if (btnTogglePerfMode) {
+    btnTogglePerfMode.addEventListener('click', () => {
+      const currentMode = localStorage.getItem('dincox_performance_mode') || 'standard';
+      const newMode = currentMode === 'eco' ? 'standard' : 'eco';
+      applyPerformanceMode(newMode);
+    });
+  }
+
+  // Auth screen performance dropdown
+  const authPerfSelect = document.getElementById('auth-perf-mode-select');
+  if (authPerfSelect) {
+    authPerfSelect.addEventListener('change', (e) => {
+      applyPerformanceMode(e.target.value);
     });
   }
 
@@ -2197,6 +2280,12 @@ function initAuthGate() {
       localStorage.removeItem('dincox_studio_auth_token');
       applyStudioBrand(result.brand);
 
+      // Apply chosen performance version (Standard: 1080p, Eco: 720p 30fps)
+      const selectAuthPerf = document.getElementById('auth-perf-mode-select');
+      if (selectAuthPerf) {
+        applyPerformanceMode(selectAuthPerf.value);
+      }
+
       // Restore brand-isolated catalog & scripts
       restoreProductsCatalogFromLocalStorage();
       renderProductList();
@@ -2544,6 +2633,10 @@ function init() {
 
   const savedBranch = localStorage.getItem('dincox_studio_branch') || 'DinCox';
   applyStudioBrand(savedBranch);
+
+  // Restore saved Performance & CPU Optimizer Mode (Standard: 1080p vs Eco: 720p 30fps)
+  const savedPerfMode = localStorage.getItem('dincox_performance_mode') || 'standard';
+  applyPerformanceMode(savedPerfMode, false);
 
   const isObsMode = window.location.search.includes('obs=true') || window.location.search.includes('overlay=true');
   if (isObsMode) {

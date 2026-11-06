@@ -1853,4 +1853,58 @@ body.obs-mode #shopee-canvas {
   gap: 10px;
 }
 
+/* ==========================================================================
+   ⚡ Eco Mode (CPU Optimizer for Low-Spec / GPU-less PCs)
+   ========================================================================== */
+body.eco-mode header.app-header,
+body.eco-mode .modal-backdrop,
+body.eco-mode .obs-remote-dock,
+body.eco-mode .obs-remote-pill,
+body.eco-mode .sidebar-drawer,
+body.eco-mode .auth-card {
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.6) !important;
+}
+
+body.eco-mode header.app-header {
+  background: rgba(11, 23, 42, 0.98) !important;
+}
+
+body.eco-mode .obs-remote-dock {
+  background: rgba(15, 23, 42, 0.98) !important;
+}
+
+body.eco-mode .product-item-card {
+  box-shadow: none !important;
+}
+
+body.eco-mode .btn-primary,
+body.eco-mode .btn-danger,
+body.eco-mode .btn-success {
+  box-shadow: none !important;
+}
+
+/* Eco Mode Tag & Toggle UI */
+.perf-tag-eco {
+  color: #34d399;
+  font-weight: 700;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.perf-tag-standard {
+  color: #cbd5e1;
+  font-weight: 700;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.eco-toggle-label input:checked + span {
+  color: #10b981 !important;
+}
+
+
 

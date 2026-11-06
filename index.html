@@ -100,6 +100,9 @@
       </div>
       <div class="header-actions">
         <span class="status-pill"><span class="pulse-dot"></span> Studio Ready</span>
+        <button id="btn-toggle-perf-mode" class="btn btn-xs btn-outline" style="border-radius: 20px; font-weight: 700; padding: 4px 10px; cursor: pointer; transition: all 0.2s;" title="Chuyển đổi giữa Bản Chuẩn 1080p và Bản Tối Ưu CPU (Eco 720p 30fps)">
+          <span id="app-perf-badge-text">⚡ Standard (1080p)</span>
+        </button>
         <button id="btn-toggle-sidebar" class="btn btn-sm btn-primary" style="background: linear-gradient(135deg, #ff7a45, #ff4d4f); border: none; font-weight: 700;">
           <i data-lucide="book-open"></i> 📖 Hướng Dẫn & Menu
         </button>
@@ -336,6 +339,10 @@
             <label class="toggle-label" style="border: 1px solid rgba(255, 122, 69, 0.4); padding: 4px 10px; border-radius: 8px; background: rgba(255, 122, 69, 0.1);">
               <input type="checkbox" id="chk-advanced-mode">
               <span>⚙️ Bật Chế Độ Nâng Cao (Advanced Studio)</span>
+            </label>
+            <label class="toggle-label eco-toggle-label" style="border: 1px solid rgba(16, 185, 129, 0.4); padding: 4px 10px; border-radius: 8px; background: rgba(16, 185, 129, 0.1); cursor: pointer;" title="Giảm 56% lượng pixel và khóa 30 FPS, tối ưu hóa cho máy không có GPU rời">
+              <input type="checkbox" id="chk-eco-mode">
+              <span style="color: #34d399; font-weight: 700;">🌱 Tiết Kiệm CPU (Eco 720p 30fps)</span>
             </label>
           </div>
           <div class="action-buttons-row">
@@ -638,6 +645,20 @@
               <i data-lucide="eye"></i>
             </button>
           </div>
+        </div>
+
+        <!-- Performance / Low-Spec Version Selection Option -->
+        <div class="form-group" style="text-align: left; margin-bottom: 14px;">
+          <label for="auth-perf-mode-select" style="display: flex; align-items: center; gap: 6px; font-weight: 600; font-size: 13px; color: #e2e8f0; margin-bottom: 6px;">
+            <i data-lucide="cpu" style="width: 15px; height: 15px; color: #10b981;"></i> Phiên Bản / Chế Độ Hiệu Năng Máy
+          </label>
+          <div class="input-wrapper">
+            <select id="auth-perf-mode-select" class="input-field" style="background: rgba(15, 23, 42, 0.9); cursor: pointer; color: #fff; font-size: 12px; font-weight: 600;">
+              <option value="standard" selected>⚡ Bản Tiêu Chuẩn (Full HD 1080p • Khuyên dùng cho máy có GPU)</option>
+              <option value="eco">🌱 Bản Tối Ưu CPU (HD 720p 30fps • Cho máy không GPU / CPU yếu)</option>
+            </select>
+          </div>
+          <small style="color: #94a3b8; font-size: 11px; margin-top: 4px; display: block;">Nếu máy không có card màn hình rời hoặc mở Edge bị khựng giật, hãy chọn <b>Bản Tối Ưu CPU</b> để giảm ~70% tải.</small>
         </div>
 
         <div id="auth-error-msg" class="auth-error-msg hidden">

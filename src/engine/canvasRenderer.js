@@ -1,5 +1,8 @@
 // Authentic Shopee Live 9:16 Vertical Video Renderer Engine
 
+// Singleton formatter to prevent repeated garbage collection in 30/60fps render loop
+const currencyFormatter = new Intl.NumberFormat('vi-VN');
+
 // Polyfill Canvas roundRect for browsers without native support
 if (typeof window !== 'undefined' && typeof HTMLCanvasElement !== 'undefined') {
   if (CanvasRenderingContext2D && !CanvasRenderingContext2D.prototype.roundRect) {
@@ -41,6 +44,11 @@ export class ShopeeCanvasRenderer {
     // Set internal resolution to 9:16 high def (1080x1920)
     this.canvas.width = this.width;
     this.canvas.height = this.height;
+
+    // Performance & Resolution Scaling Engine (Standard: 1080p, Eco: 720p)
+    this.performanceMode = 'standard';
+    this.scaleFactor = 1.0;
+    this._cachedSubtitleLines = [];
 
     this.currentProduct = null;
     this.presenterEngine = null;
@@ -130,9 +138,73 @@ export class ShopeeCanvasRenderer {
     this.presenterEngine = presenterEngine;
   }
 
+  setPerformanceMode(mode) {
+    this.performanceMode = mode === 'eco' ? 'eco' : 'standard';
+    if (this.performanceMode === 'eco') {
+      // 720p HD resolution: 921,600 pixels (reduces pixel workload by 56%!)
+      this.canvas.width = 720;
+      this.canvas.height = 1280;
+      this.scaleFactor = 720 / 1080;
+    } else {
+      // 1080p Full HD resolution: 2,073,600 pixels
+      this.canvas.width = 1080;
+      this.canvas.height = 1920;
+      this.scaleFactor = 1.0;
+    }
+    // Re-compute subtitle wrapping if needed
+    if (this.speechText) {
+      this._computeSubtitleLines();
+    }
+  }
+
   setSpeechState(text, stage) {
-    this.speechText = text;
-    this.speechStage = stage;
+    this.speechText = text || '';
+    this.speechStage = stage || '';
+    this._computeSubtitleLines();
+  }
+
+  _computeSubtitleLines() {
+    if (!this.speechText) {
+      this._cachedSubtitleLines = [];
+      return;
+    }
+    const bubW = this.width - 100;
+    const fontSize = this.speechText.length > 100 ? 21 : 23;
+    this.ctx.font = `bold ${fontSize}px sans-serif`;
+
+    const words = this.speechText.split(' ');
+    let line = '';
+    let lines = [];
+    const maxLines = 3;
+
+    for (let i = 0; i < words.length; i++) {
+      const testLine = line + words[i] + ' ';
+      const metrics = this.ctx.measureText(testLine);
+      if (metrics.width > bubW - 44 && i > 0) {
+        lines.push(line.trim());
+        line = words[i] + ' ';
+        if (lines.length === maxLines - 1) {
+          let remaining = words.slice(i).join(' ');
+          while (this.ctx.measureText(remaining + '...').width > bubW - 44 && remaining.length > 0) {
+            const lastSpace = remaining.lastIndexOf(' ');
+            if (lastSpace === -1) {
+              remaining = remaining.substring(0, remaining.length - 1);
+            } else {
+              remaining = remaining.substring(0, lastSpace);
+            }
+          }
+          lines.push(remaining ? (remaining + '...') : (words[i] + '...'));
+          line = '';
+          break;
+        }
+      } else {
+        line = testLine;
+      }
+    }
+    if (line.trim() && lines.length < maxLines) {
+      lines.push(line.trim());
+    }
+    this._cachedSubtitleLines = lines;
   }
 
   initHearts() {
@@ -169,7 +241,13 @@ export class ShopeeCanvasRenderer {
 
   render(timestamp = 0) {
     const ctx = this.ctx;
-    ctx.clearRect(0, 0, this.width, this.height);
+    ctx.save();
+    ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+
+    // Apply scaling factor when in 720p Eco Mode (scale 1080x1920 layout down to 720x1280)
+    if (this.scaleFactor !== 1.0) {
+      ctx.scale(this.scaleFactor, this.scaleFactor);
+    }
 
     // 1. FULL-SCREEN BACKGROUND STREAMER (MC AI or Real MP4 Video fills 100% canvas background!)
     if (this.presenterEngine) {
@@ -197,6 +275,8 @@ export class ShopeeCanvasRenderer {
     if (this.speechText) {
       this.renderSpeechSubtitle(ctx);
     }
+
+    ctx.restore();
   }
 
   // Official Shopee AI Livestream Compliance Watermark Badge
@@ -288,7 +368,7 @@ export class ShopeeCanvasRenderer {
 
     // Price Pill at bottom of corner card (ONLY if valid price is entered)
     if (hasSalePrice) {
-      const saleStr = new Intl.NumberFormat('vi-VN').format(this.currentProduct.salePrice) + 'đ';
+      const saleStr = currencyFormatter.format(this.currentProduct.salePrice) + 'đ';
       ctx.fillStyle = '#FF2A54';
       ctx.font = 'bold 24px sans-serif';
       const priceY = hasImg ? (cardY + floatY + cardH - 12) : (cardY + floatY + 75);
@@ -327,14 +407,14 @@ export class ShopeeCanvasRenderer {
     const hasOrig = typeof this.currentProduct.originalPrice === 'number' && !isNaN(this.currentProduct.originalPrice) && this.currentProduct.originalPrice > 0;
 
     if (hasSale) {
-      const saleStr = new Intl.NumberFormat('vi-VN').format(this.currentProduct.salePrice) + 'đ';
+      const saleStr = currencyFormatter.format(this.currentProduct.salePrice) + 'đ';
       ctx.fillStyle = '#FFFFFF';
       ctx.font = 'bold 42px sans-serif';
       ctx.fillText(saleStr, banX + 30, banY + 92);
     }
 
     if (hasOrig) {
-      const origStr = new Intl.NumberFormat('vi-VN').format(this.currentProduct.originalPrice) + 'đ';
+      const origStr = currencyFormatter.format(this.currentProduct.originalPrice) + 'đ';
       const origX = hasSale ? banX + 280 : banX + 30;
       ctx.fillStyle = 'rgba(255,255,255,0.7)';
       ctx.font = '26px sans-serif';
@@ -366,9 +446,13 @@ export class ShopeeCanvasRenderer {
     ctx.restore();
   }
 
-  // Dynamic 1-3 Line Subtitle Box with Adaptive Layout & Ellipsis
+  // Dynamic 1-3 Line Subtitle Box with Pre-calculated Cached Layout
   renderSpeechSubtitle(ctx) {
     if (!this.showSubtitles || !this.speechText) return;
+
+    const lines = this._cachedSubtitleLines && this._cachedSubtitleLines.length > 0 
+      ? this._cachedSubtitleLines 
+      : [this.speechText];
 
     ctx.save();
     const bubW = this.width - 100;
@@ -380,43 +464,8 @@ export class ShopeeCanvasRenderer {
     const tagBg = isLiveReply ? '#FF7A45' : '#FF2A54';
     const tagW = isLiveReply ? 230 : 170;
 
-    // Text wrapping & line calculation (Max 3 lines)
     const fontSize = this.speechText.length > 100 ? 21 : 23;
     const lineHeight = fontSize + 8;
-    ctx.font = `bold ${fontSize}px sans-serif`;
-
-    const words = this.speechText.split(' ');
-    let line = '';
-    let lines = [];
-    const maxLines = 3;
-
-    for (let i = 0; i < words.length; i++) {
-      const testLine = line + words[i] + ' ';
-      const metrics = ctx.measureText(testLine);
-      if (metrics.width > bubW - 44 && i > 0) {
-        lines.push(line.trim());
-        line = words[i] + ' ';
-        if (lines.length === maxLines - 1) {
-          let remaining = words.slice(i).join(' ');
-          while (ctx.measureText(remaining + '...').width > bubW - 44 && remaining.length > 0) {
-            const lastSpace = remaining.lastIndexOf(' ');
-            if (lastSpace === -1) {
-              remaining = remaining.substring(0, remaining.length - 1);
-            } else {
-              remaining = remaining.substring(0, lastSpace);
-            }
-          }
-          lines.push(remaining ? (remaining + '...') : (words[i] + '...'));
-          line = '';
-          break;
-        }
-      } else {
-        line = testLine;
-      }
-    }
-    if (line.trim() && lines.length < maxLines) {
-      lines.push(line.trim());
-    }
 
     // Dynamic box height and Y position based on line count
     const bubH = lines.length === 3 ? 134 : (lines.length === 2 ? 106 : 76);
