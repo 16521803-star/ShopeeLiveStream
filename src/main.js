@@ -37,7 +37,8 @@ if (!activeProduct) {
   importWebDincoxCatalog();
   activeProduct = (DINCOX_PRODUCTS && DINCOX_PRODUCTS.length > 0) ? DINCOX_PRODUCTS[0] : null;
 }
-let activePresenter = PRESENTERS[0];
+const savedPresenterId = typeof localStorage !== 'undefined' ? localStorage.getItem('dincox_selected_presenter_id') : null;
+let activePresenter = (savedPresenterId && PRESENTERS.find(p => p.id === savedPresenterId)) || PRESENTERS[0];
 let currentScriptStages = generateScriptForProduct(activeProduct);
 let activeStageIdx = 0;
 let isSequencePlaying = false;
@@ -305,6 +306,13 @@ if (studioSyncChannel) {
           if (targetP && (!activePresenter || activePresenter.id !== targetP.id)) {
             selectPresenter(targetP, false);
           }
+        }
+        break;
+      case 'SET_VOICE':
+        if (data.voice) {
+          speechEngine.setPreferredVoice(data.voice);
+          const sel = document.getElementById('native-voice-select');
+          if (sel) sel.value = data.voice;
         }
         break;
       case 'TOGGLE_SETTING':
@@ -581,8 +589,14 @@ function selectProduct(product, broadcast = true) {
 
 function selectPresenter(presenter, broadcast = true) {
   activePresenter = presenter;
+  if (typeof localStorage !== 'undefined') {
+    localStorage.setItem('dincox_selected_presenter_id', presenter.id);
+  }
   presenterEngine.setPresenter(activePresenter);
   renderPresenterList();
+  if (typeof populateVoiceSelector === 'function') {
+    populateVoiceSelector();
+  }
 
   if (broadcast && studioSyncChannel) {
     studioSyncChannel.postMessage({ type: 'SELECT_PRESENTER', presenterId: presenter.id });
@@ -635,6 +649,62 @@ function renderPresenterList() {
       resetPresenterAvatar(id);
     });
   });
+}
+
+export function populateVoiceSelector() {
+  const select = document.getElementById('native-voice-select');
+  const badge = document.getElementById('voice-detection-badge');
+  if (!select) return;
+
+  const voices = speechEngine.getAvailableVoices();
+  const savedVoice = (typeof localStorage !== 'undefined') ? (localStorage.getItem('dincox_preferred_voice') || 'auto') : 'auto';
+
+  // Lọc các giọng Tiếng Việt
+  const viVoices = voices.filter(v => {
+    const l = (v.lang || '').toLowerCase();
+    const n = (v.name || '').toLowerCase();
+    return l.startsWith('vi') || l.includes('-vi') || l.includes('_vi') || 
+           n.includes('vietnam') || n.includes('tiếng việt') || 
+           n.includes('hoai') || n.includes('namminh');
+  });
+
+  const hasEdgeNatural = viVoices.some(v => v.name.toLowerCase().includes('natural') || v.name.toLowerCase().includes('online'));
+
+  if (badge) {
+    if (viVoices.length > 0) {
+      badge.innerText = hasEdgeNatural ? '✨ Edge Natural AI' : `✅ ${viVoices.length} giọng VN`;
+      badge.style.color = '#10b981';
+    } else {
+      badge.innerText = '⚠️ Chưa có giọng VN';
+      badge.style.color = '#ef4444';
+    }
+  }
+
+  const defaultGenderLabel = (activePresenter && activePresenter.gender === 'male') ? 'MC Nam ➔ Nam Minh' : 'MC Nữ ➔ Hoài My';
+  let html = `<option value="auto" ${savedVoice === 'auto' ? 'selected' : ''}>🎯 Tự động theo MC (${defaultGenderLabel})</option>`;
+
+  if (viVoices.length > 0) {
+    html += `<optgroup label="🇻🇳 Giọng Đọc Tiếng Việt">`;
+    viVoices.forEach(v => {
+      const isSelected = savedVoice === v.name ? 'selected' : '';
+      const isFemale = v.name.toLowerCase().includes('hoai') || v.name.toLowerCase().includes('my') || v.name.toLowerCase().includes('an');
+      const icon = isFemale ? '👩 [Nữ]' : '👨 [Nam]';
+      html += `<option value="${v.name}" ${isSelected}>${icon} ${v.name}</option>`;
+    });
+    html += `</optgroup>`;
+  }
+
+  // Các giọng khác của máy tính
+  if (voices.length > viVoices.length) {
+    html += `<optgroup label="🌐 Giọng Khác Của Hệ Thống / Tiếng Anh">`;
+    voices.filter(v => !viVoices.includes(v)).slice(0, 15).forEach(v => {
+      const isSelected = savedVoice === v.name ? 'selected' : '';
+      html += `<option value="${v.name}" ${isSelected}>${v.name} (${v.lang})</option>`;
+    });
+    html += `</optgroup>`;
+  }
+
+  select.innerHTML = html;
 }
 
 function triggerPresenterAvatarUpload(presenterId) {
@@ -1428,6 +1498,21 @@ function bindEvents() {
     document.getElementById('btn-obs-mode')?.click();
   });
 
+  const nativeVoiceSelect = document.getElementById('native-voice-select');
+  if (nativeVoiceSelect) {
+    nativeVoiceSelect.addEventListener('change', (e) => {
+      const val = e.target.value;
+      speechEngine.setPreferredVoice(val);
+      if (studioSyncChannel) {
+        studioSyncChannel.postMessage({ type: 'SET_VOICE', voice: val });
+      }
+    });
+  }
+
+  window.addEventListener('speech_voices_loaded', () => {
+    populateVoiceSelector();
+  });
+
   document.getElementById('btn-preview-speech')?.addEventListener('click', () => {
     const text = document.getElementById('script-text-input')?.value || '';
     const apiKey = document.getElementById('elevenlabs-api-key')?.value?.trim();
@@ -1435,8 +1520,6 @@ function bindEvents() {
 
     if (!apiKey && isEnabled) {
       alert("⚠️ Lưu ý: Bạn chưa nhập API Key ElevenLabs!\n\nHệ thống sẽ tạm thời đọc thử bằng Giọng Mặc Định của Trình Duyệt. Để sử dụng giọng nữ siêu thực của ElevenLabs, vui lòng mở khung 'Giọng Đọc Siêu Thực ElevenLabs' bên dưới và dán API Key của bạn vào nhé.");
-    } else if (!isEnabled) {
-      alert("⚠️ Lưu ý: Bạn đang TẮT tùy chọn ElevenLabs AI Voice.\n\nHệ thống sẽ đọc bằng giọng mặc định trình duyệt. Nếu muốn dùng ElevenLabs, hãy tích chọn 'Ưu tiên phát bằng giọng đọc ElevenLabs' bên dưới.");
     }
 
     speechEngine.speak(text, {
@@ -2672,6 +2755,7 @@ function init() {
   createIcons({ icons });
   renderProductList();
   renderPresenterList();
+  populateVoiceSelector();
   renderScriptTabs();
   renderTimelineSteps();
   loadCurrentStageText();

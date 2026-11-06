@@ -249,6 +249,20 @@
               <!-- Stage tabs rendered via JS -->
             </div>
             <textarea id="script-text-input" class="textarea-field" rows="4" placeholder="Nội dung kịch bản MC AI sẽ đọc..."></textarea>
+
+            <!-- Native Browser Voice Picker Selection -->
+            <div class="voice-picker-box" style="background: rgba(15, 23, 42, 0.7); border: 1px solid rgba(229, 169, 60, 0.25); border-radius: 8px; padding: 8px 10px; margin-top: 8px;">
+              <div style="display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 4px;">
+                <label for="native-voice-select" style="font-size: 11px; font-weight: 700; color: var(--primary); display: flex; align-items: center; gap: 5px; margin: 0;">
+                  <i data-lucide="mic" style="width: 13px; height: 13px;"></i> Giọng Đọc Trình Duyệt:
+                </label>
+                <span id="voice-detection-badge" style="font-size: 10px; font-weight: 600; color: #10b981;">⚡ Đang quét giọng...</span>
+              </div>
+              <select id="native-voice-select" class="input-field input-xs" style="background: #0f172a; cursor: pointer;">
+                <option value="auto">🎯 Tự động theo MC (MC Nữ ➔ Hoài My, MC Nam ➔ Nam Minh)</option>
+              </select>
+            </div>
+
             <div class="speech-controls">
               <button id="btn-preview-speech" class="btn btn-sm btn-accent">
                 <i data-lucide="volume-2"></i> Đọc Thử Giọng AI

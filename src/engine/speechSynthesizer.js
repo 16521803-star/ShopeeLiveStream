@@ -196,14 +196,32 @@ export class SpeechEngine {
   }
 
   initVoices() {
+    this.preferredVoice = localStorage.getItem('dincox_preferred_voice') || 'auto';
     if (!this.synth) return;
     const load = () => {
       this.voices = this.synth.getVoices();
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent('speech_voices_loaded', { detail: this.voices }));
+      }
     };
     load();
     if (this.synth.onvoiceschanged !== undefined) {
       this.synth.onvoiceschanged = load;
     }
+  }
+
+  setPreferredVoice(voiceName) {
+    this.preferredVoice = voiceName || 'auto';
+    if (typeof localStorage !== 'undefined') {
+      localStorage.setItem('dincox_preferred_voice', this.preferredVoice);
+    }
+  }
+
+  getAvailableVoices() {
+    if (this.synth && (!this.voices || !this.voices.length)) {
+      this.voices = this.synth.getVoices();
+    }
+    return this.voices || [];
   }
 
   getVietnameseVoice(gender = 'female') {
@@ -213,31 +231,55 @@ export class SpeechEngine {
 
     if (!this.voices || !this.voices.length) return null;
 
+    // 0. Nếu người dùng chọn đích danh 1 giọng trong menu tùy chọn (không phải 'auto')
+    if (this.preferredVoice && this.preferredVoice !== 'auto') {
+      const explicit = this.voices.find(v => v.name === this.preferredVoice);
+      if (explicit) return explicit;
+    }
+
+    // 1. Lọc tất cả các giọng Tiếng Việt
     const viVoices = this.voices.filter(v => {
       const l = (v.lang || '').toLowerCase();
       const n = (v.name || '').toLowerCase();
-      return l.startsWith('vi') || l.includes('-vi') || l.includes('_vi') || n.includes('vietnam') || n.includes('tiếng việt') || n.includes('hoaimy') || n.includes('namminh');
+      return l.startsWith('vi') || l.includes('-vi') || l.includes('_vi') || 
+             n.includes('vietnam') || n.includes('tiếng việt') || 
+             n.includes('hoai') || n.includes('namminh');
     });
 
     if (viVoices.length > 0) {
       if (gender === 'male') {
-        // Ưu tiên tìm giọng Nam: NamMinh, "nam" đứng độc lập (loại trừ 'vietnam'), male
+        // Tìm giọng Nam trong danh sách tiếng Việt
         const maleVi = viVoices.find(v => {
           const n = v.name.toLowerCase();
           const cleanName = n.replace(/vietnam|vietnamese|tiếng việt/g, '');
           return n.includes('namminh') || n.includes('nam minh') || 
-                 n.includes('male') || /\bnam\b/i.test(cleanName);
+                 n.includes('minh') || n.includes('male') || /\bnam\b/i.test(cleanName);
         });
         if (maleVi) return maleVi;
+
+        // Fallback nam: lấy giọng nào không chứa 'hoai' và không chứa 'an'
+        const nonFemaleVi = viVoices.find(v => {
+          const n = v.name.toLowerCase();
+          return !n.includes('hoai') && !n.includes('an') && !n.includes('female');
+        });
+        if (nonFemaleVi) return nonFemaleVi;
       } else {
-        // Ưu tiên tìm giọng Nữ: HoaiMy, Microsoft An, nu, female
+        // Tìm giọng Nữ trong danh sách tiếng Việt:
+        // Khớp Hoài My (HoaiMy, Hoai My, Hoài My), An, nu, female...
         const femaleVi = viVoices.find(v => {
           const n = v.name.toLowerCase();
-          return n.includes('hoaimy') || n.includes('hoài my') || 
+          return n.includes('hoai') || n.includes('my') || 
                  n.includes('female') || n.includes('nu') || n.includes('nữ') || 
-                 n.includes('microsoft an') || /\ban\b/i.test(n);
+                 n.includes('an') || n.includes('mai') || n.includes('linh');
         });
         if (femaleVi) return femaleVi;
+
+        // Fallback nữ: lấy giọng nào không phải là Nam Minh / Male
+        const nonMaleVi = viVoices.find(v => {
+          const n = v.name.toLowerCase();
+          return !n.includes('namminh') && !n.includes('nam minh');
+        });
+        if (nonMaleVi) return nonMaleVi;
       }
       return viVoices[0];
     }
@@ -246,7 +288,6 @@ export class SpeechEngine {
     if (!this._warnedNoVietnameseVoice) {
       this._warnedNoVietnameseVoice = true;
       console.warn("⚠️ Trình duyệt chưa có giọng đọc Tiếng Việt! Khuyên dùng: mở bằng Microsoft Edge (có sẵn giọng Hoài My & Nam Minh tiếng Việt mượt mà) hoặc cài gói Vietnamese Speech trong Windows Settings.");
-      // Thông báo nhẹ 1 lần cho người dùng trên Chrome để họ biết cách xử lý
       setTimeout(() => {
         const isChrome = navigator.userAgent.includes('Chrome') && !navigator.userAgent.includes('Edg');
         if (isChrome && !sessionStorage.getItem('dincox_dismiss_chrome_voice_tip')) {
@@ -256,18 +297,17 @@ export class SpeechEngine {
       }, 500);
     }
 
-    // Fallback thông minh: Nếu máy không có giọng Tiếng Việt, cố gắng chọn giọng hệ thống khớp đúng giới tính
-    // (tránh tình trạng máy thì ra David giọng nam, máy lại ra Zira giọng nữ)
+    // Fallback thông minh nếu không có giọng Tiếng Việt
     if (gender === 'male') {
       const fallbackMale = this.voices.find(v => {
         const n = v.name.toLowerCase();
-        return n.includes('david') || n.includes('mark') || n.includes('male') || n.includes('alex') || n.includes('george');
+        return n.includes('david') || n.includes('mark') || n.includes('male') || n.includes('alex') || n.includes('george') || n.includes('james');
       });
       if (fallbackMale) return fallbackMale;
     } else {
       const fallbackFemale = this.voices.find(v => {
         const n = v.name.toLowerCase();
-        return n.includes('zira') || n.includes('female') || n.includes('samantha') || n.includes('eva') || n.includes('susan') || n.includes('catherine');
+        return n.includes('zira') || n.includes('female') || n.includes('samantha') || n.includes('eva') || n.includes('susan') || n.includes('catherine') || n.includes('natural');
       });
       if (fallbackFemale) return fallbackFemale;
     }
