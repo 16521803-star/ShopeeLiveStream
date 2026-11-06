@@ -1425,9 +1425,10 @@ body.obs-mode .preview-panel {
 }
 
 body.obs-mode .canvas-container {
-  width: calc(100vh * 9 / 16) !important;
-  height: 100vh !important;
+  width: min(100vw, calc(100vh * 9 / 16)) !important;
+  height: min(100vh, calc(100vw * 16 / 9)) !important;
   max-width: 100vw !important;
+  max-height: 100vh !important;
   aspect-ratio: 9 / 16 !important;
   border: none !important;
   border-radius: 0 !important;
@@ -1453,7 +1454,7 @@ body.obs-mode #shopee-canvas {
   width: 100% !important;
   height: 100% !important;
   border-radius: 0 !important;
-  object-fit: cover !important;
+  object-fit: contain !important;
   z-index: 2 !important;
   pointer-events: none !important;
 }
