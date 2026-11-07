@@ -494,6 +494,27 @@
                 <i data-lucide="square"></i> Dừng Phát Live
               </button>
             </div>
+
+            <!-- Ultra-Low CPU FFmpeg 1-Click BAT Generator -->
+            <div class="bat-generator-box" style="margin-top: 10px; padding: 10px; background: rgba(15, 23, 42, 0.7); border: 1px dashed rgba(16, 185, 129, 0.4); border-radius: 8px;">
+              <div style="display: flex; align-items: center; justify-content: space-between; gap: 6px; margin-bottom: 6px;">
+                <span style="font-size: 11px; font-weight: 700; color: #34d399; display: flex; align-items: center; gap: 4px;">
+                  <i data-lucide="zap" style="width: 13px; height: 13px;"></i> Livestream Tiết Kiệm (CPU ~0% • Không cần OBS)
+                </span>
+                <span style="font-size: 10px; color: #94a3b8;">FFmpeg Stream Copy</span>
+              </div>
+              <p style="font-size: 11px; color: #cbd5e1; margin-bottom: 8px; line-height: 1.4;">
+                Dán Stream Key vào ô trên, sau đó tải file <strong>.bat</strong> về để cùng thư mục với video đã quay (<code>.mp4</code>/<code>.webm</code>) và <code>ffmpeg.exe</code>. Click đúp là tự động phát 24/7!
+              </p>
+              <div style="display: flex; gap: 6px;">
+                <button id="btn-download-bat" class="btn btn-sm btn-accent" style="flex: 1; font-size: 11px; font-weight: 700; background: linear-gradient(135deg, #059669, #10b981); color: #fff; border: none; padding: 6px 10px; display: inline-flex; align-items: center; justify-content: center; gap: 4px;" title="Tự động tạo và tải về file Chay_Live_Shopee.bat đã điền sẵn Stream Key">
+                  <i data-lucide="file-down"></i> Tải File Live (.bat)
+                </button>
+                <button id="btn-copy-ffmpeg-cmd" class="btn btn-sm btn-secondary" style="font-size: 11px; font-weight: 600; padding: 6px 10px; display: inline-flex; align-items: center; justify-content: center; gap: 4px;" title="Sao chép câu lệnh FFmpeg vào bộ nhớ tạm">
+                  <i data-lucide="copy"></i> Copy Lệnh
+                </button>
+              </div>
+            </div>
           </div>
         </div>
 

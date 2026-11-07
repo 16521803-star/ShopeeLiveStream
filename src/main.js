@@ -1985,6 +1985,112 @@ function bindEvents() {
     });
   }
 
+  // 1-Click BAT File Generator & Copy FFmpeg Command (CPU ~0% Streaming without OBS)
+  const btnDownloadBat = document.getElementById('btn-download-bat');
+  const btnCopyFfmpegCmd = document.getElementById('btn-copy-ffmpeg-cmd');
+
+  if (btnDownloadBat) {
+    btnDownloadBat.addEventListener('click', () => {
+      const url = document.getElementById('rtmp-url-input')?.value.trim() || 'rtmp://live.shopee.vn/live/';
+      const key = keyInput?.value.trim() || '';
+
+      if (!key) {
+        alert("⚠️ Vui lòng nhập Khóa Luồng (Stream Key) từ Shopee Live vào ô bên trên trước khi tải file .bat!");
+        keyInput?.focus();
+        return;
+      }
+
+      localStorage.setItem('dincox_shopee_stream_key', key);
+
+      const batContent = `@echo off
+chcp 65001 >nul
+title Shopee Live Streamer - CPU ~0% (DinCox Studio)
+color 0A
+
+echo ======================================================================
+echo    DINCOX SHOPEE LIVE STREAMER (CHẾ ĐỘ TỐI ƯU CPU ~0%%)
+echo    Khong can OBS - Luong Stream Copy truc tiep len Shopee Live
+echo ======================================================================
+echo.
+
+set RTMP_URL=${url}
+set STREAM_KEY=${key}
+
+:: Kiem tra file ffmpeg.exe
+if not exist "ffmpeg.exe" (
+    echo [CANH BAO] Khong tim thay file ffmpeg.exe trong thu muc nay!
+    echo Vui long tai ffmpeg.exe tu https://www.gyan.dev/ffmpeg/builds/ffmpeg-release-essentials.zip va dat vao day.
+    echo.
+    pause
+    exit /b
+)
+
+:: Tu dong tim file video (.mp4 hoac .webm) trong thu muc
+set VIDEO_FILE=
+for %%f in (*.mp4 *.webm) do (
+    if not defined VIDEO_FILE set VIDEO_FILE=%%f
+)
+
+if not defined VIDEO_FILE (
+    echo [CANH BAO] Khong tim thay file video (.mp4 hoac .webm) nao trong thu muc!
+    echo Vui long bo file video da quay tu DinCox Studio vao day.
+    echo.
+    pause
+    exit /b
+)
+
+echo [OK] Phat hien video: %VIDEO_FILE%
+echo [OK] Dang bat dau phat livestream len Shopee Live...
+echo [INFO] Nhan Ctrl + C de dung phat live bat ky luc nao.
+echo ======================================================================
+echo.
+
+ffmpeg -re -stream_loop -1 -i "%VIDEO_FILE%" -c copy -f flv "%RTMP_URL%%STREAM_KEY%"
+
+echo.
+echo [DA DUNG PHAT LIVE]
+pause
+`;
+
+      const blob = new Blob([batContent], { type: 'application/x-bat;charset=utf-8' });
+      const dlUrl = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.style.display = 'none';
+      a.href = dlUrl;
+      a.download = 'Chay_Live_Shopee_CPU_0%.bat';
+      document.body.appendChild(a);
+      a.click();
+      setTimeout(() => {
+        document.body.removeChild(a);
+        URL.revokeObjectURL(dlUrl);
+      }, 500);
+    });
+  }
+
+  if (btnCopyFfmpegCmd) {
+    btnCopyFfmpegCmd.addEventListener('click', () => {
+      const url = document.getElementById('rtmp-url-input')?.value.trim() || 'rtmp://live.shopee.vn/live/';
+      const key = keyInput?.value.trim() || 'STREAM_KEY_SHOPEE';
+      if (key && key !== 'STREAM_KEY_SHOPEE') {
+        localStorage.setItem('dincox_shopee_stream_key', key);
+      }
+
+      const cmd = `ffmpeg -re -stream_loop -1 -i live.mp4 -c copy -f flv "${url}${key}"`;
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(cmd);
+        const origHtml = btnCopyFfmpegCmd.innerHTML;
+        btnCopyFfmpegCmd.innerHTML = `<i data-lucide="check"></i> Đã Copy!`;
+        createIcons({ icons });
+        setTimeout(() => {
+          btnCopyFfmpegCmd.innerHTML = origHtml;
+          createIcons({ icons });
+        }, 2000);
+      } else {
+        prompt("Sao chép câu lệnh FFmpeg dưới đây:", cmd);
+      }
+    });
+  }
+
   // ElevenLabs High Quality Voice Integration Controls
   const toggleElevenLabsBtn = document.getElementById('toggle-elevenlabs');
   const elevenLabsForm = document.getElementById('elevenlabs-form');
