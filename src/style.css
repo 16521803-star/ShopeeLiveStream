@@ -1948,5 +1948,11 @@ body.audio-only-mode .native-stream-video {
   opacity: 0 !important;
 }
 
+body.standard-mode .native-stream-video,
+body:not(.eco-mode):not(.audio-only-mode) .native-stream-video {
+  opacity: 0 !important;
+  pointer-events: none !important;
+}
+
 
 

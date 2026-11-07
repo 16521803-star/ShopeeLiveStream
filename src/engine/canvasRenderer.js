@@ -48,7 +48,7 @@ export class ShopeeCanvasRenderer {
     // Performance & Resolution Scaling Engine (Standard: 1080p, Eco: 720p)
     this.performanceMode = 'standard';
     this.scaleFactor = 1.0;
-    this.forceCanvasBlit = false;
+    this.forceCanvasBlit = true; // In standard mode, render video directly to canvas so OBS never turns black when covered
     this._cachedSubtitleLines = [];
 
     this.currentProduct = null;
@@ -156,11 +156,13 @@ export class ShopeeCanvasRenderer {
       this.canvas.width = 720;
       this.canvas.height = 1280;
       this.scaleFactor = 720 / 1080;
+      this.forceCanvasBlit = false; // Zero-copy for weak machines
     } else {
       // 1080p Full HD resolution: 2,073,600 pixels
       this.canvas.width = 1080;
       this.canvas.height = 1920;
       this.scaleFactor = 1.0;
+      this.forceCanvasBlit = true; // Direct canvas blit: 100% immune to window occlusion black screen in OBS
     }
     // Re-compute subtitle wrapping if needed
     if (this.speechText) {
@@ -263,8 +265,8 @@ export class ShopeeCanvasRenderer {
     // 1. FULL-SCREEN BACKGROUND STREAMER (MC AI or Real MP4 Video fills 100% canvas background!)
     const isAudioOnly = this.presenterEngine && this.presenterEngine.audioOnlyMode;
     if (this.presenterEngine && !isAudioOnly) {
-      if (!this.presenterEngine.useRealVideo) {
-        // Dark studio fallback gradient for 2D avatar mode
+      if (!this.presenterEngine.useRealVideo || this.forceCanvasBlit) {
+        // Dark studio fallback gradient for 2D avatar mode OR when blitting directly to canvas
         const bgGradient = ctx.createLinearGradient(0, 0, 0, this.height);
         bgGradient.addColorStop(0, '#060d19');
         bgGradient.addColorStop(0.5, '#0b1b36');

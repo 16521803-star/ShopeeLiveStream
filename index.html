@@ -19,6 +19,14 @@
       try {
         var branch = localStorage.getItem('dincox_studio_branch') || 'DinCox';
         document.title = branch + (isObs ? ' (OBS Overlay)' : '') + ' - Shopee Live Studio & AI Streamer Generator';
+        var perfMode = localStorage.getItem('dincox_performance_mode') || 'standard';
+        if (perfMode === 'eco') {
+          document.documentElement.classList.add('eco-mode');
+        } else if (perfMode === 'audio_only') {
+          document.documentElement.classList.add('audio-only-mode');
+        } else {
+          document.documentElement.classList.add('standard-mode');
+        }
       } catch (e) {}
     })();
   </script>
@@ -87,6 +95,14 @@
       object-fit: cover !important;
       z-index: 1 !important;
       border: none !important;
+    }
+
+    html.standard-mode .native-stream-video,
+    html:not(.eco-mode):not(.audio-only-mode) .native-stream-video,
+    body.standard-mode .native-stream-video,
+    body:not(.eco-mode):not(.audio-only-mode) .native-stream-video {
+      opacity: 0 !important;
+      pointer-events: none !important;
     }
 
     html[data-obs-mode="1"] #shopee-canvas {

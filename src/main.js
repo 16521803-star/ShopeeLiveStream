@@ -398,8 +398,9 @@ if (studioSyncChannel) {
 // Global Performance & CPU Optimizer Mode Handler (Standard 1080p vs Eco 720p vs Audio-Only)
 export function applyPerformanceMode(mode, broadcast = true) {
   const isAudioOnly = mode === 'audio_only';
-  const isEco = mode === 'eco' || isAudioOnly;
-  const finalMode = (mode === 'eco' || mode === 'audio_only') ? mode : 'standard';
+  const isEco = mode === 'eco';
+  const isStandard = !isEco && !isAudioOnly;
+  const finalMode = isAudioOnly ? 'audio_only' : (isEco ? 'eco' : 'standard');
 
   try {
     localStorage.setItem('dincox_performance_mode', finalMode);
@@ -414,6 +415,12 @@ export function applyPerformanceMode(mode, broadcast = true) {
   // Toggle CSS class on body (disables heavy backdrop blur & intensive shadows on low-spec PCs)
   document.body.classList.toggle('eco-mode', isEco);
   document.body.classList.toggle('audio-only-mode', isAudioOnly);
+  document.body.classList.toggle('standard-mode', isStandard);
+
+  // In Standard Mode: render video directly to canvas buffer (forceCanvasBlit = true)
+  // so OBS Window Capture never turns black when Edge is covered by another window!
+  // In Eco Mode: use Zero-Copy layering with transparent canvas for low CPU.
+  canvasRenderer.forceCanvasBlit = isStandard;
 
   // Update canvas resolution in renderer (Standard: 1080p, Eco/AudioOnly: 720p)
   canvasRenderer.setPerformanceMode(finalMode);
@@ -1240,10 +1247,10 @@ async function toggleVideoRecording() {
       playScriptSequence();
     }
   } else {
-    // Stop Recording (restore zero-copy native video overlay)
+    // Stop Recording (restore performance mode canvas blit setting)
     clearInterval(recordTimerInterval);
     recordedBlob = await videoExporter.stopRecording();
-    canvasRenderer.forceCanvasBlit = false;
+    canvasRenderer.forceCanvasBlit = canvasRenderer.performanceMode === 'standard';
     btn.innerHTML = `<i data-lucide="disc"></i> Quay & Xuất Video`;
     btn.classList.replace('btn-secondary', 'btn-danger');
     progressBox.classList.add('hidden');
@@ -1939,11 +1946,11 @@ function bindEvents() {
           btnStartRtmp.classList.add('hidden');
           btnStopRtmp.classList.remove('hidden');
         } else if (status === 'ERROR') {
-          canvasRenderer.forceCanvasBlit = false;
+          canvasRenderer.forceCanvasBlit = canvasRenderer.performanceMode === 'standard';
           statusBadge.classList.add('status-error');
           statusBadge.innerText = '⚠️ ' + msg;
         } else {
-          canvasRenderer.forceCanvasBlit = false;
+          canvasRenderer.forceCanvasBlit = canvasRenderer.performanceMode === 'standard';
           statusBadge.classList.add('status-idle');
           statusBadge.innerText = '● ' + msg;
           btnStartRtmp.classList.remove('hidden');
@@ -1954,12 +1961,12 @@ function bindEvents() {
       if (success && !isSequencePlaying) {
         playScriptSequence();
       } else if (!success) {
-        canvasRenderer.forceCanvasBlit = false;
+        canvasRenderer.forceCanvasBlit = canvasRenderer.performanceMode === 'standard';
       }
     });
 
     btnStopRtmp.addEventListener('click', () => {
-      canvasRenderer.forceCanvasBlit = false;
+      canvasRenderer.forceCanvasBlit = canvasRenderer.performanceMode === 'standard';
       rtmpStreamer.stopStream();
       btnStartRtmp.classList.remove('hidden');
       btnStopRtmp.classList.add('hidden');
