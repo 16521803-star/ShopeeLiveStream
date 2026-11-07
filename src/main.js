@@ -1231,7 +1231,16 @@ async function toggleVideoRecording() {
   const downloadBtn = document.getElementById('btn-download-video');
 
   if (!videoExporter.isRecording) {
-    // If user enabled optional microphone / stereo mix capture (useful for native WebSpeech)
+    // 1. Pure Desktop/Tab Digital Audio Capture (No mic noise, pure WebSpeech audio)
+    const chkDesktop = document.getElementById('chk-record-desktop');
+    if (chkDesktop && chkDesktop.checked) {
+      // Only request tab audio if ElevenLabs is NOT active (since ElevenLabs is already 100% digital in-memory)
+      if (!speechEngine.elevenLabsConfig.enabled || !speechEngine.elevenLabsConfig.apiKey) {
+        await videoExporter.attachSystemAudioStream();
+      }
+    }
+
+    // 2. Optional External Microphone Capture
     const chkMic = document.getElementById('chk-record-mic');
     if (chkMic && chkMic.checked) {
       await videoExporter.attachMicrophoneStream();

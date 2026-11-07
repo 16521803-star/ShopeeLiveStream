@@ -10,6 +10,8 @@ export class VideoExporter {
     this.audioDestination = null;
     this.micStream = null;
     this.micSourceNode = null;
+    this.systemAudioStream = null;
+    this.systemAudioSourceNode = null;
     this.recordMimeType = 'video/webm';
   }
 
@@ -93,6 +95,61 @@ export class VideoExporter {
   }
 
   /**
+   * Capture pure Desktop/Tab audio digitally without microphone noise
+   * (Essential for recording WebSpeech voices Hoai My / Nam Minh in crystal-clear digital quality)
+   */
+  async attachSystemAudioStream() {
+    try {
+      this.initAudioContext();
+      if (!navigator.mediaDevices || !navigator.mediaDevices.getDisplayMedia) return false;
+
+      // Prompt user to select Tab or Screen with audio sharing enabled
+      this.systemAudioStream = await navigator.mediaDevices.getDisplayMedia({
+        video: {
+          displaySurface: 'browser'
+        },
+        audio: {
+          echoCancellation: false,
+          noiseSuppression: false,
+          autoGainControl: false,
+          suppressLocalAudioPlayback: false
+        },
+        preferCurrentTab: true
+      });
+
+      // Instantly stop video tracks so only pure internal audio is captured
+      const videoTracks = this.systemAudioStream.getVideoTracks();
+      videoTracks.forEach(track => track.stop());
+
+      const audioTracks = this.systemAudioStream.getAudioTracks();
+      if (audioTracks.length > 0 && this.audioContext && this.audioDestination) {
+        this.systemAudioSourceNode = this.audioContext.createMediaStreamSource(
+          new MediaStream([audioTracks[0]])
+        );
+        this.systemAudioSourceNode.connect(this.audioDestination);
+        return true;
+      }
+    } catch (err) {
+      console.warn("[VideoExporter] Desktop/Tab audio capture cancelled or unavailable:", err);
+      return false;
+    }
+    return false;
+  }
+
+  detachSystemAudioStream() {
+    if (this.systemAudioSourceNode) {
+      try { this.systemAudioSourceNode.disconnect(); } catch (e) {}
+      this.systemAudioSourceNode = null;
+    }
+    if (this.systemAudioStream) {
+      try {
+        this.systemAudioStream.getTracks().forEach(t => t.stop());
+      } catch (e) {}
+      this.systemAudioStream = null;
+    }
+  }
+
+  /**
    * Determine best supported MIME type (prefer MP4/H.264+AAC for Shopee compatibility, fallback to WebM/Opus)
    */
   getOptimalMimeType() {
@@ -162,6 +219,7 @@ export class VideoExporter {
     return new Promise((resolve) => {
       if (!this.mediaRecorder || !this.isRecording) {
         this.detachMicrophoneStream();
+        this.detachSystemAudioStream();
         resolve(null);
         return;
       }
@@ -169,6 +227,7 @@ export class VideoExporter {
       this.mediaRecorder.onstop = () => {
         this.isRecording = false;
         this.detachMicrophoneStream();
+        this.detachSystemAudioStream();
         const finalType = this.recordMimeType || 'video/mp4';
         const blob = new Blob(this.recordedChunks, { type: finalType });
         resolve(blob);
@@ -179,6 +238,7 @@ export class VideoExporter {
       } catch (err) {
         this.isRecording = false;
         this.detachMicrophoneStream();
+        this.detachSystemAudioStream();
         resolve(null);
       }
     });

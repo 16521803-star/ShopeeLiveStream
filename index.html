@@ -406,10 +406,14 @@
               <i data-lucide="disc"></i> Quay & Xuất Video
             </button>
           </div>
-          <div class="record-audio-options" style="display: flex; align-items: center; justify-content: flex-end; gap: 8px; margin-top: 6px;">
-            <label class="toggle-label" style="font-size: 11px; padding: 2px 8px; background: rgba(15, 23, 42, 0.6); border: 1px solid rgba(255,255,255,0.15); border-radius: 6px; cursor: pointer; color: #94a3b8;" title="Tự động thu thêm âm thanh từ Micro hoặc Stereo Mix khi quay (rất cần thiết khi dùng Giọng đọc trình duyệt WebSpeech. Với ElevenLabs AI, âm thanh tự động được thu 100%)">
+          <div class="record-audio-options" style="display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: 8px; margin-top: 6px;">
+            <label class="toggle-label" style="font-size: 11px; padding: 3px 8px; background: rgba(16, 185, 129, 0.1); border: 1px solid rgba(16, 185, 129, 0.35); border-radius: 6px; cursor: pointer; color: #34d399;" title="Thu trực tiếp âm thanh kỹ thuật số nội bộ từ Tab/Desktop mà KHÔNG thu tiếng rè từ Micro (Dành cho giọng đọc WebSpeech Hoài My/Nam Minh)">
+              <input type="checkbox" id="chk-record-desktop" checked>
+              <span>🔊 Thu Âm Thanh Desktop/Tab (Không thu Micro)</span>
+            </label>
+            <label class="toggle-label" style="font-size: 11px; padding: 3px 8px; background: rgba(15, 23, 42, 0.6); border: 1px solid rgba(255,255,255,0.15); border-radius: 6px; cursor: pointer; color: #94a3b8;" title="Thu thêm tiếng từ Micro bên ngoài (nếu bạn muốn nói trực tiếp chèn vào video)">
               <input type="checkbox" id="chk-record-mic">
-              <span>🎙️ Thu kèm Micro / Loa ngoài (cho WebSpeech)</span>
+              <span>🎙️ Thu kèm Micro</span>
             </label>
           </div>
         </div>
