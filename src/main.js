@@ -2017,11 +2017,11 @@ function bindEvents() {
 
       const batContent = `@echo off
 chcp 65001 >nul
-title Shopee Live Streamer - CPU 0% (DinCox Studio)
+title Shopee Live Streamer - DinCox Studio
 color 0A
 
 echo ======================================================================
-echo    DINCOX SHOPEE LIVE STREAMER (CHE DO TOI UU CPU ~0%%)
+echo    DINCOX SHOPEE LIVE STREAMER - CHE DO TOI UU CPU ~0%%
 echo    Khong can OBS - Truyen luong truc tiep len Shopee Live
 echo ======================================================================
 echo.
@@ -2029,53 +2029,57 @@ echo.
 set "RTMP_URL=${safeUrl}"
 set "STREAM_KEY=${safeKey}"
 
-:: 1. Kiem tra file ffmpeg.exe (trong thu muc hien tai hoac PATH he thong)
+:: 1. Kiem tra file ffmpeg.exe trong thu muc hoac he thong
 set "FFMPEG_CMD=ffmpeg"
 if exist "ffmpeg.exe" (
     set "FFMPEG_CMD=ffmpeg.exe"
-) else (
-    where ffmpeg >nul 2>nul
-    if errorlevel 1 (
-        echo [CANH BAO] Khong tim thay ffmpeg tren may tinh!
-        echo Vui long tai ffmpeg.exe bo vao thu muc nay hoac cai bang lenh: winget install Gyan.FFmpeg
-        echo Link tai truc tiep: https://www.gyan.dev/ffmpeg/builds/ffmpeg-release-essentials.zip
-        echo.
-        pause
-        exit /b
-    )
+    goto CHECK_VIDEO
 )
 
-:: 2. Tu dong tim file video (.mp4 hoac .webm) trong thu muc
+where ffmpeg >nul 2>nul
+if not errorlevel 1 goto CHECK_VIDEO
+
+echo [CANH BAO] Khong tim thay ffmpeg tren may tinh!
+echo Vui long bo file ffmpeg.exe vao chung thu muc nay hoac cai bang lenh:
+echo winget install Gyan.FFmpeg
+echo.
+echo Link tai truc tiep: https://www.gyan.dev/ffmpeg/builds/ffmpeg-release-essentials.zip
+echo.
+pause
+exit /b
+
+:CHECK_VIDEO
+:: 2. Tu dong tim file video trong thu muc
 set "VIDEO_FILE="
 for %%f in (*.mp4 *.webm *.mkv *.mov) do (
     if not defined VIDEO_FILE set "VIDEO_FILE=%%f"
 )
 
-if not defined VIDEO_FILE (
-    echo [CANH BAO] Khong tim thay file video (.mp4 hoac .webm) nao trong thu muc!
-    echo Vui long bo file video da quay tu DinCox Studio vao day.
-    echo.
-    pause
-    exit /b
-)
+if defined VIDEO_FILE goto FOUND_VIDEO
 
+echo [CANH BAO] Khong tim thay file video [.mp4 hoac .webm] nao trong thu muc!
+echo Vui long bo file video da xuat tu DinCox Studio vao day.
+echo.
+pause
+exit /b
+
+:FOUND_VIDEO
 echo [OK] Phat hien video: %VIDEO_FILE%
 echo [OK] Server Shopee:   %RTMP_URL%
 echo ======================================================================
 echo.
 echo CHON CHE DO PHAT LIVESTREAM:
-echo [1] Phat Video Dong Goi San (Stream copy ca hinh va tieng - CPU ~0%%)
-echo [2] LIVE TUONG TAC REAL-TIME (Video chay lap 0%% CPU + Bat tieng truc tiep tu Web)
+echo [1] Phat Video Co San [Stream copy ca hinh va tieng - CPU ~0%%]
+echo [2] LIVE TUONG TAC REAL-TIME [Video lap 0%% CPU + Bat am thanh tu Web]
 echo.
 set "MODE_CHOICE=1"
 set /p "MODE_CHOICE=Nhap lua chon cua ban (1 hoac 2, mac dinh la 1): "
 
 if "%MODE_CHOICE%"=="2" goto MODE_LIVE_INTERACTIVE
-goto MODE_VIDEO_PACKAGE
 
 :MODE_VIDEO_PACKAGE
 echo.
-echo [CHE DO 1] Dang phat video dong goi san len Shopee Live...
+echo [CHE DO 1] Dang phat video co san len Shopee Live...
 echo [INFO] Nhan Ctrl + C de dung phat live bat ky luc nao.
 echo ======================================================================
 echo.
@@ -2088,36 +2092,38 @@ echo ======================================================================
 echo [CHE DO 2] LIVE TUONG TAC REAL-TIME
 echo Video se chay lap lai 0%% CPU, am thanh duoc thu truc tiep tu Web Studio!
 echo.
-echo DANH SACH THIET BI AM THANH TREN MAY BAN:
+echo DANH SACH THIET BI AM THANH TREN MAY:
 %FFMPEG_CMD% -list_devices true -f dshow -i dummy 2>&1 | findstr /i "DirectShow audio"
 echo ======================================================================
 echo.
-echo Huong dan: Nhap ten thiet bi am thanh he thong (Vi du: Stereo Mix hoac CABLE Output)
-echo Neu de trong va bam Enter, he thong se thu qua "Stereo Mix (Realtek(R) Audio)".
+echo Huong dan: Nhap ten thiet bi am thanh he thong [Vi du: Stereo Mix hoac CABLE Output]
+echo Neu de trong va bam Enter, he thong se thu qua Stereo Mix.
 set "AUDIO_DEVICE="
 set /p "AUDIO_DEVICE=Nhap ten thiet bi thu am thanh: "
-
-if "%AUDIO_DEVICE%"=="" (
-    set "AUDIO_DEVICE=Stereo Mix (Realtek(R) Audio)"
-)
+if "%AUDIO_DEVICE%"=="" set "AUDIO_DEVICE=Stereo Mix"
 
 echo.
 echo [BAT DAU] Dang thu am thanh tu: "%AUDIO_DEVICE%" va gop voi video "%VIDEO_FILE%"...
-echo [MEO] Hay mo Web Studio DinCox va bam "Phat Kich Ban" de MC doc truc tiep!
+echo [MEO] Mo Web Studio va bam Phat Kich Ban de MC doc truc tiep!
 echo [INFO] Nhan Ctrl + C de dung phat live bat ky luc nao.
 echo ======================================================================
 echo.
 
 %FFMPEG_CMD% -stream_loop -1 -re -i "%VIDEO_FILE%" -f dshow -i audio="%AUDIO_DEVICE%" -map 0:v:0 -map 1:a:0 -c:v copy -c:a aac -b:a 128k -f flv "%RTMP_URL%%STREAM_KEY%"
 
-if errorlevel 1 (
-    echo.
-    echo [LOI] Khong the ket noi thiet bi am thanh "%AUDIO_DEVICE%"!
-    echo Vui long kiem tra xem ban da bat "Stereo Mix" trong Sound Settings chua:
-    echo 1. Nhan Win + R, go: mmsys.cpl -> Tab Recording.
-    echo 2. Click chuot phai chon Show Disabled Devices -> Bat "Stereo Mix".
-    echo Hoac neu dung VPS, cai dat driver mien phi VB-Audio Cable.
-)
+if errorlevel 1 goto AUDIO_ERROR
+goto END_SCRIPT
+
+:AUDIO_ERROR
+echo.
+echo [LOI] Khong the ket noi thiet bi am thanh "%AUDIO_DEVICE%"!
+echo Huong dan bat Stereo Mix trong Windows:
+echo 1. Nhan to hop phim Win + R, go: mmsys.cpl roi nhan Enter.
+echo 2. Chuyen sang tab Recording [Thu am].
+echo 3. Click chuot phai vao khoang trong, chon Show Disabled Devices.
+echo 4. Click chuot phai vao Stereo Mix va chon Enable.
+echo [Luu y]: Neu la VPS hoac may khong co Stereo Mix, hay cai phan mem mien phi VB-CABLE Audio.
+echo.
 
 :END_SCRIPT
 echo.
