@@ -2011,24 +2011,28 @@ function bindEvents() {
 
       localStorage.setItem('dincox_shopee_stream_key', key);
 
+      // Sanitize inputs
+      const safeUrl = url.replace(/"/g, '');
+      const safeKey = key.replace(/"/g, '');
+
       const batContent = `@echo off
 chcp 65001 >nul
-title Shopee Live Streamer - CPU ~0% (DinCox Studio)
+title Shopee Live Streamer - CPU 0% (DinCox Studio)
 color 0A
 
 echo ======================================================================
-echo    DINCOX SHOPEE LIVE STREAMER (CHẾ ĐỘ TỐI ƯU CPU ~0%%)
+echo    DINCOX SHOPEE LIVE STREAMER (CHE DO TOI UU CPU ~0%%)
 echo    Khong can OBS - Truyen luong truc tiep len Shopee Live
 echo ======================================================================
 echo.
 
-set RTMP_URL=${url}
-set STREAM_KEY=${key}
+set "RTMP_URL=${safeUrl}"
+set "STREAM_KEY=${safeKey}"
 
 :: 1. Kiem tra file ffmpeg.exe (trong thu muc hien tai hoac PATH he thong)
-set FFMPEG_CMD=ffmpeg
+set "FFMPEG_CMD=ffmpeg"
 if exist "ffmpeg.exe" (
-    set FFMPEG_CMD=ffmpeg.exe
+    set "FFMPEG_CMD=ffmpeg.exe"
 ) else (
     where ffmpeg >nul 2>nul
     if errorlevel 1 (
@@ -2042,9 +2046,9 @@ if exist "ffmpeg.exe" (
 )
 
 :: 2. Tu dong tim file video (.mp4 hoac .webm) trong thu muc
-set VIDEO_FILE=
-for %%f in (*.mp4 *.webm) do (
-    if not defined VIDEO_FILE set VIDEO_FILE=%%f
+set "VIDEO_FILE="
+for %%f in (*.mp4 *.webm *.mkv *.mov) do (
+    if not defined VIDEO_FILE set "VIDEO_FILE=%%f"
 )
 
 if not defined VIDEO_FILE (
@@ -2060,10 +2064,11 @@ echo [OK] Server Shopee:   %RTMP_URL%
 echo ======================================================================
 echo.
 echo CHON CHE DO PHAT LIVESTREAM:
-echo [1] Phat Video Dong Goi San (Stream copy ca hinh va tieng - CPU 0%%)
+echo [1] Phat Video Dong Goi San (Stream copy ca hinh va tieng - CPU ~0%%)
 echo [2] LIVE TUONG TAC REAL-TIME (Video chay lap 0%% CPU + Bat tieng truc tiep tu Web)
 echo.
-set /p MODE_CHOICE="Nhap lua chon cua ban (1 hoac 2, mac dinh la 1): "
+set "MODE_CHOICE=1"
+set /p "MODE_CHOICE=Nhap lua chon cua ban (1 hoac 2, mac dinh la 1): "
 
 if "%MODE_CHOICE%"=="2" goto MODE_LIVE_INTERACTIVE
 goto MODE_VIDEO_PACKAGE
@@ -2089,11 +2094,11 @@ echo ======================================================================
 echo.
 echo Huong dan: Nhap ten thiet bi am thanh he thong (Vi du: Stereo Mix hoac CABLE Output)
 echo Neu de trong va bam Enter, he thong se thu qua "Stereo Mix (Realtek(R) Audio)".
-set AUDIO_DEVICE=
-set /p AUDIO_DEVICE="Nhap ten thiet bi thu am thanh: "
+set "AUDIO_DEVICE="
+set /p "AUDIO_DEVICE=Nhap ten thiet bi thu am thanh: "
 
 if "%AUDIO_DEVICE%"=="" (
-    set AUDIO_DEVICE=Stereo Mix (Realtek(R) Audio)
+    set "AUDIO_DEVICE=Stereo Mix (Realtek(R) Audio)"
 )
 
 echo.
@@ -2109,8 +2114,8 @@ if errorlevel 1 (
     echo.
     echo [LOI] Khong the ket noi thiet bi am thanh "%AUDIO_DEVICE%"!
     echo Vui long kiem tra xem ban da bat "Stereo Mix" trong Sound Settings chua:
-    echo 1. Nhan Win + R, go: mmsys.cpl ➔ Tab Recording.
-    echo 2. Click chuot phai chon Show Disabled Devices ➔ Bat "Stereo Mix".
+    echo 1. Nhan Win + R, go: mmsys.cpl -> Tab Recording.
+    echo 2. Click chuot phai chon Show Disabled Devices -> Bat "Stereo Mix".
     echo Hoac neu dung VPS, cai dat driver mien phi VB-Audio Cable.
 )
 
@@ -2120,7 +2125,9 @@ echo [DA DUNG PHAT LIVE]
 pause
 `;
 
-      const blob = new Blob([batContent], { type: 'application/x-bat;charset=utf-8' });
+      // Enforce CRLF (\r\n) line endings so Windows cmd.exe never desynchronizes byte offsets
+      const cleanBatContent = batContent.replace(/\r?\n/g, '\r\n');
+      const blob = new Blob([cleanBatContent], { type: 'application/x-bat;charset=utf-8' });
       const dlUrl = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.style.display = 'none';
