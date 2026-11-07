@@ -2016,6 +2016,7 @@ function bindEvents() {
       const safeKey = key.replace(/"/g, '');
 
       const batContent = `@echo off
+setlocal enabledelayedexpansion
 chcp 65001 >nul
 title Shopee Live Streamer - DinCox Studio
 color 0A
@@ -2092,31 +2093,69 @@ echo ======================================================================
 echo [CHE DO 2] LIVE TUONG TAC REAL-TIME
 echo Video se chay lap lai 0%% CPU, am thanh duoc thu truc tiep tu Web Studio!
 echo.
-echo DANH SACH THIET BI AM THANH TREN MAY:
-%FFMPEG_CMD% -list_devices true -f dshow -i dummy 2>&1 | findstr /i "DirectShow audio"
-echo ======================================================================
-echo.
-echo Huong dan: Nhap ten thiet bi am thanh he thong [Vi du: Stereo Mix hoac CABLE Output]
-echo Neu de trong va bam Enter, he thong se thu qua Stereo Mix.
-set "AUDIO_DEVICE="
-set /p "AUDIO_DEVICE=Nhap ten thiet bi thu am thanh: "
-if "%AUDIO_DEVICE%"=="" set "AUDIO_DEVICE=Stereo Mix"
+echo Dang tu dong quet thiet bi am thanh tren may tinh cua ban...
+
+del /f /q "%temp%\\dincox_audio_raw.txt" 2>nul
+del /f /q "%temp%\\dincox_audio.txt" 2>nul
+%FFMPEG_CMD% -list_devices true -f dshow -i dummy 2> "%temp%\\dincox_audio_raw.txt"
+type "%temp%\\dincox_audio_raw.txt" | findstr /i "(audio)" > "%temp%\\dincox_audio.txt"
+
+set COUNT=0
+set "RECOMMENDED_IDX=1"
+
+for /f "usebackq delims=" %%L in ("%temp%\\dincox_audio.txt") do (
+    set "LINE=%%L"
+    for /f tokens^=2^ delims^=^" %%A in ("!LINE!") do (
+        set /a COUNT+=1
+        set "DEV_!COUNT!=%%A"
+        echo %%A | findstr /i "CABLE Stereo Mix Virtual" >nul
+        if not errorlevel 1 (
+            set "RECOMMENDED_IDX=!COUNT!"
+        )
+    )
+)
+
+if %COUNT% equ 0 (
+    echo [CANH BAO] Khong tim thay thiet bi thu am DirectShow nao!
+    echo He thong se thu qua: Stereo Mix
+    set "AUDIO_DEVICE=Stereo Mix"
+    goto START_STREAM
+)
 
 echo.
-echo [BAT DAU] Dang thu am thanh tu: "%AUDIO_DEVICE%" va gop voi video "%VIDEO_FILE%"...
+echo DANH SACH THIET BI AM THANH TIM THAY:
+for /l %%i in (1,1,%COUNT%) do (
+    if "%%i"=="!RECOMMENDED_IDX!" (
+        echo   [%%i] !DEV_%%i!  ^<-- KHUYEN NGHI DUNG
+    ) else (
+        echo   [%%i] !DEV_%%i!
+    )
+)
+echo ======================================================================
+echo.
+echo Ban chi can nhan ENTER de chon thiet bi so [!RECOMMENDED_IDX!].
+set "DEV_CHOICE=!RECOMMENDED_IDX!"
+set /p "DEV_CHOICE=Nhap so thu tu (Chon 1, 2... Nhan Enter chon !RECOMMENDED_IDX!): "
+
+set "AUDIO_DEVICE=!DEV_%DEV_CHOICE%!"
+if "!AUDIO_DEVICE!"=="" set "AUDIO_DEVICE=!DEV_%RECOMMENDED_IDX%!"
+
+:START_STREAM
+echo.
+echo [BAT DAU] Thu am thanh tu: "!AUDIO_DEVICE!" gop voi video "%VIDEO_FILE%"...
 echo [MEO] Mo Web Studio va bam Phat Kich Ban de MC doc truc tiep!
 echo [INFO] Nhan Ctrl + C de dung phat live bat ky luc nao.
 echo ======================================================================
 echo.
 
-%FFMPEG_CMD% -stream_loop -1 -re -i "%VIDEO_FILE%" -f dshow -i audio="%AUDIO_DEVICE%" -map 0:v:0 -map 1:a:0 -c:v copy -c:a aac -b:a 128k -f flv "%RTMP_URL%%STREAM_KEY%"
+%FFMPEG_CMD% -stream_loop -1 -re -i "%VIDEO_FILE%" -f dshow -i audio="!AUDIO_DEVICE!" -map 0:v:0 -map 1:a:0 -c:v copy -c:a aac -b:a 128k -f flv "%RTMP_URL%%STREAM_KEY%"
 
 if errorlevel 1 goto AUDIO_ERROR
 goto END_SCRIPT
 
 :AUDIO_ERROR
 echo.
-echo [LOI] Khong the ket noi thiet bi am thanh "%AUDIO_DEVICE%"!
+echo [LOI] Khong the ket noi thiet bi am thanh "!AUDIO_DEVICE!"!
 echo Huong dan bat Stereo Mix trong Windows:
 echo 1. Nhan to hop phim Win + R, go: mmsys.cpl roi nhan Enter.
 echo 2. Chuyen sang tab Recording [Thu am].
