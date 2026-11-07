@@ -377,6 +377,10 @@
               <input type="checkbox" id="chk-eco-mode">
               <span style="color: #34d399; font-weight: 700;">🌱 Tiết Kiệm CPU (Eco 720p 30fps)</span>
             </label>
+            <label class="toggle-label audio-only-toggle-label" style="border: 1px solid rgba(56, 189, 248, 0.4); padding: 4px 10px; border-radius: 8px; background: rgba(56, 189, 248, 0.1); cursor: pointer;" title="Tắt hoàn toàn video nền, chỉ phát âm thanh AI và hiển thị đồ họa sản phẩm/banner (giảm CPU về 0%)">
+              <input type="checkbox" id="chk-audio-only-mode">
+              <span style="color: #38bdf8; font-weight: 700;">🎧 Chỉ Phát Âm Thanh (Tắt Video)</span>
+            </label>
           </div>
           <div class="action-buttons-row">
             <button id="btn-play-full-sequence" class="btn btn-lg btn-success">
@@ -689,6 +693,7 @@
             <select id="auth-perf-mode-select" class="input-field" style="background: rgba(15, 23, 42, 0.9); cursor: pointer; color: #fff; font-size: 12px; font-weight: 600;">
               <option value="standard" selected>⚡ Bản Tiêu Chuẩn (Full HD 1080p • Khuyên dùng cho máy có GPU)</option>
               <option value="eco">🌱 Bản Tối Ưu CPU (HD 720p 30fps • Cho máy không GPU / CPU yếu)</option>
+              <option value="audio_only">🎧 Bản Siêu Tiết Kiệm (Chỉ Phát Âm Thanh • Tắt Video • CPU ~0%)</option>
             </select>
           </div>
           <small style="color: #94a3b8; font-size: 11px; margin-top: 4px; display: block;">Nếu máy không có card màn hình rời hoặc mở Edge bị khựng giật, hãy chọn <b>Bản Tối Ưu CPU</b> để giảm ~70% tải.</small>

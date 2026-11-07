@@ -49,6 +49,7 @@ export class AIPresenterEngine {
     this.isVideoLoaded = false;
     this.useRealVideo = false;
     this.currentVideoSrc = null;
+    this.audioOnlyMode = false;
 
     this.loadAvatar(presenterData.avatar);
   }
@@ -61,6 +62,14 @@ export class AIPresenterEngine {
       this.nativeVideoEl.playsInline = true;
       this.nativeVideoEl.autoplay = true;
 
+      // In Audio-Only Mode, keep native video element hidden and paused
+      if (this.audioOnlyMode) {
+        this.nativeVideoEl.pause();
+        this.nativeVideoEl.classList.add('hidden');
+        this.nativeVideoEl.style.display = 'none';
+        return;
+      }
+
       // If video source was already set, hook it up to native video element immediately
       if (this.useRealVideo && this.currentVideoSrc) {
         if (this.nativeVideoEl.src !== this.currentVideoSrc) {
@@ -70,6 +79,32 @@ export class AIPresenterEngine {
         this.nativeVideoEl.style.display = 'block';
         if (this.nativeVideoEl.paused) {
           this.nativeVideoEl.play().catch(() => {});
+        }
+      }
+    }
+  }
+
+  setAudioOnlyMode(enabled) {
+    this.audioOnlyMode = !!enabled;
+    if (this.audioOnlyMode) {
+      if (this.videoEl && this.videoEl !== this.nativeVideoEl) {
+        this.videoEl.pause();
+      }
+      if (this.nativeVideoEl) {
+        this.nativeVideoEl.pause();
+        this.nativeVideoEl.classList.add('hidden');
+        this.nativeVideoEl.style.display = 'none';
+      }
+    } else {
+      if (this.useRealVideo) {
+        if (this.nativeVideoEl) {
+          this.nativeVideoEl.classList.remove('hidden');
+          this.nativeVideoEl.style.display = 'block';
+          if (this.nativeVideoEl.paused) {
+            this.nativeVideoEl.play().catch(() => {});
+          }
+        } else if (this.videoEl) {
+          this.videoEl.play().catch(() => {});
         }
       }
     }
@@ -160,13 +195,15 @@ export class AIPresenterEngine {
     // Guard against null/empty src
     if (!src || typeof src !== 'string' || src.trim() === '') return;
 
-    // If same src already loaded — just ensure playing, no full reload
+    // If same src already loaded — just ensure playing (unless in Audio-Only Mode), no full reload
     if (this.currentVideoSrc === originalSrc && this.videoEl && this.isVideoLoaded) {
-      if (this.videoEl.paused) this.videoEl.play().catch(() => {});
-      if (this.nativeVideoEl) {
-        this.nativeVideoEl.classList.remove('hidden');
-        this.nativeVideoEl.style.display = 'block';
-        if (this.nativeVideoEl.paused) this.nativeVideoEl.play().catch(() => {});
+      if (!this.audioOnlyMode) {
+        if (this.videoEl.paused) this.videoEl.play().catch(() => {});
+        if (this.nativeVideoEl) {
+          this.nativeVideoEl.classList.remove('hidden');
+          this.nativeVideoEl.style.display = 'block';
+          if (this.nativeVideoEl.paused) this.nativeVideoEl.play().catch(() => {});
+        }
       }
       return;
     }
@@ -187,8 +224,14 @@ export class AIPresenterEngine {
         this.nativeVideoEl.crossOrigin = 'anonymous';
       }
       this.nativeVideoEl.src = src;
-      this.nativeVideoEl.classList.remove('hidden');
-      this.nativeVideoEl.style.display = 'block';
+      if (this.audioOnlyMode) {
+        this.nativeVideoEl.pause();
+        this.nativeVideoEl.classList.add('hidden');
+        this.nativeVideoEl.style.display = 'none';
+      } else {
+        this.nativeVideoEl.classList.remove('hidden');
+        this.nativeVideoEl.style.display = 'block';
+      }
       this.videoEl = this.nativeVideoEl;
     } else {
       const video = document.createElement('video');
@@ -200,14 +243,14 @@ export class AIPresenterEngine {
       video.loop = true;
       video.muted = true;
       video.playsInline = true;
-      video.autoplay = true;
+      video.autoplay = !this.audioOnlyMode;
       video.preload = 'auto';
       this.videoEl = video;
     }
 
     const onReady = () => {
       this.isVideoLoaded = true;
-      if (this.videoEl && this.videoEl.paused) {
+      if (!this.audioOnlyMode && this.videoEl && this.videoEl.paused) {
         this.videoEl.play().catch(err => console.warn("Video play error:", err));
       }
     };
@@ -216,14 +259,16 @@ export class AIPresenterEngine {
     this.videoEl.oncanplay = onReady;
     this.videoEl.onloadedmetadata = onReady;
 
-    this.videoEl.load();
+    if (!this.audioOnlyMode) {
+      this.videoEl.load();
+    }
   }
 
 
   update(lipVolume = 0) {
     // Ultra-Low CPU Optimization:
-    // When real MC video is playing, bypass expensive 2D avatar math (lip volume, breathing, blinking, swaying)
-    if (this.useRealVideo) {
+    // When in Audio-Only Mode or real MC video is playing, bypass expensive 2D avatar math (lip volume, breathing, blinking, swaying)
+    if (this.audioOnlyMode || this.useRealVideo) {
       return;
     }
 
@@ -249,6 +294,11 @@ export class AIPresenterEngine {
   }
 
   render(ctx, x, y, width, height, forceBlit = false) {
+    // Ultra-Low CPU Mode: Audio Only (Do not render video background or 2D avatar at all!)
+    if (this.audioOnlyMode) {
+      return;
+    }
+
     // MODE B: Real MC MP4 Video Stream
     if (this.useRealVideo) {
       // Zero-Copy CPU Optimization:

@@ -395,23 +395,35 @@ if (studioSyncChannel) {
   };
 }
 
-// Global Performance & CPU Optimizer Mode Handler
-function applyPerformanceMode(mode, broadcast = true) {
-  const isEco = mode === 'eco';
-  const finalMode = isEco ? 'eco' : 'standard';
+// Global Performance & CPU Optimizer Mode Handler (Standard 1080p vs Eco 720p vs Audio-Only)
+export function applyPerformanceMode(mode, broadcast = true) {
+  const isAudioOnly = mode === 'audio_only';
+  const isEco = mode === 'eco' || isAudioOnly;
+  const finalMode = (mode === 'eco' || mode === 'audio_only') ? mode : 'standard';
+
   try {
     localStorage.setItem('dincox_performance_mode', finalMode);
+    localStorage.setItem('dincox_audio_only_mode', isAudioOnly ? 'true' : 'false');
   } catch (e) {}
+
+  // Update presenterEngine audio-only state
+  if (presenterEngine && typeof presenterEngine.setAudioOnlyMode === 'function') {
+    presenterEngine.setAudioOnlyMode(isAudioOnly);
+  }
 
   // Toggle CSS class on body (disables heavy backdrop blur & intensive shadows on low-spec PCs)
   document.body.classList.toggle('eco-mode', isEco);
+  document.body.classList.toggle('audio-only-mode', isAudioOnly);
 
-  // Update canvas resolution in renderer (Standard: 1080p, Eco: 720p)
+  // Update canvas resolution in renderer (Standard: 1080p, Eco/AudioOnly: 720p)
   canvasRenderer.setPerformanceMode(finalMode);
 
-  // Update Preview Panel checkbox
+  // Update Preview Panel checkboxes
   const chkEco = document.getElementById('chk-eco-mode');
-  if (chkEco) chkEco.checked = isEco;
+  if (chkEco) chkEco.checked = isEco && !isAudioOnly;
+
+  const chkAudioOnly = document.getElementById('chk-audio-only-mode');
+  if (chkAudioOnly) chkAudioOnly.checked = isAudioOnly;
 
   // Update Login Modal select
   const selectAuthPerf = document.getElementById('auth-perf-mode-select');
@@ -420,19 +432,41 @@ function applyPerformanceMode(mode, broadcast = true) {
   // Update Resolution text in canvas header
   const resText = document.getElementById('canvas-resolution');
   if (resText) {
-    resText.innerText = isEco ? '720 x 1280 (Eco 30FPS)' : '1080 x 1920 (30FPS)';
+    if (isAudioOnly) {
+      resText.innerText = '720 x 1280 (Audio Only • CPU ~0%)';
+    } else if (isEco) {
+      resText.innerText = '720 x 1280 (Eco 30FPS)';
+    } else {
+      resText.innerText = '1080 x 1920 (30FPS)';
+    }
   }
 
   // Update Header Quick Button text & styling
   const btnPerfToggle = document.getElementById('btn-toggle-perf-mode');
   const badgeText = document.getElementById('app-perf-badge-text');
   if (badgeText) {
-    badgeText.innerHTML = isEco ? '🌱 Eco Mode (720p 30fps)' : '⚡ Standard (1080p)';
+    if (isAudioOnly) {
+      badgeText.innerHTML = '🎧 Audio Only (CPU ~0%)';
+    } else if (isEco) {
+      badgeText.innerHTML = '🌱 Eco Mode (720p 30fps)';
+    } else {
+      badgeText.innerHTML = '⚡ Standard (1080p)';
+    }
   }
   if (btnPerfToggle) {
-    btnPerfToggle.style.borderColor = isEco ? '#10b981' : 'rgba(255,255,255,0.2)';
-    btnPerfToggle.style.color = isEco ? '#34d399' : '#cbd5e1';
-    btnPerfToggle.style.background = isEco ? 'rgba(16, 185, 129, 0.15)' : 'transparent';
+    if (isAudioOnly) {
+      btnPerfToggle.style.borderColor = '#38bdf8';
+      btnPerfToggle.style.color = '#38bdf8';
+      btnPerfToggle.style.background = 'rgba(14, 165, 233, 0.15)';
+    } else if (isEco) {
+      btnPerfToggle.style.borderColor = '#10b981';
+      btnPerfToggle.style.color = '#34d399';
+      btnPerfToggle.style.background = 'rgba(16, 185, 129, 0.15)';
+    } else {
+      btnPerfToggle.style.borderColor = 'rgba(255,255,255,0.2)';
+      btnPerfToggle.style.color = '#cbd5e1';
+      btnPerfToggle.style.background = 'transparent';
+    }
   }
 
   // Broadcast to other tabs (OBS overlay tab)
@@ -1306,12 +1340,27 @@ function bindEvents() {
     });
   }
 
-  // Quick performance toggle on top header
+  // Audio-Only Low-CPU Mode Toggle Handler (Turns off video, keeps audio & graphics, CPU ~0%)
+  const chkAudioOnlyMode = document.getElementById('chk-audio-only-mode');
+  if (chkAudioOnlyMode) {
+    chkAudioOnlyMode.addEventListener('change', (e) => {
+      applyPerformanceMode(e.target.checked ? 'audio_only' : 'standard');
+    });
+  }
+
+  // Quick performance toggle on top header (Cycles: Standard -> Eco -> Audio-Only -> Standard)
   const btnTogglePerfMode = document.getElementById('btn-toggle-perf-mode');
   if (btnTogglePerfMode) {
     btnTogglePerfMode.addEventListener('click', () => {
       const currentMode = localStorage.getItem('dincox_performance_mode') || 'standard';
-      const newMode = currentMode === 'eco' ? 'standard' : 'eco';
+      let newMode = 'eco';
+      if (currentMode === 'standard') {
+        newMode = 'eco';
+      } else if (currentMode === 'eco') {
+        newMode = 'audio_only';
+      } else {
+        newMode = 'standard';
+      }
       applyPerformanceMode(newMode);
     });
   }

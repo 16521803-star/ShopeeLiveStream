@@ -1939,5 +1939,14 @@ body.eco-mode .btn-success {
   color: #10b981 !important;
 }
 
+.audio-only-toggle-label input:checked + span {
+  color: #38bdf8 !important;
+}
+
+body.audio-only-mode .native-stream-video {
+  display: none !important;
+  opacity: 0 !important;
+}
+
 
 

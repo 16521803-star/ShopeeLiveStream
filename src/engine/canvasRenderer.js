@@ -150,8 +150,8 @@ export class ShopeeCanvasRenderer {
   }
 
   setPerformanceMode(mode) {
-    this.performanceMode = mode === 'eco' ? 'eco' : 'standard';
-    if (this.performanceMode === 'eco') {
+    this.performanceMode = (mode === 'eco' || mode === 'audio_only') ? mode : 'standard';
+    if (this.performanceMode === 'eco' || this.performanceMode === 'audio_only') {
       // 720p HD resolution: 921,600 pixels (reduces pixel workload by 56%!)
       this.canvas.width = 720;
       this.canvas.height = 1280;
@@ -261,7 +261,8 @@ export class ShopeeCanvasRenderer {
     }
 
     // 1. FULL-SCREEN BACKGROUND STREAMER (MC AI or Real MP4 Video fills 100% canvas background!)
-    if (this.presenterEngine) {
+    const isAudioOnly = this.presenterEngine && this.presenterEngine.audioOnlyMode;
+    if (this.presenterEngine && !isAudioOnly) {
       if (!this.presenterEngine.useRealVideo) {
         // Dark studio fallback gradient for 2D avatar mode
         const bgGradient = ctx.createLinearGradient(0, 0, 0, this.height);
@@ -273,10 +274,10 @@ export class ShopeeCanvasRenderer {
       }
       this.presenterEngine.render(ctx, 0, 0, this.width, this.height, this.forceCanvasBlit);
     } else {
-      // Dark studio fallback gradient
+      // Dark studio fallback gradient (Audio-Only Mode or No Presenter)
       const bgGradient = ctx.createLinearGradient(0, 0, 0, this.height);
       bgGradient.addColorStop(0, '#060d19');
-      bgGradient.addColorStop(0.5, '#0b1b36');
+      bgGradient.addColorStop(0.5, '#0a192f');
       bgGradient.addColorStop(1, '#050912');
       ctx.fillStyle = bgGradient;
       ctx.fillRect(0, 0, this.width, this.height);
@@ -288,6 +289,11 @@ export class ShopeeCanvasRenderer {
     // 2b. Render Brand Specific Live Watermark Badge (e.g. "Live AI của Dincox")
     if (this.brandWatermark) {
       this.renderBrandWatermarkBadge(ctx);
+    }
+
+    // 2c. Render Audio-Only Low-CPU Mode Badge
+    if (isAudioOnly) {
+      this.renderAudioOnlyBadge(ctx);
     }
 
     // 3. Render Floating Shoe Product Corner Badge Card (Upper Right)
@@ -368,6 +374,40 @@ export class ShopeeCanvasRenderer {
     // Text: "Live AI của Dincox"
     ctx.fillStyle = '#FFFFFF';
     ctx.fillText(text, x + 38, y + 31);
+
+    ctx.restore();
+  }
+
+  // Audio-Only Low-CPU Mode Badge
+  renderAudioOnlyBadge(ctx) {
+    ctx.save();
+    const w = 440;
+    const h = 48;
+    const x = 40;
+    const y = this.brandWatermark ? 256 : 196;
+
+    // Glowing cyan glass pill
+    const grad = ctx.createLinearGradient(x, y, x + w, y);
+    grad.addColorStop(0, 'rgba(15, 23, 42, 0.92)');
+    grad.addColorStop(1, 'rgba(14, 165, 233, 0.35)');
+    ctx.fillStyle = grad;
+    ctx.strokeStyle = 'rgba(56, 189, 248, 0.85)';
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    ctx.roundRect(x, y, w, h, 24);
+    ctx.fill();
+    ctx.stroke();
+
+    // Cyan audio indicator dot
+    ctx.fillStyle = '#38bdf8';
+    ctx.beginPath();
+    ctx.arc(x + 22, y + 24, 6, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Text: "🎧 Chế độ Âm thanh (Tắt video • CPU ~0%)"
+    ctx.fillStyle = '#FFFFFF';
+    ctx.font = 'bold 18px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
+    ctx.fillText('🎧 Chế độ Âm thanh (Tắt video • CPU ~0%)', x + 38, y + 31);
 
     ctx.restore();
   }
