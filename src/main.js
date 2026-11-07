@@ -2080,11 +2080,11 @@ if "%MODE_CHOICE%"=="2" goto MODE_LIVE_INTERACTIVE
 
 :MODE_VIDEO_PACKAGE
 echo.
-echo [CHE DO 1] Dang phat video co san len Shopee Live...
+echo [CHE DO 1] Dang phat video len Shopee Live...
 echo [INFO] Nhan Ctrl + C de dung phat live bat ky luc nao.
 echo ======================================================================
 echo.
-%FFMPEG_CMD% -re -stream_loop -1 -i "%VIDEO_FILE%" -c copy -f flv "%RTMP_URL%%STREAM_KEY%"
+%FFMPEG_CMD% -thread_queue_size 1024 -stream_loop -1 -re -i "%VIDEO_FILE%" -c:v libx264 -preset ultrafast -tune zerolatency -pix_fmt yuv420p -g 60 -b:v 2500k -maxrate 2500k -bufsize 5000k -c:a aac -b:a 128k -ar 44100 -flvflags no_duration_filesize -f flv "%RTMP_URL%%STREAM_KEY%"
 goto END_SCRIPT
 
 :MODE_LIVE_INTERACTIVE
@@ -2148,7 +2148,7 @@ echo [INFO] Nhan Ctrl + C de dung phat live bat ky luc nao.
 echo ======================================================================
 echo.
 
-%FFMPEG_CMD% -stream_loop -1 -re -i "%VIDEO_FILE%" -f dshow -i audio="!AUDIO_DEVICE!" -map 0:v:0 -map 1:a:0 -c:v copy -c:a aac -b:a 128k -f flv "%RTMP_URL%%STREAM_KEY%"
+%FFMPEG_CMD% -thread_queue_size 1024 -stream_loop -1 -re -i "%VIDEO_FILE%" -thread_queue_size 1024 -rtbufsize 256M -f dshow -i audio="!AUDIO_DEVICE!" -map 0:v:0 -map 1:a:0 -c:v libx264 -preset ultrafast -tune zerolatency -pix_fmt yuv420p -g 60 -b:v 2500k -maxrate 2500k -bufsize 5000k -c:a aac -b:a 128k -ar 44100 -af "aresample=async=1000" -flvflags no_duration_filesize -f flv "%RTMP_URL%%STREAM_KEY%"
 
 if errorlevel 1 goto AUDIO_ERROR
 goto END_SCRIPT
@@ -2195,7 +2195,7 @@ pause
         localStorage.setItem('dincox_shopee_stream_key', key);
       }
 
-      const cmd = `ffmpeg -re -stream_loop -1 -i live.mp4 -c copy -f flv "${url}${key}"`;
+      const cmd = `ffmpeg -thread_queue_size 1024 -stream_loop -1 -re -i live.mp4 -c:v libx264 -preset ultrafast -tune zerolatency -pix_fmt yuv420p -g 60 -b:v 2500k -c:a aac -b:a 128k -ar 44100 -flvflags no_duration_filesize -f flv "${url}${key}"`;
       if (navigator.clipboard && navigator.clipboard.writeText) {
         navigator.clipboard.writeText(cmd);
         const origHtml = btnCopyFfmpegCmd.innerHTML;
