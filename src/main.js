@@ -2069,14 +2069,16 @@ echo [OK] Phat hien video: %VIDEO_FILE%
 echo [OK] Server Shopee:   %RTMP_URL%
 echo ======================================================================
 echo.
-echo CHON CHE DO PHAT LIVESTREAM:
-echo [1] Phat Video Co San [Stream copy ca hinh va tieng - CPU ~0%%]
-echo [2] LIVE TUONG TAC REAL-TIME [Video lap 0%% CPU + Bat am thanh tu Web]
+echo CHON CHE DO HOAT DONG:
+echo [1] Phat Video Co San [Video tu dong loop + Am thanh dong goi san]
+echo [2] LIVE TUONG TAC REAL-TIME [Video loop + Thu am thanh Web Studio]
+echo [3] Chuyen doi WebM sang MP4 chuan Shopee [Chi chay 1 lan - CPU = 0%%]
 echo.
 set "MODE_CHOICE=1"
-set /p "MODE_CHOICE=Nhap lua chon cua ban (1 hoac 2, mac dinh la 1): "
+set /p "MODE_CHOICE=Nhap lua chon cua ban (1, 2 hoac 3, mac dinh la 1): "
 
 if "%MODE_CHOICE%"=="2" goto MODE_LIVE_INTERACTIVE
+if "%MODE_CHOICE%"=="3" goto MODE_CONVERT_MP4
 
 :MODE_VIDEO_PACKAGE
 echo.
@@ -2084,8 +2086,37 @@ echo [CHE DO 1] Dang phat video len Shopee Live...
 echo [INFO] Nhan Ctrl + C de dung phat live bat ky luc nao.
 echo ======================================================================
 echo.
-%FFMPEG_CMD% -thread_queue_size 1024 -stream_loop -1 -re -i "%VIDEO_FILE%" -c:v libx264 -preset ultrafast -tune zerolatency -pix_fmt yuv420p -g 60 -b:v 2500k -maxrate 2500k -bufsize 5000k -c:a aac -b:a 128k -ar 44100 -flvflags no_duration_filesize -f flv "%RTMP_URL%%STREAM_KEY%"
+
+for %%A in ("%VIDEO_FILE%") do set "EXT=%%~xA"
+if /i "%EXT%"==".mp4" (
+    echo [INFO] Phat hien file MP4 chuan - Kich hoat Stream Copy 0%% CPU...
+    %FFMPEG_CMD% -thread_queue_size 1024 -stream_loop -1 -re -i "%VIDEO_FILE%" -c copy -flvflags no_duration_filesize -f flv "%RTMP_URL%%STREAM_KEY%"
+) else (
+    echo [INFO] Phat hien file WebM - Tu dong scale 720p H.264 de dam bao speed ^>= 1.0x...
+    %FFMPEG_CMD% -thread_queue_size 1024 -stream_loop -1 -re -i "%VIDEO_FILE%" -vf "scale=720:1280" -c:v libx264 -preset ultrafast -tune zerolatency -threads 0 -pix_fmt yuv420p -g 60 -b:v 2000k -c:a aac -b:a 128k -ar 44100 -flvflags no_duration_filesize -f flv "%RTMP_URL%%STREAM_KEY%"
+)
 goto END_SCRIPT
+
+:MODE_CONVERT_MP4
+echo.
+echo ======================================================================
+echo DANG CHUYEN DOI VIDEO SANG MP4 CHUAN SHOPEE LIVE [H.264 + AAC]...
+echo Qua trinh nay chi mat vai giay den 1 phut tuy do dai video.
+echo ======================================================================
+echo.
+%FFMPEG_CMD% -i "%VIDEO_FILE%" -vf "scale=720:1280" -c:v libx264 -preset fast -threads 0 -pix_fmt yuv420p -g 60 -b:v 2500k -c:a aac -b:a 128k -ar 44100 -y "video_shopee_ready.mp4"
+if errorlevel 1 (
+    echo.
+    echo [LOI] Chuyen doi that bai!
+    pause
+    exit /b
+)
+echo.
+echo [THANH CONG!] Da tao xong file: "video_shopee_ready.mp4"
+echo Tu bay gio ban co the mo lai file bat nay va chon 1 hoac 2 de Live voi CPU = 0%% tuyet doi!
+echo.
+pause
+exit /b
 
 :MODE_LIVE_INTERACTIVE
 echo.
@@ -2148,7 +2179,14 @@ echo [INFO] Nhan Ctrl + C de dung phat live bat ky luc nao.
 echo ======================================================================
 echo.
 
-%FFMPEG_CMD% -thread_queue_size 1024 -stream_loop -1 -re -i "%VIDEO_FILE%" -thread_queue_size 1024 -rtbufsize 256M -f dshow -i audio="!AUDIO_DEVICE!" -map 0:v:0 -map 1:a:0 -c:v libx264 -preset ultrafast -tune zerolatency -pix_fmt yuv420p -g 60 -b:v 2500k -maxrate 2500k -bufsize 5000k -c:a aac -b:a 128k -ar 44100 -af "aresample=async=1000" -flvflags no_duration_filesize -f flv "%RTMP_URL%%STREAM_KEY%"
+for %%A in ("%VIDEO_FILE%") do set "EXT=%%~xA"
+if /i "%EXT%"==".mp4" (
+    echo [INFO] Phat hien file MP4 chuan - Kich hoat Stream Copy 0%% CPU...
+    %FFMPEG_CMD% -thread_queue_size 1024 -stream_loop -1 -re -i "%VIDEO_FILE%" -thread_queue_size 1024 -rtbufsize 256M -f dshow -i audio="!AUDIO_DEVICE!" -map 0:v:0 -map 1:a:0 -c:v copy -c:a aac -b:a 128k -ar 44100 -af "aresample=async=1000" -flvflags no_duration_filesize -f flv "%RTMP_URL%%STREAM_KEY%"
+) else (
+    echo [INFO] Phat hien file WebM - Tu dong scale 720p H.264 de dam bao speed ^>= 1.0x...
+    %FFMPEG_CMD% -thread_queue_size 1024 -stream_loop -1 -re -i "%VIDEO_FILE%" -thread_queue_size 1024 -rtbufsize 256M -f dshow -i audio="!AUDIO_DEVICE!" -map 0:v:0 -map 1:a:0 -vf "scale=720:1280" -c:v libx264 -preset ultrafast -tune zerolatency -threads 0 -pix_fmt yuv420p -g 60 -b:v 2000k -maxrate 2000k -bufsize 4000k -c:a aac -b:a 128k -ar 44100 -af "aresample=async=1000" -flvflags no_duration_filesize -f flv "%RTMP_URL%%STREAM_KEY%"
+)
 
 if errorlevel 1 goto AUDIO_ERROR
 goto END_SCRIPT
