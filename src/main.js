@@ -162,7 +162,12 @@ const canvas = document.getElementById('shopee-canvas');
 const canvasRenderer = new ShopeeCanvasRenderer(canvas);
 const presenterEngine = new AIPresenterEngine(activePresenter);
 const videoExporter = new VideoExporter(canvas);
-const rtmpStreamer = new ShopeeRtmpStreamer(canvas);
+const rtmpStreamer = new ShopeeRtmpStreamer(canvas, videoExporter.initAudioContext());
+
+// Connect Speech Engine audio output to VideoExporter audio mixer
+speechEngine.setAudioOutputHook((audioEl) => {
+  videoExporter.attachMediaAudio(audioEl);
+});
 
 const nativeStreamVideo = document.getElementById('native-stream-video');
 if (nativeStreamVideo) {
@@ -1226,6 +1231,12 @@ async function toggleVideoRecording() {
   const downloadBtn = document.getElementById('btn-download-video');
 
   if (!videoExporter.isRecording) {
+    // If user enabled optional microphone / stereo mix capture (useful for native WebSpeech)
+    const chkMic = document.getElementById('chk-record-mic');
+    if (chkMic && chkMic.checked) {
+      await videoExporter.attachMicrophoneStream();
+    }
+
     // Start Recording (force Canvas blit so canvas.captureStream records video layer)
     canvasRenderer.forceCanvasBlit = true;
     videoExporter.startRecording();
@@ -1643,7 +1654,8 @@ function bindEvents() {
 
   document.getElementById('btn-download-video')?.addEventListener('click', () => {
     if (recordedBlob) {
-      videoExporter.downloadVideo(recordedBlob, `DinCox_ShopeeLive_${activeProduct.id}.webm`);
+      const prodId = activeProduct ? (activeProduct.id || 'san_pham') : 'video';
+      videoExporter.downloadVideo(recordedBlob, `DinCox_ShopeeLive_${prodId}`);
     }
   });
 

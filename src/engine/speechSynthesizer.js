@@ -134,8 +134,13 @@ export class SpeechEngine {
       confirmBeforeApiCall: true
     };
     this.sessionDeclinedApiCall = false;
+    this.audioOutputHook = null; // Stream hook for recording / RTMP mixing
 
     this.initVoices();
+  }
+
+  setAudioOutputHook(fn) {
+    this.audioOutputHook = typeof fn === 'function' ? fn : null;
   }
 
   setElevenLabsConfig({ apiKey, voiceId, modelId, enabled, confirmBeforeApiCall }) {
@@ -448,6 +453,15 @@ export class SpeechEngine {
 
       const audio = new Audio(audioUrl);
       this.activeAudio = audio;
+
+      // Route audio to recording / RTMP stream mixer if hook is registered
+      if (typeof this.audioOutputHook === 'function') {
+        try {
+          this.audioOutputHook(audio);
+        } catch (e) {
+          console.warn("Audio output hook error:", e);
+        }
+      }
 
       const startTime = Date.now();
 
