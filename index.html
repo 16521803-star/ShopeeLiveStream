@@ -407,9 +407,9 @@
             </button>
           </div>
           <div class="record-audio-options" style="display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: 8px; margin-top: 6px;">
-            <label class="toggle-label" style="font-size: 11px; padding: 3px 8px; background: rgba(16, 185, 129, 0.1); border: 1px solid rgba(16, 185, 129, 0.35); border-radius: 6px; cursor: pointer; color: #34d399;" title="Thu trực tiếp âm thanh kỹ thuật số nội bộ từ Tab/Desktop mà KHÔNG thu tiếng rè từ Micro (Dành cho giọng đọc WebSpeech Hoài My/Nam Minh)">
+            <label class="toggle-label" style="font-size: 11px; padding: 3px 8px; background: rgba(16, 185, 129, 0.1); border: 1px solid rgba(16, 185, 129, 0.35); border-radius: 6px; cursor: pointer; color: #34d399;" title="Khi bấm Quay: Chọn mục 'Toàn màn hình (Entire Screen)' + bật 'Chia sẻ âm thanh hệ thống (Share system audio)' để thu trực tiếp giọng đọc AI Hoài My / Nam Minh rõ nét 100% không tạp âm">
               <input type="checkbox" id="chk-record-desktop" checked>
-              <span>🔊 Thu Âm Thanh Desktop/Tab (Không thu Micro)</span>
+              <span>🔊 Thu Âm Thanh Hệ Thống / Toàn Màn Hình (Không thu Micro)</span>
             </label>
             <label class="toggle-label" style="font-size: 11px; padding: 3px 8px; background: rgba(15, 23, 42, 0.6); border: 1px solid rgba(255,255,255,0.15); border-radius: 6px; cursor: pointer; color: #94a3b8;" title="Thu thêm tiếng từ Micro bên ngoài (nếu bạn muốn nói trực tiếp chèn vào video)">
               <input type="checkbox" id="chk-record-mic">
@@ -526,9 +526,18 @@
           <h2><i data-lucide="download-cloud"></i> Xuất Video Livestream (Offline File)</h2>
           <div class="export-card">
             <p class="export-desc">Hệ thống sẽ ghi hình lại chuyển động của MC AI, hiệu ứng thả tim, giỏ hàng Shopee và giọng đọc Tiếng Việt thành tệp Video chuẩn 9:16.</p>
-            <div id="recording-progress" class="recording-progress hidden">
-              <div class="progress-spinner"></div>
-              <span id="record-time-text">Đang quay video: 00:00</span>
+            <div id="recording-progress" class="recording-progress hidden" style="flex-direction: column; align-items: stretch; gap: 6px;">
+              <div style="display: flex; align-items: center; gap: 10px;">
+                <div class="progress-spinner"></div>
+                <span id="record-time-text">Đang quay video: 00:00</span>
+              </div>
+              <div id="record-audio-meter-wrap" class="hidden" style="display: flex; align-items: center; gap: 8px; font-size: 11px; color: #cbd5e1;">
+                <span id="record-audio-meter-label" style="min-width: 90px;">🔊 Sóng âm thu:</span>
+                <div style="flex: 1; height: 7px; background: rgba(255,255,255,0.12); border-radius: 4px; overflow: hidden;">
+                  <div id="record-audio-meter-bar" style="width: 0%; height: 100%; background: linear-gradient(90deg, #10b981, #34d399); transition: width 0.08s ease;"></div>
+                </div>
+                <span id="record-audio-meter-pct" style="min-width: 34px; text-align: right; color: #34d399; font-weight: 600;">0%</span>
+              </div>
             </div>
             <button id="btn-download-video" class="btn btn-primary btn-block hidden">
               <i data-lucide="download"></i> Tải Video Về Máy (.webm)

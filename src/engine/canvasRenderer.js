@@ -288,6 +288,11 @@ export class ShopeeCanvasRenderer {
     // 2. Render Shopee AI Disclosure Watermark (Top Left - Shopee Compliance)
     this.renderAiComplianceWatermark(ctx);
 
+    // 2a. Render Top-Center Store Title ("Dincox shoes store") ONLY for Dincox2
+    if (this.isDincox2Branch()) {
+      this.renderTopCenterStoreHeader(ctx);
+    }
+
     // 2b. Render Brand Specific Live Watermark Badge (e.g. "Live AI của Dincox")
     if (this.brandWatermark) {
       this.renderBrandWatermarkBadge(ctx);
@@ -298,8 +303,8 @@ export class ShopeeCanvasRenderer {
       this.renderAudioOnlyBadge(ctx);
     }
 
-    // 3. Render Floating Shoe Product Corner Badge Card (Upper Right)
-    this.renderFloatingProductCorner(ctx, timestamp);
+    // 3. Render Floating Shoe Product Corner Badge Card
+    this.renderFloatingProductCorner(ctx, timestamp, isAudioOnly);
 
     // 4. Render Flash Sale & Voucher Banner (Lower Middle Overlay)
     this.renderFlashSaleBanner(ctx);
@@ -309,6 +314,42 @@ export class ShopeeCanvasRenderer {
       this.renderSpeechSubtitle(ctx);
     }
 
+    ctx.restore();
+  }
+
+  isDincox2Branch() {
+    return (this.branchName || '').trim().toLowerCase() === 'dincox2';
+  }
+
+  // Top-Center Store Title ("Dincox shoes store") exclusive to Dincox2
+  renderTopCenterStoreHeader(ctx) {
+    ctx.save();
+    const text = 'Dincox shoes store';
+    ctx.font = 'bold 26px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
+    const textWidth = ctx.measureText(text).width;
+    const w = textWidth + 64;
+    const h = 50;
+    const x = (this.width - w) / 2;
+    const y = 58;
+
+    const grad = ctx.createLinearGradient(x, y, x + w, y);
+    grad.addColorStop(0, 'rgba(15, 23, 42, 0.85)');
+    grad.addColorStop(0.5, 'rgba(30, 41, 59, 0.90)');
+    grad.addColorStop(1, 'rgba(15, 23, 42, 0.85)');
+    ctx.fillStyle = grad;
+    ctx.strokeStyle = 'rgba(229, 169, 60, 0.85)';
+    ctx.lineWidth = 1.8;
+    ctx.beginPath();
+    ctx.roundRect(x, y, w, h, 25);
+    ctx.fill();
+    ctx.stroke();
+
+    ctx.fillStyle = '#FFFFFF';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.shadowColor = 'rgba(0, 0, 0, 0.65)';
+    ctx.shadowBlur = 4;
+    ctx.fillText(text, this.width / 2, y + h / 2 + 1);
     ctx.restore();
   }
 
@@ -414,19 +455,29 @@ export class ShopeeCanvasRenderer {
     ctx.restore();
   }
 
-  // Authentic Shopee Floating Product Corner Card (Positioned directly above Flash Sale Banner)
-  renderFloatingProductCorner(ctx, timestamp) {
+  // Authentic Shopee Floating Product Corner Card (Positioned directly above Flash Sale Banner, or top-left below Compliance for Dincox2)
+  renderFloatingProductCorner(ctx, timestamp, isAudioOnly = false) {
     if (!this.showProductCard || !this.currentProduct) return;
 
     ctx.save();
+    const isDincox2 = this.isDincox2Branch();
     const hasImg = this.isProductImgLoaded && this.currentProduct.image && typeof this.currentProduct.image === 'string' && this.currentProduct.image.trim().length > 0;
     const hasSalePrice = typeof this.currentProduct.salePrice === 'number' && !isNaN(this.currentProduct.salePrice) && this.currentProduct.salePrice > 0;
     const floatY = Math.sin(timestamp * 0.003) * 6;
-    const cardW = 320;
-    const cardH = hasImg ? (hasSalePrice ? 395 : 355) : (hasSalePrice ? 95 : 55);
-    const cardX = 50;
+
+    const cardW = isDincox2 ? 380 : 320;
+    const imgSize = isDincox2 ? 356 : 300;
+    const padX = isDincox2 ? 12 : 10;
+    const titleOffsetY = isDincox2 ? 36 : 32;
+    const imgOffsetY = isDincox2 ? 50 : 44;
+
+    const cardH = isDincox2
+      ? (hasImg ? (hasSalePrice ? 465 : 418) : (hasSalePrice ? 110 : 65))
+      : (hasImg ? (hasSalePrice ? 395 : 355) : (hasSalePrice ? 95 : 55));
+
+    const cardX = isDincox2 ? 40 : 50;
     const banY = this.height - 480;
-    const cardY = banY - cardH - 20;
+    const cardY = isDincox2 ? (isAudioOnly ? 320 : 262) : (banY - cardH - 20);
 
     // Glassmorphism card backdrop with thin transparent white border
     ctx.fillStyle = 'rgba(255, 255, 255, 0.45)';
@@ -439,34 +490,33 @@ export class ShopeeCanvasRenderer {
 
     // Product Title (Black font color, compact margin)
     ctx.fillStyle = '#000000';
-    ctx.font = 'bold 20px sans-serif';
-    const shortName = this.currentProduct.name.length > 24 
-      ? this.currentProduct.name.substring(0, 22) + '...' 
+    ctx.font = isDincox2 ? 'bold 24px sans-serif' : 'bold 20px sans-serif';
+    const maxLen = isDincox2 ? 25 : 24;
+    const shortName = this.currentProduct.name.length > maxLen
+      ? this.currentProduct.name.substring(0, maxLen - 2) + '...'
       : this.currentProduct.name;
-    ctx.fillText(shortName, cardX + 10, cardY + floatY + 32);
+    ctx.fillText(shortName, cardX + padX, cardY + floatY + titleOffsetY);
 
     // Shoe Product Thumbnail Box (ONLY if image is available & loaded)
     if (hasImg) {
-      const imgW = 300;
-      const imgH = 300;
-      const imgX = cardX + 10;
-      const imgY = cardY + floatY + 44;
+      const imgX = cardX + padX;
+      const imgY = cardY + floatY + imgOffsetY;
 
       // Inner image frame with ultra-thin white border
       ctx.fillStyle = 'rgba(255, 255, 255, 0.2)';
       ctx.strokeStyle = 'rgba(255, 255, 255, 0.85)';
       ctx.lineWidth = 1.0;
       ctx.beginPath();
-      ctx.roundRect(imgX, imgY, imgW, imgH, 14);
+      ctx.roundRect(imgX, imgY, imgSize, imgSize, 14);
       ctx.fill();
       ctx.stroke();
 
       // Clip product image with zero padding inside ultra-thin border
       ctx.save();
       ctx.beginPath();
-      ctx.roundRect(imgX + 1, imgY + 1, imgW - 2, imgH - 2, 13);
+      ctx.roundRect(imgX + 1, imgY + 1, imgSize - 2, imgSize - 2, 13);
       ctx.clip();
-      ctx.drawImage(this.productImg, imgX + 1, imgY + 1, imgW - 2, imgH - 2);
+      ctx.drawImage(this.productImg, imgX + 1, imgY + 1, imgSize - 2, imgSize - 2);
       ctx.restore();
     }
 
@@ -474,9 +524,11 @@ export class ShopeeCanvasRenderer {
     if (hasSalePrice) {
       const saleStr = currencyFormatter.format(this.currentProduct.salePrice) + 'đ';
       ctx.fillStyle = '#FF2A54';
-      ctx.font = 'bold 24px sans-serif';
-      const priceY = hasImg ? (cardY + floatY + cardH - 12) : (cardY + floatY + 75);
-      ctx.fillText(saleStr, cardX + 10, priceY);
+      ctx.font = isDincox2 ? 'bold 28px sans-serif' : 'bold 24px sans-serif';
+      const priceY = hasImg
+        ? (cardY + floatY + cardH - (isDincox2 ? 14 : 12))
+        : (cardY + floatY + (isDincox2 ? 85 : 75));
+      ctx.fillText(saleStr, cardX + padX, priceY);
     }
 
     ctx.restore();

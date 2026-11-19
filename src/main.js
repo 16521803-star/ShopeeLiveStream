@@ -491,24 +491,57 @@ export function applyPerformanceMode(mode, broadcast = true) {
 let lastRenderTime = 0;
 const TARGET_FPS = 30; // 30 FPS Shopee Live standard broadcasting rate
 const FRAME_INTERVAL = 1000 / TARGET_FPS;
+let bgRenderInterval = null;
 
-function animate(time) {
-  requestAnimationFrame(animate);
-
-  const elapsed = time - lastRenderTime;
+function renderCanvasFrame(now) {
+  const elapsed = now - lastRenderTime;
   if (elapsed < FRAME_INTERVAL) return;
-  lastRenderTime = time - (elapsed % FRAME_INTERVAL);
+  lastRenderTime = now - (elapsed % FRAME_INTERVAL);
 
   const delta = (elapsed || 33.3) / 1000;
 
   try {
     presenterEngine.update(speechEngine.simulatedVolume);
     canvasRenderer.update(delta);
-    canvasRenderer.render(time);
+    canvasRenderer.render(now);
   } catch (err) {
     console.error("Canvas render loop error:", err);
   }
 }
+
+function animate(time) {
+  requestAnimationFrame(animate);
+  renderCanvasFrame(time);
+}
+
+// Background Tab Keep-Alive: When the tab is in the background or minimized, browsers
+// freeze or throttle requestAnimationFrame to 0-1 FPS. If recording or sequence playback is active,
+// this fallback interval ensures the canvas keeps redrawing at 30 FPS so canvas.captureStream()
+// continuously feeds frames to MediaRecorder without freezing or producing a truncated video.
+function startBackgroundRenderLoop() {
+  if (!bgRenderInterval) {
+    bgRenderInterval = setInterval(() => {
+      renderCanvasFrame(performance.now());
+    }, FRAME_INTERVAL);
+  }
+}
+
+function stopBackgroundRenderLoop() {
+  if (bgRenderInterval) {
+    clearInterval(bgRenderInterval);
+    bgRenderInterval = null;
+  }
+}
+
+document.addEventListener('visibilitychange', () => {
+  if (document.hidden) {
+    if ((videoExporter && videoExporter.isRecording) || isSequencePlaying) {
+      startBackgroundRenderLoop();
+    }
+  } else {
+    stopBackgroundRenderLoop();
+  }
+});
 
 // UI Renderers
 function renderProductList() {
@@ -1224,31 +1257,73 @@ function playNextStageInSequence() {
 }
 
 // Video Recording Controller
+let audioMeterInterval = null;
+
 async function toggleVideoRecording() {
   const btn = document.getElementById('btn-start-record');
   const progressBox = document.getElementById('recording-progress');
   const recordText = document.getElementById('record-time-text');
   const downloadBtn = document.getElementById('btn-download-video');
+  const meterWrap = document.getElementById('record-audio-meter-wrap');
+  const meterBar = document.getElementById('record-audio-meter-bar');
+  const meterPct = document.getElementById('record-audio-meter-pct');
 
   if (!videoExporter.isRecording) {
-    // 1. Pure Desktop/Tab Digital Audio Capture (No mic noise, pure WebSpeech audio)
     const chkDesktop = document.getElementById('chk-record-desktop');
+    const chkMic = document.getElementById('chk-record-mic');
+    const hasElevenLabs = speechEngine.elevenLabsConfig && speechEngine.elevenLabsConfig.enabled && !!speechEngine.elevenLabsConfig.apiKey;
+
+    let hasAudioSource = false;
+
+    // 1. Pure Desktop/System Digital Audio Capture (No mic noise, captures WebSpeech Hoài My / Nam Minh)
     if (chkDesktop && chkDesktop.checked) {
-      // Only request tab audio if ElevenLabs is NOT active (since ElevenLabs is already 100% digital in-memory)
-      if (!speechEngine.elevenLabsConfig.enabled || !speechEngine.elevenLabsConfig.apiKey) {
-        await videoExporter.attachSystemAudioStream();
+      if (!hasElevenLabs) {
+        const res = await videoExporter.attachSystemAudioStream({ requireSystemAudio: true });
+        if (res && res.ok) {
+          hasAudioSource = true;
+        } else if (res && res.reason === 'NO_AUDIO_TRACK') {
+          alert(
+            `⚠️ CHƯA BẬT "CHIA SẺ ÂM THANH HỆ THỐNG"!\n\n` +
+            `Để thu được giọng đọc MC AI (Hoài My / Nam Minh), khi bảng chọn hiện lên bạn hãy:\n` +
+            `1️⃣ Chọn mục "Toàn màn hình" (Entire Screen)\n` +
+            `2️⃣ Click chọn màn hình máy tính của bạn\n` +
+            `3️⃣ Bật công tắc "Chia sẻ âm thanh hệ thống" (Also share system audio) ở góc dưới\n` +
+            `4️⃣ Bấm nút "Chia sẻ" (Share)\n\n` +
+            `💡 Mẹo: Bỏ tích ô "🔊 Thu Âm Thanh Hệ Thống" nếu bạn chỉ muốn quay hình không tiếng.`
+          );
+          return;
+        } else if (res && res.reason === 'TAB_SELECTED_FOR_WEBSPEECH') {
+          alert(
+            `⚠️ BẠN VỪA CHỌN CHIA SẺ "THẺ TRÌNH DUYỆT (TAB)"!\n\n` +
+            `Giọng đọc AI trình duyệt (Hoài My / Nam Minh) phát qua bộ tổng hợp Âm thanh Hệ thống của Windows, nên chế độ "Thẻ (Tab)" sẽ KHÔNG thu được tiếng.\n\n` +
+            `👉 Vui lòng bấm Quay lại và chọn tab "Toàn màn hình" (Entire Screen) + bật công tắc "Chia sẻ âm thanh hệ thống" (Share system audio) ở góc dưới nhé!`
+          );
+          return;
+        } else if (res && res.reason === 'CANCELLED') {
+          return;
+        }
+      } else {
+        hasAudioSource = true;
       }
     }
 
     // 2. Optional External Microphone Capture
-    const chkMic = document.getElementById('chk-record-mic');
     if (chkMic && chkMic.checked) {
-      await videoExporter.attachMicrophoneStream();
+      const micAttached = await videoExporter.attachMicrophoneStream();
+      if (micAttached) hasAudioSource = true;
     }
+
+    if (hasElevenLabs) {
+      hasAudioSource = true;
+    }
+
+    // includeAudio is true ONLY if user checked audio option AND attaching succeeded, or ElevenLabs is enabled.
+    // If user unchecked audio options (No audio mode), includeAudio is false, recording pure video without stalling!
+    const includeAudio = hasAudioSource;
 
     // Start Recording (force Canvas blit so canvas.captureStream records video layer)
     canvasRenderer.forceCanvasBlit = true;
-    videoExporter.startRecording();
+    videoExporter.startRecording({ includeAudio });
     btn.innerHTML = `<i data-lucide="square"></i> Dừng Quay & Xuất Video`;
     btn.classList.replace('btn-danger', 'btn-secondary');
     progressBox.classList.remove('hidden');
@@ -1256,12 +1331,32 @@ async function toggleVideoRecording() {
     createIcons({ icons });
 
     recordSeconds = 0;
+    const audioStatusLabel = includeAudio ? '🔊 Có âm thanh' : '🔇 Hình ảnh (Không tiếng)';
+    recordText.innerText = `Đang quay video: 00:00 • [${audioStatusLabel}]`;
+
+    if (includeAudio && meterWrap) {
+      meterWrap.classList.remove('hidden');
+      if (audioMeterInterval) clearInterval(audioMeterInterval);
+      audioMeterInterval = setInterval(() => {
+        const level = videoExporter.getAudioLevel();
+        if (meterBar) meterBar.style.width = `${level}%`;
+        if (meterPct) meterPct.innerText = `${level}%`;
+      }, 100);
+    } else if (meterWrap) {
+      meterWrap.classList.add('hidden');
+    }
+
     recordTimerInterval = setInterval(() => {
       recordSeconds++;
       const mins = String(Math.floor(recordSeconds / 60)).padStart(2, '0');
       const secs = String(recordSeconds % 60).padStart(2, '0');
-      recordText.innerText = `Đang quay video: ${mins}:${secs}`;
+      recordText.innerText = `Đang quay video: ${mins}:${secs} • [${audioStatusLabel}]`;
     }, 1000);
+
+    // Keep render loop running if tab is in the background
+    if (document.hidden) {
+      startBackgroundRenderLoop();
+    }
 
     if (!isSequencePlaying) {
       playScriptSequence();
@@ -1269,12 +1364,31 @@ async function toggleVideoRecording() {
   } else {
     // Stop Recording (restore performance mode canvas blit setting)
     clearInterval(recordTimerInterval);
+    if (audioMeterInterval) {
+      clearInterval(audioMeterInterval);
+      audioMeterInterval = null;
+    }
+    if (meterWrap) meterWrap.classList.add('hidden');
+    if (bgRenderInterval && !isSequencePlaying) {
+      stopBackgroundRenderLoop();
+    }
+
     recordedBlob = await videoExporter.stopRecording();
     canvasRenderer.forceCanvasBlit = canvasRenderer.performanceMode === 'standard';
     btn.innerHTML = `<i data-lucide="disc"></i> Quay & Xuất Video`;
     btn.classList.replace('btn-secondary', 'btn-danger');
     progressBox.classList.add('hidden');
-    downloadBtn.classList.remove('hidden');
+
+    if (recordedBlob && recordedBlob.size > 0) {
+      downloadBtn.classList.remove('hidden');
+      const totalSec = recordSeconds;
+      const mins = String(Math.floor(totalSec / 60)).padStart(2, '0');
+      const secs = String(totalSec % 60).padStart(2, '0');
+      const sizeMb = (recordedBlob.size / (1024 * 1024)).toFixed(1);
+      const isMp4 = (recordedBlob.type || '').includes('mp4');
+      const ext = isMp4 ? 'mp4' : 'webm';
+      downloadBtn.innerHTML = `<i data-lucide="download"></i> Tải Video Về Máy (.${ext} • ${mins}:${secs} • ${sizeMb} MB)`;
+    }
     createIcons({ icons });
   }
 }
