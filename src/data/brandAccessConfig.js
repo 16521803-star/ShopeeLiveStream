@@ -17,6 +17,9 @@ export async function sha256(plainText) {
 // Master password can unlock any brand name at any time.
 export const MASTER_PASSWORD_HASH = 'fb4b9d161b614c8f4210dbcc4e1c9c0ed00a0150382cbab0056d0168cf63b0aa';
 
+// Internal cryptographic salt for signing sub-brand JSON catalogs (7-day expiry)
+const CATALOG_SIGNING_SALT = 'DinCox_Signed_Catalog_2026_Secret_Key_#9821';
+
 /**
  * Danh sách các Thương Hiệu (Brands) được cấp phép sử dụng Studio.
  * Khi cần cấp quyền cho 1 Brand mới:
@@ -147,6 +150,114 @@ export async function validateStoredSession() {
     console.warn("Session validation error:", e);
     return false;
   }
+}
+
+/**
+ * Kiểm tra phiên hiện tại có phải Master Admin (hoặc Master Brand "DinCox") hay không.
+ * Brand phụ (như Dincox2, demo...) đăng nhập bằng mật khẩu phụ sẽ trả về false.
+ */
+export async function isCurrentSessionAdmin() {
+  try {
+    const storedBrand = (localStorage.getItem('dincox_studio_branch') || 'DinCox').trim().toLowerCase();
+    const storedToken = sessionStorage.getItem('dincox_studio_auth_token');
+    if (!storedToken) {
+      return storedBrand === 'dincox' && sessionStorage.getItem('dincox_studio_authenticated') === 'true';
+    }
+    const expectedAdminToken = await sha256(`admin:${storedBrand}:${MASTER_PASSWORD_HASH}`);
+    if (storedToken === expectedAdminToken) return true;
+    if (storedBrand === 'dincox') {
+      const expectedDincoxToken = await sha256(`brand:dincox:${MASTER_PASSWORD_HASH}`);
+      if (storedToken === expectedDincoxToken) return true;
+    }
+    return false;
+  } catch (e) {
+    return false;
+  }
+}
+
+/**
+ * Tạo payload chữ ký chuẩn cho danh sách sản phẩm
+ */
+function buildCatalogSignaturePayload(brandKey, issuedAt, expiresAt, products) {
+  return JSON.stringify({
+    brand: brandKey,
+    issuedAt,
+    expiresAt,
+    products
+  }) + '::' + CATALOG_SIGNING_SALT;
+}
+
+/**
+ * Ký số tệp JSON sản phẩm cho Brand phụ với thời hạn mặc định 7 ngày.
+ */
+export async function signCatalogProductsForBrand(products, targetBrand, expireDays = 7) {
+  const brandClean = (targetBrand || '').trim() || 'Dincox2';
+  const brandKey = brandClean.toLowerCase();
+  const issuedAt = Date.now();
+  const expiresAt = issuedAt + expireDays * 24 * 60 * 60 * 1000;
+  const payload = buildCatalogSignaturePayload(brandKey, issuedAt, expiresAt, products);
+  const signature = await sha256(payload);
+
+  return {
+    format: 'dincox-signed-catalog-v1',
+    brand: brandClean,
+    issuedAt,
+    expiresAt,
+    expiresAtISO: new Date(expiresAt).toISOString(),
+    signature,
+    products
+  };
+}
+
+/**
+ * Xác thực tệp JSON có chữ ký số dành cho Brand phụ (kiểm tra đúng brand, chưa hết hạn 7 ngày, chưa bị chỉnh sửa).
+ */
+export async function verifySignedCatalogJSON(jsonStr, currentBrand) {
+  let parsed;
+  try {
+    parsed = JSON.parse(jsonStr);
+  } catch (e) {
+    return { valid: false, message: '⚠️ Tệp JSON không hợp lệ hoặc bị lỗi cú pháp!' };
+  }
+
+  if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed) || parsed.format !== 'dincox-signed-catalog-v1') {
+    return {
+      valid: false,
+      message: '🔒 Tệp JSON này chưa được ký xác thực bởi Admin DinCox!\n\nBrand phụ chỉ được phép nạp tệp JSON đã ký bảo mật (có chữ ký số & hạn sử dụng 7 ngày) do Admin cấp.'
+    };
+  }
+
+  if (!Array.isArray(parsed.products) || parsed.products.length === 0) {
+    return { valid: false, message: '⚠️ Tệp JSON không chứa danh sách sản phẩm hợp lệ!' };
+  }
+
+  const fileBrandKey = String(parsed.brand || '').trim().toLowerCase();
+  const activeBrandKey = String(currentBrand || '').trim().toLowerCase();
+  if (!fileBrandKey || (fileBrandKey !== '*' && fileBrandKey !== activeBrandKey)) {
+    return {
+      valid: false,
+      message: `🔒 Tệp JSON này được cấp riêng cho thương hiệu "${parsed.brand || 'Không xác định'}", không thể nạp vào "${currentBrand}"!`
+    };
+  }
+
+  if (!parsed.expiresAt || typeof parsed.expiresAt !== 'number' || Date.now() > parsed.expiresAt) {
+    const expiredDate = parsed.expiresAt ? new Date(parsed.expiresAt).toLocaleString('vi-VN') : 'Không rõ';
+    return {
+      valid: false,
+      message: `⏰ Tệp JSON sản phẩm này đã HẾT HẠN sử dụng (hết hạn lúc: ${expiredDate})!\n\nMỗi kịch bản/danh sách xuất cho Brand phụ chỉ có hiệu lực 7 ngày. Vui lòng liên hệ Admin để xuất tệp mới.`
+    };
+  }
+
+  const expectedPayload = buildCatalogSignaturePayload(fileBrandKey, parsed.issuedAt, parsed.expiresAt, parsed.products);
+  const expectedSignature = await sha256(expectedPayload);
+  if (parsed.signature !== expectedSignature) {
+    return {
+      valid: false,
+      message: '❌ Chữ ký bảo mật của tệp JSON không hợp lệ hoặc nội dung sản phẩm đã bị chỉnh sửa trái phép!'
+    };
+  }
+
+  return { valid: true, parsed };
 }
 
 /**

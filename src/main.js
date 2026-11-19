@@ -29,7 +29,7 @@ import { AIPresenterEngine } from './engine/aiPresenterEngine.js';
 import { ShopeeCanvasRenderer } from './engine/canvasRenderer.js';
 import { VideoExporter } from './engine/videoExporter.js';
 import { ShopeeRtmpStreamer } from './engine/shopeeRtmpStreamer.js';
-import { verifyBrandAccess, validateStoredSession } from './data/brandAccessConfig.js';
+import { verifyBrandAccess, validateStoredSession, isCurrentSessionAdmin, signCatalogProductsForBrand, verifySignedCatalogJSON } from './data/brandAccessConfig.js';
 
 // Application State
 let activeProduct = (DINCOX_PRODUCTS && DINCOX_PRODUCTS.length > 0) ? DINCOX_PRODUCTS[0] : null;
@@ -1925,7 +1925,7 @@ function bindEvents() {
     alert(`🌐 Đã load thành công ${count} sản phẩm trực tiếp từ trang web dincox.com!`);
   });
 
-  // Export All Products Catalog to JSON
+  // Export All Products Catalog to JSON (Master Brand unchanged)
   const btnExportProdJson = document.getElementById('btn-export-prod-json');
   if (btnExportProdJson) {
     btnExportProdJson.addEventListener('click', () => {
@@ -1937,6 +1937,38 @@ function bindEvents() {
       a.download = `dincox_products_catalog_${new Date().toISOString().slice(0, 10)}.json`;
       a.click();
       URL.revokeObjectURL(url);
+    });
+  }
+
+  // Export Signed JSON Catalog (7-day expiry) - Only visible for Master Admin
+  const btnExportSignedJson = document.getElementById('btn-export-signed-json');
+  if (btnExportSignedJson) {
+    btnExportSignedJson.addEventListener('click', async () => {
+      const isAdmin = await isCurrentSessionAdmin();
+      if (!isAdmin) {
+        alert("🔒 Chỉ tài khoản Master Admin mới có quyền xuất tệp JSON đã ký!");
+        return;
+      }
+      const targetBrand = prompt(
+        "🔐 Nhập tên Brand phụ được phép nạp tệp JSON này (VD: Dincox2):\n(Mỗi tệp xuất ra sẽ có chữ ký bảo mật và tự động hết hạn sau 7 ngày)",
+        "Dincox2"
+      );
+      if (!targetBrand || !targetBrand.trim()) return;
+
+      const rawProducts = JSON.parse(exportAllProductsCatalogJSON());
+      const signedObj = await signCatalogProductsForBrand(rawProducts, targetBrand.trim(), 7);
+      const jsonStr = JSON.stringify(signedObj, null, 2);
+      const blob = new Blob([jsonStr], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      const safeBrand = targetBrand.trim().toLowerCase().replace(/[^a-z0-9_-]/g, '_');
+      a.download = `dincox_signed_${safeBrand}_7d_${new Date().toISOString().slice(0, 10)}.json`;
+      a.click();
+      URL.revokeObjectURL(url);
+
+      const expDateStr = new Date(signedObj.expiresAt).toLocaleString('vi-VN');
+      alert(`✅ Đã xuất tệp JSON đã ký cho "${targetBrand.trim()}"!\n\n⏳ Thời hạn sử dụng: 7 ngày (Hết hạn lúc: ${expDateStr})`);
     });
   }
 
@@ -1952,17 +1984,36 @@ function bindEvents() {
       const file = e.target.files[0];
       if (file) {
         const reader = new FileReader();
-        reader.onload = (evt) => {
-          const count = importAllProductsCatalogJSON(evt.target.result);
+        reader.onload = async (evt) => {
+          const rawContent = evt.target.result;
+          const isAdmin = await isCurrentSessionAdmin();
+
+          let contentToImport = rawContent;
+          let extraMsg = '';
+
+          // Only enforce 7-day Signed JSON verification for sub-brands (Master DinCox unaffected)
+          if (!isAdmin) {
+            const verifyRes = await verifySignedCatalogJSON(rawContent, getStudioBrandName());
+            if (!verifyRes.valid) {
+              alert(verifyRes.message);
+              return;
+            }
+            contentToImport = JSON.stringify(verifyRes.parsed.products);
+            const expDateStr = new Date(verifyRes.parsed.expiresAt).toLocaleString('vi-VN');
+            extraMsg = `\n⏳ Hạn sử dụng tệp: đến ${expDateStr}`;
+          }
+
+          const count = importAllProductsCatalogJSON(contentToImport);
           if (count > 0) {
             renderProductList();
             if (DINCOX_PRODUCTS.length > 0) {
               selectProduct(DINCOX_PRODUCTS[0]);
             }
-            alert(`🎉 Đã nạp thành công ${count} sản phẩm mới từ tệp JSON!`);
+            alert(`🎉 Đã nạp thành công ${count} sản phẩm mới từ tệp JSON!${extraMsg}`);
           }
         };
         reader.readAsText(file);
+        e.target.value = '';
       }
     });
   }
@@ -2789,6 +2840,14 @@ function initAuthGate() {
   const currentSavedBranch = localStorage.getItem('dincox_studio_branch') || 'DinCox';
   applyStudioBrand(currentSavedBranch);
 
+  const refreshAdminOnlyControls = async () => {
+    const btnSignedExport = document.getElementById('btn-export-signed-json');
+    if (btnSignedExport) {
+      const isAdmin = await isCurrentSessionAdmin();
+      btnSignedExport.classList.toggle('hidden', !isAdmin);
+    }
+  };
+
   // Validate session cryptographically
   validateStoredSession().then(isValid => {
     if (!isValid) {
@@ -2799,6 +2858,7 @@ function initAuthGate() {
       }, 300);
     } else {
       authOverlay.classList.add('hidden');
+      refreshAdminOnlyControls();
     }
   });
 
@@ -2847,6 +2907,7 @@ function initAuthGate() {
 
       authOverlay.classList.add('hidden');
       if (authErrorMsg) authErrorMsg.classList.add('hidden');
+      refreshAdminOnlyControls();
     } else {
       if (authErrorMsg) {
         authErrorMsg.textContent = result.message || "⚠️ Mật khẩu hoặc Tên Thương Hiệu không chính xác!";
