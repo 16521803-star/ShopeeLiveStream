@@ -304,7 +304,7 @@ export class ShopeeCanvasRenderer {
     }
 
     // 3. Render Floating Shoe Product Corner Badge Card
-    this.renderFloatingProductCorner(ctx, timestamp, isAudioOnly);
+    this.renderFloatingProductCorner(ctx, timestamp);
 
     // 4. Render Flash Sale & Voucher Banner (Lower Middle Overlay)
     this.renderFlashSaleBanner(ctx);
@@ -455,8 +455,8 @@ export class ShopeeCanvasRenderer {
     ctx.restore();
   }
 
-  // Authentic Shopee Floating Product Corner Card (Positioned directly above Flash Sale Banner, or top-left below Compliance for Dincox2)
-  renderFloatingProductCorner(ctx, timestamp, isAudioOnly = false) {
+  // Authentic Shopee Floating Product Corner Card (Positioned directly above Flash Sale Banner, or vertically centered flush-left for Dincox2)
+  renderFloatingProductCorner(ctx, timestamp) {
     if (!this.showProductCard || !this.currentProduct) return;
 
     ctx.save();
@@ -475,9 +475,9 @@ export class ShopeeCanvasRenderer {
       ? (hasImg ? (hasSalePrice ? 465 : 418) : (hasSalePrice ? 110 : 65))
       : (hasImg ? (hasSalePrice ? 395 : 355) : (hasSalePrice ? 95 : 55));
 
-    const cardX = isDincox2 ? 40 : 50;
+    const cardX = isDincox2 ? 24 : 50;
     const banY = this.height - 480;
-    const cardY = isDincox2 ? (isAudioOnly ? 320 : 262) : (banY - cardH - 20);
+    const cardY = isDincox2 ? Math.round((this.height - cardH) / 2) : (banY - cardH - 20);
 
     // Glassmorphism card backdrop with thin transparent white border
     ctx.fillStyle = 'rgba(255, 255, 255, 0.45)';
