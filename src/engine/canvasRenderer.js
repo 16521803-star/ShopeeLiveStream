@@ -321,15 +321,15 @@ export class ShopeeCanvasRenderer {
     return (this.branchName || '').trim().toLowerCase() === 'dincox2';
   }
 
-  // Top-Center Store Title ("Dincox shoes store") exclusive to Dincox2
+  // Top-Right Store Title ("DINCOX SHOES STORE") exclusive to Dincox2
   renderTopCenterStoreHeader(ctx) {
     ctx.save();
-    const text = 'Dincox shoes store';
+    const text = 'DINCOX SHOES STORE';
     ctx.font = 'bold 26px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
     const textWidth = ctx.measureText(text).width;
     const w = textWidth + 64;
     const h = 50;
-    const x = (this.width - w) / 2;
+    const x = this.width - w - 40;
     const y = 58;
 
     const grad = ctx.createLinearGradient(x, y, x + w, y);
@@ -349,7 +349,7 @@ export class ShopeeCanvasRenderer {
     ctx.textBaseline = 'middle';
     ctx.shadowColor = 'rgba(0, 0, 0, 0.65)';
     ctx.shadowBlur = 4;
-    ctx.fillText(text, this.width / 2, y + h / 2 + 1);
+    ctx.fillText(text, x + w / 2, y + h / 2 + 1);
     ctx.restore();
   }
 
