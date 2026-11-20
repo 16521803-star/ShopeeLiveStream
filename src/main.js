@@ -242,6 +242,12 @@ export function applyStudioBrand(brand) {
       canvasRenderer.setBrandWatermark(brandName.toLowerCase() === 'dincox2' ? 'Live AI của Dincox' : '');
     }
   }
+
+  // 7. Show/hide Dincox2 draggable header controls
+  const dincox2Controls = document.getElementById('dincox2-header-pos-controls');
+  if (dincox2Controls) {
+    dincox2Controls.classList.toggle('hidden', brandName.toLowerCase() !== 'dincox2');
+  }
 }
 
 // Listen for Remote Control Commands from Main Studio Tab
@@ -394,6 +400,13 @@ if (studioSyncChannel) {
       case 'UPDATE_PERFORMANCE_MODE':
         if (data.mode) {
           applyPerformanceMode(data.mode, false);
+        }
+        break;
+      case 'UPDATE_STORE_HEADER_POS':
+        if (data.pos && typeof data.pos.x === 'number' && typeof data.pos.y === 'number') {
+          canvasRenderer.setStoreHeaderPosition(data.pos.x, data.pos.y, false);
+        } else {
+          canvasRenderer.resetStoreHeaderPosition(false);
         }
         break;
     }
@@ -1781,6 +1794,91 @@ function bindEvents() {
       videoExporter.downloadVideo(recordedBlob, `DinCox_ShopeeLive_${prodId}`);
     }
   });
+
+  // Dincox2: Randomize / Reset / Drag-and-Drop "DINCOX SHOES STORE" position on Canvas
+  const syncStoreHeaderPos = (pos) => {
+    if (studioSyncChannel) {
+      studioSyncChannel.postMessage({ type: 'UPDATE_STORE_HEADER_POS', pos });
+    }
+  };
+
+  document.getElementById('btn-randomize-store-header')?.addEventListener('click', () => {
+    if (!canvasRenderer.isDincox2Branch()) return;
+    const pos = canvasRenderer.randomizeStoreHeaderPosition(true);
+    syncStoreHeaderPos(pos);
+  });
+
+  document.getElementById('btn-reset-store-header')?.addEventListener('click', () => {
+    if (!canvasRenderer.isDincox2Branch()) return;
+    canvasRenderer.resetStoreHeaderPosition(true);
+    syncStoreHeaderPos(null);
+  });
+
+  const canvasContainerEl = document.querySelector('.canvas-container');
+  const isObsTab = window.location.search.includes('obs=true') || window.location.search.includes('overlay=true');
+  if (canvasContainerEl && canvas && !isObsTab) {
+    let dragOffsetX = 0;
+    let dragOffsetY = 0;
+
+    const toCanvasCoords = (clientX, clientY) => {
+      const rect = canvas.getBoundingClientRect();
+      if (!rect.width || !rect.height) return { x: 0, y: 0 };
+      return {
+        x: ((clientX - rect.left) / rect.width) * canvasRenderer.width,
+        y: ((clientY - rect.top) / rect.height) * canvasRenderer.height
+      };
+    };
+
+    canvasContainerEl.addEventListener('pointerdown', (e) => {
+      if (!canvasRenderer.isDincox2Branch()) return;
+      const pt = toCanvasCoords(e.clientX, e.clientY);
+      if (canvasRenderer.isPointInStoreHeader(pt.x, pt.y)) {
+        canvasRenderer.isDraggingStoreHeader = true;
+        dragOffsetX = pt.x - canvasRenderer.storeHeaderBounds.x;
+        dragOffsetY = pt.y - canvasRenderer.storeHeaderBounds.y;
+        canvasContainerEl.style.cursor = 'grabbing';
+        if (typeof canvasContainerEl.setPointerCapture === 'function') {
+          try { canvasContainerEl.setPointerCapture(e.pointerId); } catch (err) {}
+        }
+        e.preventDefault();
+      }
+    });
+
+    canvasContainerEl.addEventListener('pointermove', (e) => {
+      if (!canvasRenderer.isDincox2Branch()) {
+        canvasContainerEl.style.cursor = '';
+        return;
+      }
+      const pt = toCanvasCoords(e.clientX, e.clientY);
+      if (canvasRenderer.isDraggingStoreHeader) {
+        const pos = canvasRenderer.setStoreHeaderPosition(pt.x - dragOffsetX, pt.y - dragOffsetY, false);
+        syncStoreHeaderPos(pos);
+        e.preventDefault();
+      } else {
+        canvasContainerEl.style.cursor = canvasRenderer.isPointInStoreHeader(pt.x, pt.y) ? 'grab' : '';
+      }
+    });
+
+    const endStoreHeaderDrag = (e) => {
+      if (!canvasRenderer.isDraggingStoreHeader) return;
+      canvasRenderer.isDraggingStoreHeader = false;
+      canvasContainerEl.style.cursor = 'grab';
+      if (canvasRenderer.storeHeaderPos) {
+        const pos = canvasRenderer.setStoreHeaderPosition(
+          canvasRenderer.storeHeaderPos.x,
+          canvasRenderer.storeHeaderPos.y,
+          true
+        );
+        syncStoreHeaderPos(pos);
+      }
+      if (typeof canvasContainerEl.releasePointerCapture === 'function') {
+        try { canvasContainerEl.releasePointerCapture(e.pointerId); } catch (err) {}
+      }
+    };
+
+    canvasContainerEl.addEventListener('pointerup', endStoreHeaderDrag);
+    canvasContainerEl.addEventListener('pointercancel', endStoreHeaderDrag);
+  }
 
   document.getElementById('btn-obs-mode')?.addEventListener('click', () => {
     const obsUrl = `${window.location.origin}${window.location.pathname}?obs=true`;

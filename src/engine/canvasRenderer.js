@@ -73,6 +73,9 @@ export class ShopeeCanvasRenderer {
 
     this.branchName = 'DinCox';
     this.brandWatermark = '';
+    this.storeHeaderPos = this._loadStoreHeaderPos();
+    this.storeHeaderBounds = null;
+    this.isDraggingStoreHeader = false;
     // Shopee Live simulated chat feed
     this.chatFeed = [
       { user: 'ThuTrang_99', text: 'Mẫu sản phẩm này dùng thích lắm ạ!' },
@@ -321,7 +324,66 @@ export class ShopeeCanvasRenderer {
     return (this.branchName || '').trim().toLowerCase() === 'dincox2';
   }
 
-  // Top-Right Store Title ("DINCOX SHOES STORE") exclusive to Dincox2
+  _loadStoreHeaderPos() {
+    try {
+      const raw = localStorage.getItem('dincox2_store_header_pos');
+      if (!raw) return null;
+      const parsed = JSON.parse(raw);
+      if (parsed && typeof parsed.x === 'number' && typeof parsed.y === 'number') {
+        return { x: parsed.x, y: parsed.y };
+      }
+    } catch (e) {}
+    return null;
+  }
+
+  setStoreHeaderPosition(x, y, persist = true) {
+    if (x === null || y === null || typeof x !== 'number' || typeof y !== 'number') {
+      this.resetStoreHeaderPosition(persist);
+      return null;
+    }
+    const w = this.storeHeaderBounds ? this.storeHeaderBounds.w : 380;
+    const h = this.storeHeaderBounds ? this.storeHeaderBounds.h : 50;
+    const clampedX = Math.max(10, Math.min(this.width - w - 10, Math.round(x)));
+    const clampedY = Math.max(10, Math.min(this.height - h - 10, Math.round(y)));
+    this.storeHeaderPos = { x: clampedX, y: clampedY };
+    if (persist) {
+      try {
+        localStorage.setItem('dincox2_store_header_pos', JSON.stringify(this.storeHeaderPos));
+      } catch (e) {}
+    }
+    return this.storeHeaderPos;
+  }
+
+  randomizeStoreHeaderPosition(persist = true) {
+    const w = this.storeHeaderBounds ? this.storeHeaderBounds.w : 380;
+    const h = this.storeHeaderBounds ? this.storeHeaderBounds.h : 50;
+    const minX = 24;
+    const maxX = Math.max(minX + 10, this.width - w - 24);
+    const minY = 40;
+    // Keep above bottom flash-sale/subtitle area so text stays clearly visible
+    const maxY = Math.max(minY + 10, this.height - 560 - h);
+    const randX = minX + Math.random() * (maxX - minX);
+    const randY = minY + Math.random() * (maxY - minY);
+    return this.setStoreHeaderPosition(randX, randY, persist);
+  }
+
+  resetStoreHeaderPosition(persist = true) {
+    this.storeHeaderPos = null;
+    if (persist) {
+      try {
+        localStorage.removeItem('dincox2_store_header_pos');
+      } catch (e) {}
+    }
+    return null;
+  }
+
+  isPointInStoreHeader(canvasX, canvasY) {
+    if (!this.isDincox2Branch() || !this.storeHeaderBounds) return false;
+    const { x, y, w, h } = this.storeHeaderBounds;
+    return canvasX >= x && canvasX <= x + w && canvasY >= y && canvasY <= y + h;
+  }
+
+  // Draggable & Randomizable Store Title ("DINCOX SHOES STORE") exclusive to Dincox2
   renderTopCenterStoreHeader(ctx) {
     ctx.save();
     const text = 'DINCOX SHOES STORE';
@@ -329,20 +391,31 @@ export class ShopeeCanvasRenderer {
     const textWidth = ctx.measureText(text).width;
     const w = textWidth + 64;
     const h = 50;
-    const x = this.width - w - 40;
-    const y = 58;
+
+    let x = this.width - w - 40;
+    let y = 58;
+    if (this.storeHeaderPos && typeof this.storeHeaderPos.x === 'number' && typeof this.storeHeaderPos.y === 'number') {
+      x = Math.max(10, Math.min(this.width - w - 10, this.storeHeaderPos.x));
+      y = Math.max(10, Math.min(this.height - h - 10, this.storeHeaderPos.y));
+    }
+
+    this.storeHeaderBounds = { x, y, w, h };
 
     const grad = ctx.createLinearGradient(x, y, x + w, y);
     grad.addColorStop(0, 'rgba(15, 23, 42, 0.85)');
     grad.addColorStop(0.5, 'rgba(30, 41, 59, 0.90)');
     grad.addColorStop(1, 'rgba(15, 23, 42, 0.85)');
     ctx.fillStyle = grad;
-    ctx.strokeStyle = 'rgba(229, 169, 60, 0.85)';
-    ctx.lineWidth = 1.8;
+    ctx.strokeStyle = this.isDraggingStoreHeader ? '#fde047' : 'rgba(229, 169, 60, 0.85)';
+    ctx.lineWidth = this.isDraggingStoreHeader ? 3 : 1.8;
+    if (this.isDraggingStoreHeader) {
+      ctx.setLineDash([8, 5]);
+    }
     ctx.beginPath();
     ctx.roundRect(x, y, w, h, 25);
     ctx.fill();
     ctx.stroke();
+    ctx.setLineDash([]);
 
     ctx.fillStyle = '#FFFFFF';
     ctx.textAlign = 'center';
