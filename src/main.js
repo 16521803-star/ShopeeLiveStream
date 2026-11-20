@@ -29,7 +29,7 @@ import { AIPresenterEngine } from './engine/aiPresenterEngine.js';
 import { ShopeeCanvasRenderer } from './engine/canvasRenderer.js';
 import { VideoExporter } from './engine/videoExporter.js';
 import { ShopeeRtmpStreamer } from './engine/shopeeRtmpStreamer.js';
-import { verifyBrandAccess, validateStoredSession, isCurrentSessionAdmin, signCatalogProductsForBrand, verifySignedCatalogJSON } from './data/brandAccessConfig.js';
+import { verifyBrandAccess, validateStoredSession, isCurrentSessionAdmin, isCurrentSessionTiktokMode, signCatalogProductsForBrand, verifySignedCatalogJSON } from './data/brandAccessConfig.js';
 
 // Application State
 let activeProduct = (DINCOX_PRODUCTS && DINCOX_PRODUCTS.length > 0) ? DINCOX_PRODUCTS[0] : null;
@@ -243,10 +243,60 @@ export function applyStudioBrand(brand) {
     }
   }
 
-  // 7. Show/hide Dincox2 draggable header controls
+  // 7. Show/hide Dincox2 draggable header controls (hidden in TikTok mode so Shopee Dincox2 layout stays separate)
   const dincox2Controls = document.getElementById('dincox2-header-pos-controls');
   if (dincox2Controls) {
-    dincox2Controls.classList.toggle('hidden', brandName.toLowerCase() !== 'dincox2');
+    const isTiktok = canvasRenderer && typeof canvasRenderer.isTiktokMode === 'function' && canvasRenderer.isTiktokMode();
+    dincox2Controls.classList.toggle('hidden', isTiktok || brandName.toLowerCase() !== 'dincox2');
+  }
+}
+
+// Platform Mode Switcher ('shopee' default | 'tiktok' exclusively via beanh2211tiktok)
+export function applyPlatformMode(mode, broadcast = true) {
+  const finalMode = mode === 'tiktok' ? 'tiktok' : 'shopee';
+  const isTiktok = finalMode === 'tiktok';
+
+  try {
+    localStorage.setItem('dincox_studio_platform', finalMode);
+    sessionStorage.setItem('dincox_studio_platform', finalMode);
+  } catch (e) {}
+
+  if (canvasRenderer && typeof canvasRenderer.setPlatformMode === 'function') {
+    canvasRenderer.setPlatformMode(finalMode);
+  }
+
+  const platformBadge = document.getElementById('app-platform-badge');
+  if (platformBadge) {
+    platformBadge.classList.toggle('hidden', !isTiktok);
+  }
+  const tiktokNotice = document.getElementById('tiktok-compliance-notice');
+  if (tiktokNotice) {
+    tiktokNotice.classList.toggle('hidden', !isTiktok);
+  }
+
+  // Ensure Dincox2 Shopee draggable controls stay hidden in TikTok mode
+  const dincox2Controls = document.getElementById('dincox2-header-pos-controls');
+  if (dincox2Controls) {
+    const currentBrand = getStudioBrandName();
+    dincox2Controls.classList.toggle('hidden', isTiktok || currentBrand.toLowerCase() !== 'dincox2');
+  }
+
+  const brandName = getStudioBrandName();
+  const isObs = window.location.search.includes('obs=true') || window.location.search.includes('overlay=true');
+  document.title = isTiktok
+    ? `${brandName}${isObs ? ' (OBS Overlay)' : ''} - TikTok LIVE AI Studio`
+    : `${brandName}${isObs ? ' (OBS Overlay)' : ''} - Shopee Live Studio & AI Streamer Generator`;
+
+  // Regenerate active product script stages so "Shopee Live" -> "TikTok Live" automatically in TikTok mode
+  if (typeof activeProduct !== 'undefined' && activeProduct) {
+    currentScriptStages = generateScriptForProduct(activeProduct);
+    if (document.getElementById('script-tabs')) renderScriptTabs();
+    if (document.getElementById('timeline-steps')) renderTimelineSteps();
+    if (document.getElementById('stage-script-text')) loadCurrentStageText();
+  }
+
+  if (broadcast && studioSyncChannel) {
+    studioSyncChannel.postMessage({ type: 'UPDATE_PLATFORM_MODE', mode: finalMode });
   }
 }
 
@@ -407,6 +457,11 @@ if (studioSyncChannel) {
           canvasRenderer.setStoreHeaderPosition(data.pos.x, data.pos.y, false);
         } else {
           canvasRenderer.resetStoreHeaderPosition(false);
+        }
+        break;
+      case 'UPDATE_PLATFORM_MODE':
+        if (data.mode) {
+          applyPlatformMode(data.mode, false);
         }
         break;
     }
@@ -1791,7 +1846,8 @@ function bindEvents() {
   document.getElementById('btn-download-video')?.addEventListener('click', () => {
     if (recordedBlob) {
       const prodId = activeProduct ? (activeProduct.id || 'san_pham') : 'video';
-      videoExporter.downloadVideo(recordedBlob, `DinCox_ShopeeLive_${prodId}`);
+      const prefix = canvasRenderer.isTiktokMode() ? 'DinCox_TikTokLive' : 'DinCox_ShopeeLive';
+      videoExporter.downloadVideo(recordedBlob, `${prefix}_${prodId}`);
     }
   });
 
@@ -2949,6 +3005,7 @@ function initAuthGate() {
   // Validate session cryptographically
   validateStoredSession().then(isValid => {
     if (!isValid) {
+      applyPlatformMode('shopee', false);
       authOverlay.classList.remove('hidden');
       if (authBranchInput) authBranchInput.value = currentSavedBranch;
       setTimeout(() => {
@@ -2957,6 +3014,9 @@ function initAuthGate() {
     } else {
       authOverlay.classList.add('hidden');
       refreshAdminOnlyControls();
+      isCurrentSessionTiktokMode().then(isTk => {
+        applyPlatformMode(isTk ? 'tiktok' : 'shopee', false);
+      });
     }
   });
 
@@ -2984,6 +3044,7 @@ function initAuthGate() {
       localStorage.removeItem('dincox_studio_authenticated');
       localStorage.removeItem('dincox_studio_auth_token');
       applyStudioBrand(result.brand);
+      applyPlatformMode(result.platformMode || 'shopee', true);
 
       // Apply chosen performance version (Standard: 1080p, Eco: 720p 30fps)
       const selectAuthPerf = document.getElementById('auth-perf-mode-select');
@@ -3348,6 +3409,8 @@ function init() {
   if (isObsMode) {
     document.body.classList.add('obs-mode');
     document.getElementById('auth-lock-overlay')?.classList.add('hidden');
+    const savedPlatform = localStorage.getItem('dincox_studio_platform') || 'shopee';
+    applyPlatformMode(savedPlatform, false);
     initObsSideRemote();
   } else {
     initAuthGate();

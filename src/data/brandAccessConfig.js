@@ -17,6 +17,10 @@ export async function sha256(plainText) {
 // Master password can unlock any brand name at any time.
 export const MASTER_PASSWORD_HASH = 'fb4b9d161b614c8f4210dbcc4e1c9c0ed00a0150382cbab0056d0168cf63b0aa';
 
+// TikTok Master Admin Password Hash (Password: "beanh2211tiktok")
+// Only activates TikTok LIVE AI layout when this password is used.
+export const TIKTOK_MASTER_PASSWORD_HASH = 'c48a36d397bf5cbf73db05c7d665ad51489f6ea690ae526329e467d839fef898';
+
 // Internal cryptographic salt for signing sub-brand JSON catalogs (7-day expiry)
 const CATALOG_SIGNING_SALT = 'DinCox_Signed_Catalog_2026_Secret_Key_#9821';
 
@@ -66,7 +70,21 @@ export async function verifyBrandAccess(brandName, password) {
   const passTrimmed = password.trim();
   const inputHash = await sha256(passTrimmed);
 
-  // 1. Kiểm tra quyền Master Admin (Admin có thể mở khóa bất kỳ Brand nào)
+  // 1. Kiểm tra quyền TikTok Master Admin ("beanh2211tiktok") -> Kích hoạt layout TikTok LIVE AI
+  if (inputHash === TIKTOK_MASTER_PASSWORD_HASH) {
+    const finalBrand = (brandName && brandName.trim()) ? brandName.trim() : 'DinCox';
+    const sessionToken = await sha256(`tiktok:${finalBrand.toLowerCase()}:${inputHash}`);
+    return {
+      success: true,
+      brand: finalBrand,
+      sessionToken,
+      isAdmin: true,
+      platformMode: 'tiktok',
+      subtitle: `${finalBrand} • TikTok LIVE AI Studio`
+    };
+  }
+
+  // 2. Kiểm tra quyền Shopee Master Admin ("beanh2211") -> Giữ nguyên layout Shopee hiện tại
   if (inputHash === MASTER_PASSWORD_HASH) {
     const finalBrand = (brandName && brandName.trim()) ? brandName.trim() : 'DinCox';
     const sessionToken = await sha256(`admin:${finalBrand.toLowerCase()}:${inputHash}`);
@@ -75,6 +93,7 @@ export async function verifyBrandAccess(brandName, password) {
       brand: finalBrand, 
       sessionToken, 
       isAdmin: true,
+      platformMode: 'shopee',
       subtitle: finalBrand.toLowerCase() === 'dincox' ? 'Giày Chuẩn EU - Giá Ưu Việt' : (finalBrand.toLowerCase() === 'dincox2' ? 'Live AI của Dincox' : `${finalBrand} • Official Live Stream`)
     };
   }
@@ -128,11 +147,14 @@ export async function validateStoredSession() {
       return false;
     }
 
-    // Nếu đã có token, verify token khớp với master hoặc brand
+    // Nếu đã có token, verify token khớp với master, tiktok master hoặc brand
     if (storedToken) {
       const brandKey = storedBrand.trim().toLowerCase();
       const expectedAdminToken = await sha256(`admin:${brandKey}:${MASTER_PASSWORD_HASH}`);
       if (storedToken === expectedAdminToken) return true;
+
+      const expectedTiktokToken = await sha256(`tiktok:${brandKey}:${TIKTOK_MASTER_PASSWORD_HASH}`);
+      if (storedToken === expectedTiktokToken) return true;
 
       const brandConfig = AUTHORIZED_BRANDS[brandKey];
       if (brandConfig) {
@@ -165,11 +187,28 @@ export async function isCurrentSessionAdmin() {
     }
     const expectedAdminToken = await sha256(`admin:${storedBrand}:${MASTER_PASSWORD_HASH}`);
     if (storedToken === expectedAdminToken) return true;
+    const expectedTiktokToken = await sha256(`tiktok:${storedBrand}:${TIKTOK_MASTER_PASSWORD_HASH}`);
+    if (storedToken === expectedTiktokToken) return true;
     if (storedBrand === 'dincox') {
       const expectedDincoxToken = await sha256(`brand:dincox:${MASTER_PASSWORD_HASH}`);
       if (storedToken === expectedDincoxToken) return true;
     }
     return false;
+  } catch (e) {
+    return false;
+  }
+}
+
+/**
+ * Kiểm tra phiên hiện tại có đang ở chế độ TikTok LIVE AI (đăng nhập bằng mật khẩu TikTok Master) hay không.
+ */
+export async function isCurrentSessionTiktokMode() {
+  try {
+    const storedBrand = (localStorage.getItem('dincox_studio_branch') || 'DinCox').trim().toLowerCase();
+    const storedToken = sessionStorage.getItem('dincox_studio_auth_token');
+    if (!storedToken) return false;
+    const expectedTiktokToken = await sha256(`tiktok:${storedBrand}:${TIKTOK_MASTER_PASSWORD_HASH}`);
+    return storedToken === expectedTiktokToken;
   } catch (e) {
     return false;
   }

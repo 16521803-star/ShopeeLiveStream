@@ -72,6 +72,7 @@ export class ShopeeCanvasRenderer {
     this.showProductCard = true;
 
     this.branchName = 'DinCox';
+    this.platformMode = 'shopee'; // 'shopee' (default, untouched) | 'tiktok' (only via beanh2211tiktok)
     this.brandWatermark = '';
     this.storeHeaderPos = this._loadStoreHeaderPos();
     this.storeHeaderBounds = null;
@@ -86,6 +87,14 @@ export class ShopeeCanvasRenderer {
     ];
 
     this.initHearts();
+  }
+
+  setPlatformMode(mode) {
+    this.platformMode = mode === 'tiktok' ? 'tiktok' : 'shopee';
+  }
+
+  isTiktokMode() {
+    return this.platformMode === 'tiktok';
   }
 
   setBranchName(name) {
@@ -288,33 +297,48 @@ export class ShopeeCanvasRenderer {
       ctx.fillRect(0, 0, this.width, this.height);
     }
 
-    // 2. Render Shopee AI Disclosure Watermark (Top Left - Shopee Compliance)
-    this.renderAiComplianceWatermark(ctx);
+    // 2. Platform-specific Overlay Layout: TikTok LIVE AI Mode vs Default Shopee Mode
+    if (this.isTiktokMode()) {
+      this.renderTiktokAigcWatermark(ctx);
+      this.renderTiktokLiveHeaderBadge(ctx);
+      if (isAudioOnly) {
+        this.renderAudioOnlyBadge(ctx, 258);
+      }
+      this.renderTiktokProductCard(ctx, timestamp);
+      this.renderTiktokDealBanner(ctx);
+      if (this.speechText) {
+        this.renderTiktokSpeechSubtitle(ctx);
+      }
+    } else {
+      // --- DEFAULT SHOPEE LIVE LAYOUT (100% UNCHANGED) ---
+      // 2. Render Shopee AI Disclosure Watermark (Top Left - Shopee Compliance)
+      this.renderAiComplianceWatermark(ctx);
 
-    // 2a. Render Top-Center Store Title ("Dincox shoes store") ONLY for Dincox2
-    if (this.isDincox2Branch()) {
-      this.renderTopCenterStoreHeader(ctx);
-    }
+      // 2a. Render Top-Center Store Title ("Dincox shoes store") ONLY for Dincox2
+      if (this.isDincox2Branch()) {
+        this.renderTopCenterStoreHeader(ctx);
+      }
 
-    // 2b. Render Brand Specific Live Watermark Badge (e.g. "Live AI của Dincox")
-    if (this.brandWatermark) {
-      this.renderBrandWatermarkBadge(ctx);
-    }
+      // 2b. Render Brand Specific Live Watermark Badge (e.g. "Live AI của Dincox")
+      if (this.brandWatermark) {
+        this.renderBrandWatermarkBadge(ctx);
+      }
 
-    // 2c. Render Audio-Only Low-CPU Mode Badge
-    if (isAudioOnly) {
-      this.renderAudioOnlyBadge(ctx);
-    }
+      // 2c. Render Audio-Only Low-CPU Mode Badge
+      if (isAudioOnly) {
+        this.renderAudioOnlyBadge(ctx);
+      }
 
-    // 3. Render Floating Shoe Product Corner Badge Card
-    this.renderFloatingProductCorner(ctx, timestamp);
+      // 3. Render Floating Shoe Product Corner Badge Card
+      this.renderFloatingProductCorner(ctx, timestamp);
 
-    // 4. Render Flash Sale & Voucher Banner (Lower Middle Overlay)
-    this.renderFlashSaleBanner(ctx);
+      // 4. Render Flash Sale & Voucher Banner (Lower Middle Overlay)
+      this.renderFlashSaleBanner(ctx);
 
-    // 5. Render Concise 1-2 Line Speech Subtitle Box (Above Shopee native chat area)
-    if (this.speechText) {
-      this.renderSpeechSubtitle(ctx);
+      // 5. Render Concise 1-2 Line Speech Subtitle Box (Above Shopee native chat area)
+      if (this.speechText) {
+        this.renderSpeechSubtitle(ctx);
+      }
     }
 
     ctx.restore();
@@ -495,12 +519,12 @@ export class ShopeeCanvasRenderer {
   }
 
   // Audio-Only Low-CPU Mode Badge
-  renderAudioOnlyBadge(ctx) {
+  renderAudioOnlyBadge(ctx, customY = null) {
     ctx.save();
     const w = 440;
     const h = 48;
     const x = 40;
-    const y = this.brandWatermark ? 256 : 196;
+    const y = customY !== null ? customY : (this.brandWatermark ? 256 : 196);
 
     // Glowing cyan glass pill
     const grad = ctx.createLinearGradient(x, y, x + w, y);
@@ -726,6 +750,265 @@ export class ShopeeCanvasRenderer {
     const startY = lines.length === 1 ? bubY + 48 : (lines.length === 2 ? bubY + 40 : bubY + 36);
     lines.forEach((l, idx) => {
       ctx.fillText(l.trim(), bubX + 22, startY + idx * lineHeight);
+    });
+
+    ctx.restore();
+  }
+
+  // =========================================================================
+  // TIKTOK LIVE AI LAYOUT (Activated ONLY with password "beanh2211tiktok")
+  // Follows TikTok LIVE Safe Zones & TikTok AIGC Disclosure Guidelines:
+  // - Top 0..180px reserved for TikTok Host Avatar / Follow / Viewers / Close
+  // - Right 920..1080px reserved for TikTok Share / Gift / Like buttons
+  // - Bottom 1480..1920px reserved for TikTok Chat & TikTok Shop Basket Bar
+  // - Overlay footprint < 25% of frame (well under TikTok's 50% limit)
+  // =========================================================================
+
+  renderTiktokAigcWatermark(ctx) {
+    ctx.save();
+    const text = '✨ Nội dung hỗ trợ AI • TikTok AIGC';
+    ctx.font = 'bold 20px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
+    const textW = ctx.measureText(text).width;
+    const w = textW + 56;
+    const h = 48;
+    const x = 36;
+    const y = 195; // Safe zone directly below TikTok native host header
+
+    const grad = ctx.createLinearGradient(x, y, x + w, y);
+    grad.addColorStop(0, 'rgba(10, 12, 18, 0.86)');
+    grad.addColorStop(1, 'rgba(254, 44, 85, 0.24)');
+    ctx.fillStyle = grad;
+    ctx.strokeStyle = 'rgba(37, 244, 238, 0.85)'; // TikTok Cyan border
+    ctx.lineWidth = 1.6;
+    ctx.beginPath();
+    ctx.roundRect(x, y, w, h, 24);
+    ctx.fill();
+    ctx.stroke();
+
+    // TikTok signature Pink/Red indicator dot
+    ctx.fillStyle = '#FE2C55';
+    ctx.beginPath();
+    ctx.arc(x + 22, y + 24, 6.5, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.fillStyle = '#FFFFFF';
+    ctx.fillText(text, x + 38, y + 31);
+    ctx.restore();
+  }
+
+  renderTiktokLiveHeaderBadge(ctx) {
+    ctx.save();
+    const label = `${(this.branchName || 'DinCox').toUpperCase()} • TIKTOK SHOP`;
+    ctx.font = 'bold 20px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
+    const textW = ctx.measureText(label).width;
+    const w = textW + 52;
+    const h = 48;
+    const x = this.width - w - 36;
+    const y = 195;
+
+    ctx.fillStyle = 'rgba(10, 12, 18, 0.84)';
+    ctx.strokeStyle = 'rgba(254, 44, 85, 0.85)'; // TikTok Pink/Red border
+    ctx.lineWidth = 1.6;
+    ctx.beginPath();
+    ctx.roundRect(x, y, w, h, 24);
+    ctx.fill();
+    ctx.stroke();
+
+    ctx.fillStyle = '#25F4EE'; // TikTok Cyan dot
+    ctx.beginPath();
+    ctx.arc(x + 22, y + 24, 6, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.fillStyle = '#FFFFFF';
+    ctx.fillText(label, x + 38, y + 31);
+    ctx.restore();
+  }
+
+  renderTiktokProductCard(ctx, timestamp) {
+    if (!this.showProductCard || !this.currentProduct) return;
+
+    ctx.save();
+    const hasImg = this.isProductImgLoaded && this.currentProduct.image && typeof this.currentProduct.image === 'string' && this.currentProduct.image.trim().length > 0;
+    const hasSalePrice = typeof this.currentProduct.salePrice === 'number' && !isNaN(this.currentProduct.salePrice) && this.currentProduct.salePrice > 0;
+    const floatY = Math.sin(timestamp * 0.003) * 5;
+
+    const cardW = 310;
+    const imgSize = 286;
+    const cardH = hasImg ? (hasSalePrice ? 404 : 362) : (hasSalePrice ? 114 : 74);
+    const cardX = 36;
+    // Anchor above TikTok deal banner (or above TikTok subtitle/chat safe zone)
+    const anchorBottom = this.showFlashSaleBanner ? (this.height - 580) : (this.height - 470);
+    const cardY = anchorBottom - cardH;
+
+    // Dark glass card with TikTok pink-cyan accent border
+    ctx.fillStyle = 'rgba(15, 17, 26, 0.82)';
+    ctx.strokeStyle = 'rgba(254, 44, 85, 0.85)';
+    ctx.lineWidth = 1.8;
+    ctx.beginPath();
+    ctx.roundRect(cardX, cardY + floatY, cardW, cardH, 18);
+    ctx.fill();
+    ctx.stroke();
+
+    // Small TikTok Shop tag at top of card
+    ctx.fillStyle = '#25F4EE';
+    ctx.font = 'bold 15px sans-serif';
+    ctx.fillText('🎵 GIỎ HÀNG TIKTOK', cardX + 12, cardY + floatY + 24);
+
+    // Product Title
+    ctx.fillStyle = '#FFFFFF';
+    ctx.font = 'bold 19px sans-serif';
+    const shortName = this.currentProduct.name.length > 23
+      ? this.currentProduct.name.substring(0, 21) + '...'
+      : this.currentProduct.name;
+    ctx.fillText(shortName, cardX + 12, cardY + floatY + 48);
+
+    if (hasImg) {
+      const imgX = cardX + 12;
+      const imgY = cardY + floatY + 58;
+
+      ctx.fillStyle = 'rgba(255, 255, 255, 0.1)';
+      ctx.strokeStyle = 'rgba(37, 244, 238, 0.5)';
+      ctx.lineWidth = 1.0;
+      ctx.beginPath();
+      ctx.roundRect(imgX, imgY, imgSize, imgSize, 12);
+      ctx.fill();
+      ctx.stroke();
+
+      ctx.save();
+      ctx.beginPath();
+      ctx.roundRect(imgX + 1, imgY + 1, imgSize - 2, imgSize - 2, 11);
+      ctx.clip();
+      ctx.drawImage(this.productImg, imgX + 1, imgY + 1, imgSize - 2, imgSize - 2);
+      ctx.restore();
+    }
+
+    if (hasSalePrice) {
+      const saleStr = currencyFormatter.format(this.currentProduct.salePrice) + 'đ';
+      ctx.fillStyle = '#FE2C55';
+      ctx.font = 'bold 25px sans-serif';
+      const priceY = hasImg ? (cardY + floatY + cardH - 12) : (cardY + floatY + 92);
+      ctx.fillText(saleStr, cardX + 12, priceY);
+    }
+
+    ctx.restore();
+  }
+
+  renderTiktokDealBanner(ctx) {
+    if (!this.showFlashSaleBanner || !this.currentProduct) return;
+
+    ctx.save();
+    const banX = 36;
+    const banY = this.height - 565;
+    // Leave 164px on the right clear for TikTok Share / Gift / Heart buttons
+    const banW = this.width - 200;
+    const banH = 102;
+
+    const grad = ctx.createLinearGradient(banX, 0, banX + banW, 0);
+    grad.addColorStop(0, '#FE2C55');
+    grad.addColorStop(1, '#111827');
+    ctx.fillStyle = grad;
+    ctx.strokeStyle = 'rgba(37, 244, 238, 0.75)';
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    ctx.roundRect(banX, banY, banW, banH, 18);
+    ctx.fill();
+    ctx.stroke();
+
+    ctx.fillStyle = '#25F4EE';
+    ctx.font = 'bold 26px sans-serif';
+    const bannerTitle = this.flashSaleTitle && this.flashSaleTitle !== '🔥 GIÁ LIVE ƯU ĐÃI'
+      ? this.flashSaleTitle
+      : '🎵 DEAL ĐỘC QUYỀN TIKTOK LIVE';
+    ctx.fillText(bannerTitle, banX + 24, banY + 40);
+
+    const hasSale = typeof this.currentProduct.salePrice === 'number' && !isNaN(this.currentProduct.salePrice) && this.currentProduct.salePrice > 0;
+    const hasOrig = typeof this.currentProduct.originalPrice === 'number' && !isNaN(this.currentProduct.originalPrice) && this.currentProduct.originalPrice > 0;
+
+    if (hasSale) {
+      const saleStr = currencyFormatter.format(this.currentProduct.salePrice) + 'đ';
+      ctx.fillStyle = '#FFFFFF';
+      ctx.font = 'bold 38px sans-serif';
+      ctx.fillText(saleStr, banX + 24, banY + 84);
+    }
+
+    if (hasOrig) {
+      const origStr = currencyFormatter.format(this.currentProduct.originalPrice) + 'đ';
+      const origX = hasSale ? banX + 255 : banX + 24;
+      ctx.fillStyle = 'rgba(255,255,255,0.68)';
+      ctx.font = '24px sans-serif';
+      ctx.fillText(origStr, origX, banY + 84);
+      const origW = ctx.measureText(origStr).width;
+      ctx.strokeStyle = 'rgba(255,255,255,0.8)';
+      ctx.lineWidth = 2.5;
+      ctx.beginPath();
+      ctx.moveTo(origX, banY + 76);
+      ctx.lineTo(origX + origW, banY + 76);
+      ctx.stroke();
+    }
+
+    if (hasSale && hasOrig && this.currentProduct.originalPrice > this.currentProduct.salePrice) {
+      const discountPercent = Math.round(((this.currentProduct.originalPrice - this.currentProduct.salePrice) / this.currentProduct.originalPrice) * 100);
+      if (discountPercent > 0) {
+        ctx.fillStyle = '#25F4EE';
+        ctx.beginPath();
+        ctx.roundRect(banX + banW - 148, banY + 23, 128, 56, 14);
+        ctx.fill();
+        ctx.fillStyle = '#0F172A';
+        ctx.font = 'bold 28px sans-serif';
+        ctx.fillText(`-${discountPercent}%`, banX + banW - 128, banY + 61);
+      }
+    }
+
+    ctx.restore();
+  }
+
+  renderTiktokSpeechSubtitle(ctx) {
+    if (!this.showSubtitles || !this.speechText) return;
+
+    const lines = this._cachedSubtitleLines && this._cachedSubtitleLines.length > 0
+      ? this._cachedSubtitleLines
+      : [this.speechText];
+
+    ctx.save();
+    // Safe zone: above TikTok chat + shop bar (bottom 450px) and left of right-side icons
+    const bubW = this.width - 200;
+    const bubX = 36;
+
+    const isLiveReply = this.speechStage === 'LIVE_REPLY' || this.speechStage === 'Reply';
+    const tagText = isLiveReply ? '💬 TRẢ LỜI TRỰC TIẾP' : '🎵 MC TIKTOK LIVE';
+    const tagBg = isLiveReply ? '#25F4EE' : '#FE2C55';
+    const tagTextColor = isLiveReply ? '#0F172A' : '#FFFFFF';
+    const tagW = isLiveReply ? 215 : 185;
+
+    const fontSize = this.speechText.length > 100 ? 20 : 22;
+    const lineHeight = fontSize + 8;
+
+    const bubH = lines.length === 3 ? 130 : (lines.length === 2 ? 102 : 74);
+    const bubY = this.height - 320 - bubH;
+
+    ctx.fillStyle = 'rgba(10, 12, 18, 0.90)';
+    ctx.strokeStyle = '#25F4EE';
+    ctx.lineWidth = 2.2;
+    ctx.beginPath();
+    ctx.roundRect(bubX, bubY, bubW, bubH, 18);
+    ctx.fill();
+    ctx.stroke();
+
+    ctx.fillStyle = tagBg;
+    ctx.beginPath();
+    ctx.roundRect(bubX + 18, bubY - 15, tagW, 30, 8);
+    ctx.fill();
+
+    ctx.fillStyle = tagTextColor;
+    ctx.font = 'bold 16px sans-serif';
+    ctx.fillText(tagText, bubX + 26, bubY + 5);
+
+    ctx.fillStyle = '#FFFFFF';
+    ctx.font = `bold ${fontSize}px sans-serif`;
+
+    const startY = lines.length === 1 ? bubY + 46 : (lines.length === 2 ? bubY + 38 : bubY + 34);
+    lines.forEach((l, idx) => {
+      ctx.fillText(l.trim(), bubX + 20, startY + idx * lineHeight);
     });
 
     ctx.restore();

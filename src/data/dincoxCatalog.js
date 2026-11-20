@@ -1261,21 +1261,44 @@ export function getRandomTransitionPhrase(prevProd, nextProd) {
   return fn(prevProd, nextProd);
 }
 
+export function getStudioPlatformMode() {
+  try {
+    return localStorage.getItem('dincox_studio_platform') === 'tiktok' ? 'tiktok' : 'shopee';
+  } catch (e) {
+    return 'shopee';
+  }
+}
+
+export function adaptScriptTextForPlatform(text) {
+  if (!text || typeof text !== 'string') return text;
+  if (getStudioPlatformMode() !== 'tiktok') return text;
+  // Avoid external platform redirection violation on TikTok LIVE / TikTok Shop
+  return text
+    .replace(/shopee\s*live/gi, 'TikTok Live')
+    .replace(/shopee\s*mall/gi, 'TikTok Shop Mall')
+    .replace(/shopee/gi, 'TikTok Shop');
+}
+
 export function generateScriptForProduct(product) {
   const brandName = getStudioBrandName();
+  const applyPlatformAdapt = (stages) => stages.map(s => ({
+    ...s,
+    text: adaptScriptTextForPlatform(s.text)
+  }));
+
   if (!product) {
-    return [
+    return applyPlatformAdapt([
       { stage: 'Intro', text: `Xin chào tất cả mọi người đang theo dõi phiên Shopee Live chính hãng của ${brandName}!`, duration: 5 },
       { stage: 'Highlights', text: 'Sản phẩm nổi bật với chất lượng cao cấp, thiết kế thời trang hiện đại.', duration: 7 },
       { stage: 'Deal & Voucher', text: 'Duy nhất trong phiên Live hôm nay, giá gốc ưu đãi lớn!', duration: 8 },
       { stage: 'Call to Action', text: 'Số lượng có hạn! Mọi người bấm ngay vào giỏ hàng góc trái bên dưới để săn size chuẩn nhé!', duration: 6 }
-    ];
+    ]);
   }
 
   // Check if custom user script exists in localStorage
   const customMap = getAllCustomScriptsMap();
   if (product.id && customMap[product.id] && Array.isArray(customMap[product.id]) && customMap[product.id].length > 0) {
-    return customMap[product.id];
+    return applyPlatformAdapt(customMap[product.id]);
   }
 
   // Default script generator
@@ -1283,7 +1306,7 @@ export function generateScriptForProduct(product) {
   const formattedOrigPrice = new Intl.NumberFormat('vi-VN').format(product.originalPrice) + 'đ';
   const mainFeature = product.features && product.features[0] ? product.features[0] : 'Chất lượng cao cấp, siêu êm và bền đẹp';
 
-  return [
+  return applyPlatformAdapt([
     {
       stage: 'Intro',
       text: `Xin chào tất cả mọi người đang theo dõi phiên Shopee Live chính hãng của ${brandName}! Hôm nay shop xin giới thiệu mẫu ${product.name}!`,
@@ -1304,7 +1327,7 @@ export function generateScriptForProduct(product) {
       text: `Số lượng quà tặng và kho hàng sale chỉ còn rất ít! Mọi người bấm ngay vào giỏ hàng góc trái bên dưới để săn size chuẩn và nhận ưu đãi nhé!`,
       duration: 6
     }
-  ];
+  ]);
 }
 
 // Automatically restore saved catalog from localStorage on load
