@@ -244,11 +244,17 @@ export function applyStudioBrand(brand) {
   }
 
   // 7. Show/hide Dincox2 draggable header controls (hidden in TikTok mode so Shopee Dincox2 layout stays separate)
+  const isDincox2 = brandName.toLowerCase() === 'dincox2';
   const dincox2Controls = document.getElementById('dincox2-header-pos-controls');
   if (dincox2Controls) {
     const isTiktok = canvasRenderer && typeof canvasRenderer.isTiktokMode === 'function' && canvasRenderer.isTiktokMode();
-    dincox2Controls.classList.toggle('hidden', isTiktok || brandName.toLowerCase() !== 'dincox2');
+    dincox2Controls.classList.toggle('hidden', isTiktok || !isDincox2);
   }
+
+  // 8. Temporarily hide Video Recording & Export UI for Dincox2
+  document.getElementById('btn-start-record')?.classList.toggle('hidden', isDincox2);
+  document.querySelector('.record-audio-options')?.classList.toggle('hidden', isDincox2);
+  document.querySelector('.export-status-box')?.classList.toggle('hidden', isDincox2);
 }
 
 // Platform Mode Switcher ('shopee' default | 'tiktok' exclusively via beanh2211tiktok)
@@ -1335,6 +1341,9 @@ function playNextStageInSequence() {
 let audioMeterInterval = null;
 
 async function toggleVideoRecording() {
+  if (getStudioBrandName().toLowerCase() === 'dincox2' && !videoExporter.isRecording) {
+    return;
+  }
   const btn = document.getElementById('btn-start-record');
   const progressBox = document.getElementById('recording-progress');
   const recordText = document.getElementById('record-time-text');
