@@ -74,9 +74,12 @@ export class ShopeeCanvasRenderer {
     this.branchName = 'DinCox';
     this.platformMode = 'shopee'; // 'shopee' (default, untouched) | 'tiktok' (only via beanh2211tiktok)
     this.brandWatermark = '';
-    this.storeHeaderPos = this._loadStoreHeaderPos();
+    this.storeHeaderPos = this._loadOverlayPos('dincox2_store_header_pos');
     this.storeHeaderBounds = null;
     this.isDraggingStoreHeader = false;
+    this.productCardPos = this._loadOverlayPos(this.getProductCardStorageKey());
+    this.productCardBounds = null;
+    this.isDraggingProductCard = false;
     // Shopee Live simulated chat feed
     this.chatFeed = [
       { user: 'ThuTrang_99', text: 'Mẫu sản phẩm này dùng thích lắm ạ!' },
@@ -91,6 +94,7 @@ export class ShopeeCanvasRenderer {
 
   setPlatformMode(mode) {
     this.platformMode = mode === 'tiktok' ? 'tiktok' : 'shopee';
+    this.reloadProductCardPosition();
   }
 
   isTiktokMode() {
@@ -104,6 +108,7 @@ export class ShopeeCanvasRenderer {
     } else if (this.branchName.toLowerCase() === 'dincox') {
       this.brandWatermark = '';
     }
+    this.reloadProductCardPosition();
     if (this.chatFeed && this.chatFeed.length > 4) {
       this.chatFeed[4] = { user: 'DucAnh_39', text: `Hàng chuẩn xịn chất lượng quá ${this.branchName} ơi ❤️` };
     }
@@ -348,9 +353,10 @@ export class ShopeeCanvasRenderer {
     return (this.branchName || '').trim().toLowerCase() === 'dincox2';
   }
 
-  _loadStoreHeaderPos() {
+  // --- Shared Overlay Positioning Helpers (Store Header & Floating Product Card) ---
+  _loadOverlayPos(storageKey) {
     try {
-      const raw = localStorage.getItem('dincox2_store_header_pos');
+      const raw = localStorage.getItem(storageKey);
       if (!raw) return null;
       const parsed = JSON.parse(raw);
       if (parsed && typeof parsed.x === 'number' && typeof parsed.y === 'number') {
@@ -360,51 +366,113 @@ export class ShopeeCanvasRenderer {
     return null;
   }
 
+  _saveOverlayPos(storageKey, pos) {
+    try {
+      if (pos) {
+        localStorage.setItem(storageKey, JSON.stringify(pos));
+      } else {
+        localStorage.removeItem(storageKey);
+      }
+    } catch (e) {}
+  }
+
+  _clampOverlayPos(x, y, bounds, defaultW, defaultH) {
+    const w = bounds ? bounds.w : defaultW;
+    const h = bounds ? bounds.h : defaultH;
+    return {
+      x: Math.max(10, Math.min(this.width - w - 10, Math.round(x))),
+      y: Math.max(10, Math.min(this.height - h - 10, Math.round(y)))
+    };
+  }
+
+  _randomizeOverlayCoords(bounds, defaultW, defaultH, minY = 40, bottomReserved = 560) {
+    const w = bounds ? bounds.w : defaultW;
+    const h = bounds ? bounds.h : defaultH;
+    const minX = 24;
+    const maxX = Math.max(minX + 10, this.width - w - 24);
+    const maxY = Math.max(minY + 10, this.height - bottomReserved - h);
+    return {
+      x: minX + Math.random() * (maxX - minX),
+      y: minY + Math.random() * (maxY - minY)
+    };
+  }
+
+  _isPointInBounds(bounds, canvasX, canvasY) {
+    if (!bounds) return false;
+    const { x, y, w, h } = bounds;
+    return canvasX >= x && canvasX <= x + w && canvasY >= y && canvasY <= y + h;
+  }
+
   setStoreHeaderPosition(x, y, persist = true) {
     if (x === null || y === null || typeof x !== 'number' || typeof y !== 'number') {
-      this.resetStoreHeaderPosition(persist);
-      return null;
+      return this.resetStoreHeaderPosition(persist);
     }
-    const w = this.storeHeaderBounds ? this.storeHeaderBounds.w : 380;
-    const h = this.storeHeaderBounds ? this.storeHeaderBounds.h : 50;
-    const clampedX = Math.max(10, Math.min(this.width - w - 10, Math.round(x)));
-    const clampedY = Math.max(10, Math.min(this.height - h - 10, Math.round(y)));
-    this.storeHeaderPos = { x: clampedX, y: clampedY };
-    if (persist) {
-      try {
-        localStorage.setItem('dincox2_store_header_pos', JSON.stringify(this.storeHeaderPos));
-      } catch (e) {}
-    }
+    this.storeHeaderPos = this._clampOverlayPos(x, y, this.storeHeaderBounds, 380, 50);
+    if (persist) this._saveOverlayPos('dincox2_store_header_pos', this.storeHeaderPos);
     return this.storeHeaderPos;
   }
 
   randomizeStoreHeaderPosition(persist = true) {
-    const w = this.storeHeaderBounds ? this.storeHeaderBounds.w : 380;
-    const h = this.storeHeaderBounds ? this.storeHeaderBounds.h : 50;
-    const minX = 24;
-    const maxX = Math.max(minX + 10, this.width - w - 24);
-    const minY = 40;
-    // Keep above bottom flash-sale/subtitle area so text stays clearly visible
-    const maxY = Math.max(minY + 10, this.height - 560 - h);
-    const randX = minX + Math.random() * (maxX - minX);
-    const randY = minY + Math.random() * (maxY - minY);
-    return this.setStoreHeaderPosition(randX, randY, persist);
+    const pt = this._randomizeOverlayCoords(this.storeHeaderBounds, 380, 50, 40, 560);
+    return this.setStoreHeaderPosition(pt.x, pt.y, persist);
   }
 
   resetStoreHeaderPosition(persist = true) {
     this.storeHeaderPos = null;
-    if (persist) {
-      try {
-        localStorage.removeItem('dincox2_store_header_pos');
-      } catch (e) {}
-    }
+    if (persist) this._saveOverlayPos('dincox2_store_header_pos', null);
     return null;
   }
 
   isPointInStoreHeader(canvasX, canvasY) {
-    if (!this.isDincox2Branch() || !this.storeHeaderBounds) return false;
-    const { x, y, w, h } = this.storeHeaderBounds;
-    return canvasX >= x && canvasX <= x + w && canvasY >= y && canvasY <= y + h;
+    if (this.isTiktokMode() || !this.isDincox2Branch()) return false;
+    return this._isPointInBounds(this.storeHeaderBounds, canvasX, canvasY);
+  }
+
+  // --- Floating Product Card Positioning (All Brands & Platforms) ---
+  getProductCardStorageKey() {
+    const brand = (this.branchName || 'DinCox').trim().toLowerCase();
+    const plat = this.isTiktokMode() ? 'tiktok' : 'shopee';
+    return `dincox_product_card_pos_${plat}_${brand}`;
+  }
+
+  reloadProductCardPosition() {
+    this.productCardPos = this._loadOverlayPos(this.getProductCardStorageKey());
+  }
+
+  setProductCardPosition(x, y, persist = true) {
+    if (x === null || y === null || typeof x !== 'number' || typeof y !== 'number') {
+      return this.resetProductCardPosition(persist);
+    }
+    const defaultW = this.isDincox2Branch() && !this.isTiktokMode() ? 380 : 320;
+    const defaultH = this.isDincox2Branch() && !this.isTiktokMode() ? 465 : 395;
+    this.productCardPos = this._clampOverlayPos(x, y, this.productCardBounds, defaultW, defaultH);
+    if (persist) this._saveOverlayPos(this.getProductCardStorageKey(), this.productCardPos);
+    return this.productCardPos;
+  }
+
+  randomizeProductCardPosition(persist = true) {
+    const defaultW = this.isDincox2Branch() && !this.isTiktokMode() ? 380 : 320;
+    const defaultH = this.isDincox2Branch() && !this.isTiktokMode() ? 465 : 395;
+    const pt = this._randomizeOverlayCoords(this.productCardBounds, defaultW, defaultH, 195, 480);
+    return this.setProductCardPosition(pt.x, pt.y, persist);
+  }
+
+  resetProductCardPosition(persist = true) {
+    this.productCardPos = null;
+    if (persist) this._saveOverlayPos(this.getProductCardStorageKey(), null);
+    return null;
+  }
+
+  isPointInProductCard(canvasX, canvasY) {
+    if (!this.showProductCard || !this.currentProduct) return false;
+    return this._isPointInBounds(this.productCardBounds, canvasX, canvasY);
+  }
+
+  _resolveProductCardXY(defaultX, defaultY, cardW, cardH) {
+    if (this.productCardPos && typeof this.productCardPos.x === 'number' && typeof this.productCardPos.y === 'number') {
+      return this._clampOverlayPos(this.productCardPos.x, this.productCardPos.y, { w: cardW, h: cardH }, cardW, cardH);
+    }
+    return { x: defaultX, y: defaultY };
   }
 
   // Draggable & Randomizable Store Title ("DINCOX SHOES STORE") exclusive to Dincox2
@@ -552,15 +620,18 @@ export class ShopeeCanvasRenderer {
     ctx.restore();
   }
 
-  // Authentic Shopee Floating Product Corner Card (Positioned directly above Flash Sale Banner, or vertically centered flush-left for Dincox2)
+  // Authentic Shopee Floating Product Corner Card (Draggable & Randomizable across all layouts)
   renderFloatingProductCorner(ctx, timestamp) {
-    if (!this.showProductCard || !this.currentProduct) return;
+    if (!this.showProductCard || !this.currentProduct) {
+      this.productCardBounds = null;
+      return;
+    }
 
     ctx.save();
     const isDincox2 = this.isDincox2Branch();
     const hasImg = this.isProductImgLoaded && this.currentProduct.image && typeof this.currentProduct.image === 'string' && this.currentProduct.image.trim().length > 0;
     const hasSalePrice = typeof this.currentProduct.salePrice === 'number' && !isNaN(this.currentProduct.salePrice) && this.currentProduct.salePrice > 0;
-    const floatY = Math.sin(timestamp * 0.003) * 6;
+    const floatY = this.isDraggingProductCard ? 0 : Math.sin(timestamp * 0.003) * 6;
 
     const cardW = isDincox2 ? 380 : 320;
     const imgSize = isDincox2 ? 356 : 300;
@@ -572,18 +643,25 @@ export class ShopeeCanvasRenderer {
       ? (hasImg ? (hasSalePrice ? 465 : 418) : (hasSalePrice ? 110 : 65))
       : (hasImg ? (hasSalePrice ? 395 : 355) : (hasSalePrice ? 95 : 55));
 
-    const cardX = isDincox2 ? 24 : 50;
+    const defaultX = isDincox2 ? 24 : 50;
     const banY = this.height - 480;
-    const cardY = isDincox2 ? Math.round((this.height - cardH) / 2) : (banY - cardH - 20);
+    const defaultY = isDincox2 ? Math.round((this.height - cardH) / 2) : (banY - cardH - 20);
+    const { x: cardX, y: cardY } = this._resolveProductCardXY(defaultX, defaultY, cardW, cardH);
 
-    // Glassmorphism card backdrop with thin transparent white border
+    this.productCardBounds = { x: cardX, y: cardY + floatY, w: cardW, h: cardH };
+
+    // Glassmorphism card backdrop with thin transparent white border (highlight dashed when dragging)
     ctx.fillStyle = 'rgba(255, 255, 255, 0.45)';
-    ctx.strokeStyle = 'rgba(255, 255, 255, 0.8)';
-    ctx.lineWidth = 1.5;
+    ctx.strokeStyle = this.isDraggingProductCard ? '#fde047' : 'rgba(255, 255, 255, 0.8)';
+    ctx.lineWidth = this.isDraggingProductCard ? 3.2 : 1.5;
+    if (this.isDraggingProductCard) {
+      ctx.setLineDash([10, 6]);
+    }
     ctx.beginPath();
     ctx.roundRect(cardX, cardY + floatY, cardW, cardH, 20);
     ctx.fill();
     ctx.stroke();
+    ctx.setLineDash([]);
 
     // Product Title (Black font color, compact margin)
     ctx.fillStyle = '#000000';
@@ -825,29 +903,39 @@ export class ShopeeCanvasRenderer {
   }
 
   renderTiktokProductCard(ctx, timestamp) {
-    if (!this.showProductCard || !this.currentProduct) return;
+    if (!this.showProductCard || !this.currentProduct) {
+      this.productCardBounds = null;
+      return;
+    }
 
     ctx.save();
     const hasImg = this.isProductImgLoaded && this.currentProduct.image && typeof this.currentProduct.image === 'string' && this.currentProduct.image.trim().length > 0;
     const hasSalePrice = typeof this.currentProduct.salePrice === 'number' && !isNaN(this.currentProduct.salePrice) && this.currentProduct.salePrice > 0;
-    const floatY = Math.sin(timestamp * 0.003) * 5;
+    const floatY = this.isDraggingProductCard ? 0 : Math.sin(timestamp * 0.003) * 5;
 
     const cardW = 310;
     const imgSize = 286;
     const cardH = hasImg ? (hasSalePrice ? 404 : 362) : (hasSalePrice ? 114 : 74);
-    const cardX = 36;
+    const defaultX = 36;
     // Anchor above TikTok deal banner (or above TikTok subtitle/chat safe zone)
     const anchorBottom = this.showFlashSaleBanner ? (this.height - 580) : (this.height - 470);
-    const cardY = anchorBottom - cardH;
+    const defaultY = anchorBottom - cardH;
+    const { x: cardX, y: cardY } = this._resolveProductCardXY(defaultX, defaultY, cardW, cardH);
+
+    this.productCardBounds = { x: cardX, y: cardY + floatY, w: cardW, h: cardH };
 
     // Dark glass card with TikTok pink-cyan accent border
     ctx.fillStyle = 'rgba(15, 17, 26, 0.82)';
-    ctx.strokeStyle = 'rgba(254, 44, 85, 0.85)';
-    ctx.lineWidth = 1.8;
+    ctx.strokeStyle = this.isDraggingProductCard ? '#fde047' : 'rgba(254, 44, 85, 0.85)';
+    ctx.lineWidth = this.isDraggingProductCard ? 3.2 : 1.8;
+    if (this.isDraggingProductCard) {
+      ctx.setLineDash([10, 6]);
+    }
     ctx.beginPath();
     ctx.roundRect(cardX, cardY + floatY, cardW, cardH, 18);
     ctx.fill();
     ctx.stroke();
+    ctx.setLineDash([]);
 
     // Small TikTok Shop tag at top of card
     ctx.fillStyle = '#25F4EE';

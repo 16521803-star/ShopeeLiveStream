@@ -459,6 +459,13 @@ if (studioSyncChannel) {
           canvasRenderer.resetStoreHeaderPosition(false);
         }
         break;
+      case 'UPDATE_PRODUCT_CARD_POS':
+        if (data.pos && typeof data.pos.x === 'number' && typeof data.pos.y === 'number') {
+          canvasRenderer.setProductCardPosition(data.pos.x, data.pos.y, false);
+        } else {
+          canvasRenderer.resetProductCardPosition(false);
+        }
+        break;
       case 'UPDATE_PLATFORM_MODE':
         if (data.mode) {
           applyPlatformMode(data.mode, false);
@@ -1506,14 +1513,21 @@ function bindEvents() {
   }
 
   const chkShowProductCard = document.getElementById('chk-show-product-card');
+  const productCardPosControls = document.getElementById('product-card-pos-controls');
   const savedShowProductCard = localStorage.getItem('dincox_show_product_card') === null ? true : (localStorage.getItem('dincox_show_product_card') === 'true'); // Default true
   if (chkShowProductCard) {
     chkShowProductCard.checked = savedShowProductCard;
     canvasRenderer.setShowProductCard(savedShowProductCard);
+    if (productCardPosControls) {
+      productCardPosControls.classList.toggle('hidden', !savedShowProductCard);
+    }
 
     chkShowProductCard.addEventListener('change', (e) => {
       const isChecked = e.target.checked;
       canvasRenderer.setShowProductCard(isChecked);
+      if (productCardPosControls) {
+        productCardPosControls.classList.toggle('hidden', !isChecked);
+      }
       localStorage.setItem('dincox_show_product_card', isChecked ? 'true' : 'false');
       studioSyncChannel?.postMessage({ type: 'TOGGLE_SETTING', key: 'showProductCard', value: isChecked });
     });
@@ -1851,28 +1865,39 @@ function bindEvents() {
     }
   });
 
-  // Dincox2: Randomize / Reset / Drag-and-Drop "DINCOX SHOES STORE" position on Canvas
-  const syncStoreHeaderPos = (pos) => {
+  // Overlay Drag-and-Drop / Randomize / Reset Position Controls (Store Header for Dincox2 + Floating Product Card for all layouts)
+  const syncOverlayPos = (type, pos) => {
     if (studioSyncChannel) {
-      studioSyncChannel.postMessage({ type: 'UPDATE_STORE_HEADER_POS', pos });
+      studioSyncChannel.postMessage({ type, pos });
     }
   };
 
   document.getElementById('btn-randomize-store-header')?.addEventListener('click', () => {
-    if (!canvasRenderer.isDincox2Branch()) return;
+    if (!canvasRenderer.isDincox2Branch() || canvasRenderer.isTiktokMode()) return;
     const pos = canvasRenderer.randomizeStoreHeaderPosition(true);
-    syncStoreHeaderPos(pos);
+    syncOverlayPos('UPDATE_STORE_HEADER_POS', pos);
   });
 
   document.getElementById('btn-reset-store-header')?.addEventListener('click', () => {
-    if (!canvasRenderer.isDincox2Branch()) return;
+    if (!canvasRenderer.isDincox2Branch() || canvasRenderer.isTiktokMode()) return;
     canvasRenderer.resetStoreHeaderPosition(true);
-    syncStoreHeaderPos(null);
+    syncOverlayPos('UPDATE_STORE_HEADER_POS', null);
+  });
+
+  document.getElementById('btn-randomize-product-card')?.addEventListener('click', () => {
+    const pos = canvasRenderer.randomizeProductCardPosition(true);
+    syncOverlayPos('UPDATE_PRODUCT_CARD_POS', pos);
+  });
+
+  document.getElementById('btn-reset-product-card')?.addEventListener('click', () => {
+    canvasRenderer.resetProductCardPosition(true);
+    syncOverlayPos('UPDATE_PRODUCT_CARD_POS', null);
   });
 
   const canvasContainerEl = document.querySelector('.canvas-container');
   const isObsTab = window.location.search.includes('obs=true') || window.location.search.includes('overlay=true');
   if (canvasContainerEl && canvas && !isObsTab) {
+    let activeDragTarget = null; // 'storeHeader' | 'productCard' | null
     let dragOffsetX = 0;
     let dragOffsetY = 0;
 
@@ -1885,55 +1910,79 @@ function bindEvents() {
       };
     };
 
-    canvasContainerEl.addEventListener('pointerdown', (e) => {
-      if (!canvasRenderer.isDincox2Branch()) return;
-      const pt = toCanvasCoords(e.clientX, e.clientY);
-      if (canvasRenderer.isPointInStoreHeader(pt.x, pt.y)) {
-        canvasRenderer.isDraggingStoreHeader = true;
-        dragOffsetX = pt.x - canvasRenderer.storeHeaderBounds.x;
-        dragOffsetY = pt.y - canvasRenderer.storeHeaderBounds.y;
-        canvasContainerEl.style.cursor = 'grabbing';
-        if (typeof canvasContainerEl.setPointerCapture === 'function') {
-          try { canvasContainerEl.setPointerCapture(e.pointerId); } catch (err) {}
-        }
-        e.preventDefault();
+    const getDraggableAtPoint = (x, y) => {
+      if (canvasRenderer.isPointInStoreHeader(x, y)) {
+        return { kind: 'storeHeader', bounds: canvasRenderer.storeHeaderBounds };
       }
+      if (canvasRenderer.isPointInProductCard(x, y)) {
+        return { kind: 'productCard', bounds: canvasRenderer.productCardBounds };
+      }
+      return null;
+    };
+
+    canvasContainerEl.addEventListener('pointerdown', (e) => {
+      const pt = toCanvasCoords(e.clientX, e.clientY);
+      const hit = getDraggableAtPoint(pt.x, pt.y);
+      if (!hit || !hit.bounds) return;
+
+      activeDragTarget = hit.kind;
+      canvasRenderer.isDraggingStoreHeader = activeDragTarget === 'storeHeader';
+      canvasRenderer.isDraggingProductCard = activeDragTarget === 'productCard';
+      dragOffsetX = pt.x - hit.bounds.x;
+      dragOffsetY = pt.y - hit.bounds.y;
+      canvasContainerEl.style.cursor = 'grabbing';
+      if (typeof canvasContainerEl.setPointerCapture === 'function') {
+        try { canvasContainerEl.setPointerCapture(e.pointerId); } catch (err) {}
+      }
+      e.preventDefault();
     });
 
     canvasContainerEl.addEventListener('pointermove', (e) => {
-      if (!canvasRenderer.isDincox2Branch()) {
-        canvasContainerEl.style.cursor = '';
-        return;
-      }
       const pt = toCanvasCoords(e.clientX, e.clientY);
-      if (canvasRenderer.isDraggingStoreHeader) {
+      if (activeDragTarget === 'storeHeader') {
         const pos = canvasRenderer.setStoreHeaderPosition(pt.x - dragOffsetX, pt.y - dragOffsetY, false);
-        syncStoreHeaderPos(pos);
+        syncOverlayPos('UPDATE_STORE_HEADER_POS', pos);
+        e.preventDefault();
+      } else if (activeDragTarget === 'productCard') {
+        const pos = canvasRenderer.setProductCardPosition(pt.x - dragOffsetX, pt.y - dragOffsetY, false);
+        syncOverlayPos('UPDATE_PRODUCT_CARD_POS', pos);
         e.preventDefault();
       } else {
-        canvasContainerEl.style.cursor = canvasRenderer.isPointInStoreHeader(pt.x, pt.y) ? 'grab' : '';
+        canvasContainerEl.style.cursor = getDraggableAtPoint(pt.x, pt.y) ? 'grab' : '';
       }
     });
 
-    const endStoreHeaderDrag = (e) => {
-      if (!canvasRenderer.isDraggingStoreHeader) return;
+    const endOverlayDrag = (e) => {
+      if (!activeDragTarget) return;
+      const finishedTarget = activeDragTarget;
+      activeDragTarget = null;
       canvasRenderer.isDraggingStoreHeader = false;
+      canvasRenderer.isDraggingProductCard = false;
       canvasContainerEl.style.cursor = 'grab';
-      if (canvasRenderer.storeHeaderPos) {
+
+      if (finishedTarget === 'storeHeader' && canvasRenderer.storeHeaderPos) {
         const pos = canvasRenderer.setStoreHeaderPosition(
           canvasRenderer.storeHeaderPos.x,
           canvasRenderer.storeHeaderPos.y,
           true
         );
-        syncStoreHeaderPos(pos);
+        syncOverlayPos('UPDATE_STORE_HEADER_POS', pos);
+      } else if (finishedTarget === 'productCard' && canvasRenderer.productCardPos) {
+        const pos = canvasRenderer.setProductCardPosition(
+          canvasRenderer.productCardPos.x,
+          canvasRenderer.productCardPos.y,
+          true
+        );
+        syncOverlayPos('UPDATE_PRODUCT_CARD_POS', pos);
       }
+
       if (typeof canvasContainerEl.releasePointerCapture === 'function') {
         try { canvasContainerEl.releasePointerCapture(e.pointerId); } catch (err) {}
       }
     };
 
-    canvasContainerEl.addEventListener('pointerup', endStoreHeaderDrag);
-    canvasContainerEl.addEventListener('pointercancel', endStoreHeaderDrag);
+    canvasContainerEl.addEventListener('pointerup', endOverlayDrag);
+    canvasContainerEl.addEventListener('pointercancel', endOverlayDrag);
   }
 
   document.getElementById('btn-obs-mode')?.addEventListener('click', () => {
