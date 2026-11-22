@@ -300,6 +300,38 @@ export async function verifySignedCatalogJSON(jsonStr, currentBrand) {
 }
 
 /**
+ * Kiểm tra xem Brand phụ hiện tại có phải áp dụng rule kiểm tra chữ ký số JSON hay không.
+ * Riêng Brand "Dincox2": tạm thời KHÔNG check chữ ký vào các ngày thường,
+ * chỉ check vào các ngày theo chu kỳ +7 ngày tính từ mốc 20/11/2026 (27/11, 04/12, 11/12, 18/12...).
+ */
+export function shouldEnforceSignatureForBrand(brandName, nowDate = new Date()) {
+  const brandKey = String(brandName || '').trim().toLowerCase();
+  if (brandKey === 'dincox2') {
+    let y;
+    let m;
+    let d;
+    try {
+      const vnDateStr = new Intl.DateTimeFormat('en-CA', {
+        timeZone: 'Asia/Ho_Chi_Minh',
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit'
+      }).format(nowDate);
+      [y, m, d] = vnDateStr.split('-').map(Number);
+    } catch (e) {
+      y = nowDate.getFullYear();
+      m = nowDate.getMonth() + 1;
+      d = nowDate.getDate();
+    }
+    const todayUTC = Date.UTC(y, m - 1, d);
+    const anchorUTC = Date.UTC(2026, 10, 20); // 20/11/2026 (month 10 = Nov)
+    const diffDays = Math.round((todayUTC - anchorUTC) / 86400000);
+    return diffDays >= 7 && diffDays % 7 === 0;
+  }
+  return true;
+}
+
+/**
  * Tiện ích tạo mã SHA-256 cho mật khẩu mới (dành cho Admin trên F12 Console)
  */
 export async function generateBrandHash(plainPassword) {

@@ -29,7 +29,7 @@ import { AIPresenterEngine } from './engine/aiPresenterEngine.js';
 import { ShopeeCanvasRenderer } from './engine/canvasRenderer.js';
 import { VideoExporter } from './engine/videoExporter.js';
 import { ShopeeRtmpStreamer } from './engine/shopeeRtmpStreamer.js';
-import { verifyBrandAccess, validateStoredSession, isCurrentSessionAdmin, isCurrentSessionTiktokMode, signCatalogProductsForBrand, verifySignedCatalogJSON } from './data/brandAccessConfig.js';
+import { verifyBrandAccess, validateStoredSession, isCurrentSessionAdmin, isCurrentSessionTiktokMode, signCatalogProductsForBrand, verifySignedCatalogJSON, shouldEnforceSignatureForBrand } from './data/brandAccessConfig.js';
 
 // Application State
 let activeProduct = (DINCOX_PRODUCTS && DINCOX_PRODUCTS.length > 0) ? DINCOX_PRODUCTS[0] : null;
@@ -2190,13 +2190,16 @@ function bindEvents() {
         reader.onload = async (evt) => {
           const rawContent = evt.target.result;
           const isAdmin = await isCurrentSessionAdmin();
+          const currentBrand = getStudioBrandName();
+          const enforceSignature = !isAdmin && shouldEnforceSignatureForBrand(currentBrand);
 
           let contentToImport = rawContent;
           let extraMsg = '';
 
-          // Only enforce 7-day Signed JSON verification for sub-brands (Master DinCox unaffected)
-          if (!isAdmin) {
-            const verifyRes = await verifySignedCatalogJSON(rawContent, getStudioBrandName());
+          // Only enforce 7-day Signed JSON verification when required for the active sub-brand (Master DinCox unaffected;
+          // Dincox2 is only checked on 7-day cycle dates starting 20/11/2026 -> 27/11, 04/12, 11/12...)
+          if (enforceSignature) {
+            const verifyRes = await verifySignedCatalogJSON(rawContent, currentBrand);
             if (!verifyRes.valid) {
               alert(verifyRes.message);
               return;
